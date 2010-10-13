@@ -39,11 +39,13 @@ class ServerController(object):
                 pPlayer.ProcessPackets()
                 if pPlayer.IsIdentified == True:
                     ToRemove.append(pPlayer)
+
             #Remove Authenitcating players from our duty
             while len(ToRemove) > 0:
                 pPlayer = ToRemove.pop()
                 self.AuthPlayers.remove(pPlayer)
                 self.DefaultWorld.AddPlayer(pPlayer)
+
             #TODO: Threading for worlds - Multi worlds..
             self.DefaultWorld.run()
 
@@ -69,6 +71,7 @@ class ServerController(object):
             self.PlayerSet.add(pPlayer)
             self.AuthPlayers.add(pPlayer)
             pPlayer.SetId(self.PlayerIDs.pop())
+            self.HeartBeatController.IncreaseClients()
 
     def RemovePlayer(self,pPlayer):
         self.PlayersPendingRemoval.append(pPlayer)
@@ -84,6 +87,7 @@ class ServerController(object):
             self.AuthPlayers.remove(pPlayer)
         if pPlayer.GetWorld() != None:
             pPlayer.GetWorld.RemovePlayer(pPlayer)
+        self.HeartBeatController.DecreaseClients()
 
     def GetPlayerFromSocket(self,Socket):
         return self.SocketToPlayer[Socket]
