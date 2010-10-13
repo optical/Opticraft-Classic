@@ -30,6 +30,24 @@ class World(object):
         print "I would be saving now!" #TODO: Implement world state saving...
         self.LastSave = time.time()
 
+    def _CalculateOffset(self,x,y,z):
+        return z*(self.x*self.y) + y*(self.x) + x
+    def AttemptSetBlock(self,x,y,z,val):
+        #TODO: Check the block type & coordinates are correct
+        self.SetBlock(x,y,z,val)
+        return True
+    def SetBlock(self,x,y,z,val):
+        #Changes a block to a certain value.
+        ArrayValue = self._CalculateOffset(x,y,z)
+        self.Blocks[ArrayValue] = chr(val)
+        Packet = OptiCraftPacket(SMSG_BLOCKSET)
+        Packet.WriteInt16(x)
+        Packet.WriteInt16(z)
+        Packet.WriteInt16(y)
+        Packet.WriteByte(val)
+        self.SendPacketToAll(Packet)
+
+
     def GenerateGenericWorld(self):
         self.x, self.y, self.z = 128,128,64
         GrassLevel = self.z / 2
