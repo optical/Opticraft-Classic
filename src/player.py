@@ -42,6 +42,12 @@ class Player(object):
         self.ServerControl.SockManager.CloseSocket(self.PlayerSocket)
         self.ServerControl.RemovePlayer(self)
 
+    def SendMessage(self,Message):
+        Packet = OptiCraftPacket(SMSG_MESSAGE)
+        Packet.WriteByte(0)
+        Packet.WriteString(Message[:64])
+        self.SendPacket(Packet)
+
     def GetId(self):
         return self.Id
     def SetId(self,Id):
@@ -142,14 +148,23 @@ class Player(object):
             y = Packet.GetInt16()
             Mode = Packet.GetByte()
             Block = Packet.GetByte()
+            Result = None
             if Mode == 0:
-                self.World.AttemptSetBlock(x,y,z,0)
+                Result = self.World.AttemptSetBlock(x,y,z,0)
             else:
-                self.World.AttemptSetBlock(x,y,z,Block)
+                Result = self.World.AttemptSetBlock(x,y,z,Block)
+            if Result != True:
+                self.World.SendBlock(self,x,y,z)
             
     def HandleChatMessage(self,Packet):
         junk = Packet.GetByte()
         Message = Packet.GetString()
+        if Message[0] == "/":
+            #This is a command. Handle it
+            #TODO: Implement Commands!
+            self.SendMessage("[NOTICE]: Chat commands are not implemented yet!")
+            return
+
         Packet2 = OptiCraftPacket(SMSG_MESSAGE)
         Packet2.WriteByte(self.GetId())
         Message = self.Name + ": " +Message

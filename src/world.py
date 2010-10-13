@@ -13,13 +13,13 @@ class World(object):
         self.IsDefault = IsDefault
         self.Blocks = array("c")
         self.Players = set()
-        self.x, self.y, self.z = -1,-1,-1
+        self.X, self.Y, self.Z = -1,-1,-1
         self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
         if not IsNew:
             self.Load()
         else:
             self.GenerateGenericWorld()
-        self.NetworkSize = struct.pack("!i", self.x*self.y*self.z)
+        self.NetworkSize = struct.pack("!i", self.X*self.Y*self.Z)
 
         self.LastSave = time.time()
         self.SaveInterval = 180
@@ -31,9 +31,11 @@ class World(object):
         self.LastSave = time.time()
 
     def _CalculateOffset(self,x,y,z):
-        return z*(self.x*self.y) + y*(self.x) + x
+        return z*(self.X*self.Y) + y*(self.X) + x
     def AttemptSetBlock(self,x,y,z,val):
         #TODO: Check the block type & coordinates are correct
+        if x < 0 or x >= self.X or y < 0 or y >= self.Y or z < 0 or z >= self.Z:
+            return True #Cant set that block. But don't return False or it'll try "undo" the change!
         self.SetBlock(x,y,z,val)
         return True
     def SetBlock(self,x,y,z,val):
@@ -49,13 +51,13 @@ class World(object):
 
 
     def GenerateGenericWorld(self):
-        self.x, self.y, self.z = 128,128,64
-        GrassLevel = self.z / 2
+        self.X, self.Y, self.Z = 128,128,64
+        GrassLevel = self.Z / 2
         SandLevel = GrassLevel - 2
-        self.SpawnY = self.y / 2
-        self.SpawnX = self.x / 2
-        self.SpawnZ = self.z / 2 +2
-        for z in xrange(self.z):
+        self.SpawnY = self.Y / 2
+        self.SpawnX = self.X / 2
+        self.SpawnZ = self.Z / 2 +2
+        for z in xrange(self.Z):
             if z < SandLevel:
                 Block = chr(BLOCK_ROCK)
             elif z >= SandLevel and z < GrassLevel:
@@ -64,7 +66,7 @@ class World(object):
                 Block = chr(BLOCK_GRASS)
             else:
                 Block = chr(BLOCK_AIR)
-            self.Blocks.extend((self.x*self.y)*Block)
+            self.Blocks.extend((self.X*self.Y)*Block)
         
 
     def run(self):
@@ -98,9 +100,9 @@ class World(object):
                     CurPos = ChunkEnd
 
                 Packet2 = OptiCraftPacket(SMSG_LEVELSIZE)
-                Packet2.WriteInt16(self.x)
-                Packet2.WriteInt16(self.z)
-                Packet2.WriteInt16(self.y)
+                Packet2.WriteInt16(self.X)
+                Packet2.WriteInt16(self.Z)
+                Packet2.WriteInt16(self.Y)
                 pPlayer.SendPacket(Packet2)
 
                 x = self.SpawnX * 32
@@ -129,6 +131,16 @@ class World(object):
         self.Players.remove(pPlayer)
         #Send Some packets to local players...
 
+    def SendBlock(self,pPlayer,x,y,z):
+        #We can trust that these coordinates will be within bounds.
+        Packet = OptiCraftPacket(SMSG_BLOCKSET)
+        Packet.WriteInt16(x)
+        Packet.WriteInt16(z)
+        Packet.WriteInt16(y)
+        Packet.WriteByte(self.Blocks[self._CalculateOffset(x, y, z)])
+        pPlayer.SendPacket(Packet)
+
+
     def AddPlayer(self,pPlayer):
         self.Players.add(pPlayer)
         Packet = OptiCraftPacket(SMSG_PRECHUNK)
@@ -149,7 +161,6 @@ class World(object):
 
     def SendAllPlayers(self,Client):
         for pPlayer in self.Players:
-            print pPlayer
             if pPlayer.IsLoadingWorld() == False and pPlayer != Client:
                 Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
                 Packet.WriteByte(pPlayer.GetId())
