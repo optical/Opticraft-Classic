@@ -80,8 +80,7 @@ class Player(object):
         return self.P
     #Opcode handlers go below this line
     def HandleIdentify(self,Packet):
-        '''Handles the initial packet sent by the client
-        ...Format: bssb (1,64,64,1) = 130'''
+        '''Handles the initial packet sent by the client'''
         if self.IsIdentified == True:
             self.Disconnect()
             return
@@ -149,8 +148,15 @@ class Player(object):
                 self.World.AttemptSetBlock(x,y,z,Block)
             
     def HandleChatMessage(self,Packet):
-        print "Player sent a chat message {%s}" %Packet.GetOutData()
-
+        junk = Packet.GetByte()
+        Message = Packet.GetString()
+        Packet2 = OptiCraftPacket(SMSG_MESSAGE)
+        Packet2.WriteByte(self.GetId())
+        Message = self.Name + ": " +Message
+        Message = Message[:64]
+        Packet2.WriteString(Message)
+        self.ServerControl.SendPacketToAll(Packet2)
+        
     def __init__(self,PlayerSocket,SockAddress,ServerControl):
         self.PlayerSocket = PlayerSocket
         self.PlayerIP = SockAddress
