@@ -121,6 +121,8 @@ class Player(object):
             y = Packet.GetInt16()
             o = Packet.GetByte()
             p = Packet.GetByte()
+            if x == self.X and y == self.Y and z == self.Z and o == self.O and p == self.P:
+                return #Saves bandwidth. No need to redistribute something we just sent..
             self.SetLocation(x, y, z, o, p)
             NewPacket = OptiCraftPacket(SMSG_PLAYERPOS)
             NewPacket.WriteByte(self.GetId())
