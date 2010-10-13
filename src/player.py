@@ -137,8 +137,17 @@ class Player(object):
 
 
     def HandleBlockChange(self,Packet):
-        print "Player changed a block {%s}" %Packet.GetOutData()
-
+        if self.World is not None:
+            x = Packet.GetInt16()
+            z = Packet.GetInt16()
+            y = Packet.GetInt16()
+            Mode = Packet.GetByte()
+            Block = Packet.GetByte()
+            if Mode == 0:
+                self.World.AttemptSetBlock(x,y,z,0)
+            else:
+                self.World.AttemptSetBlock(x,y,z,Block)
+            
     def HandleChatMessage(self,Packet):
         print "Player sent a chat message {%s}" %Packet.GetOutData()
 
