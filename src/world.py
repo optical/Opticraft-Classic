@@ -78,6 +78,7 @@ class World(object):
         fHandle.close()
         if Verbose:
             print "Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000))
+            self.SendNotice("Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
         self.LastSave = time.time()
 
     def _CalculateOffset(self,x,y,z):
@@ -174,6 +175,7 @@ class World(object):
                 pPlayer.SetLoadingWorld(False)
                 self.SendPlayerJoined(pPlayer)
                 self.SendAllPlayers(pPlayer)
+                self.SendNotice('%s joined the map!' %pPlayer.GetName())
                 continue
             pPlayer.ProcessPackets()
 
@@ -223,6 +225,11 @@ class World(object):
                 Packet.WriteByte(pPlayer.GetOrientation())
                 Packet.WriteByte(pPlayer.GetPitch())
                 Client.SendPacket(Packet)
+    def SendNotice(self,Message):
+        Packet = OptiCraftPacket(SMSG_MESSAGE)
+        Packet.WriteByte(0xFF)
+        Packet.WriteString(Message)
+        self.SendPacketToAll(Packet)
         
     def SendPacketToAll(self,Packet,Client = None, SendToSelf = False):
         for pPlayer in self.Players:
