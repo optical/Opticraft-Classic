@@ -17,7 +17,10 @@ class World(object):
         self.X, self.Y, self.Z = -1,-1,-1
         self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
         if os.path.isfile(self.Name + '.save'):
-            self.Load()
+            LoadResult = self.Load()
+            if LoadResult == False:
+                print "Generating new world for map '%s' - Load a backup if you wish to preserve your data!" %self.Name
+                self.GenerateGenericWorld()
         else:
             self.GenerateGenericWorld()
         self.NetworkSize = struct.pack("!i", self.X*self.Y*self.Z)
@@ -40,17 +43,20 @@ class World(object):
         except:
             print "Failed to open up save file for world %s!" %self.Name
             return False
-        
-        raw_data = fHandle.read()
-        self.X = struct.unpack("h",raw_data[0:2])[0]
-        self.Y = struct.unpack("h",raw_data[2:4])[0]
-        self.Z = struct.unpack("h",raw_data[4:6])[0]
-        self.SpawnX = struct.unpack("h",raw_data[6:8])[0]
-        self.SpawnY = struct.unpack("h",raw_data[8:10])[0]
-        self.SpawnZ = struct.unpack("h",raw_data[10:12])[0]
-        self.Blocks.extend(zlib.decompress(raw_data[12:]))
-        fHandle.close()
-        print "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000))       
+        try:
+            raw_data = fHandle.read()
+            self.X = struct.unpack("h",raw_data[0:2])[0]
+            self.Y = struct.unpack("h",raw_data[2:4])[0]
+            self.Z = struct.unpack("h",raw_data[4:6])[0]
+            self.SpawnX = struct.unpack("h",raw_data[6:8])[0]
+            self.SpawnY = struct.unpack("h",raw_data[8:10])[0]
+            self.SpawnZ = struct.unpack("h",raw_data[10:12])[0]
+            self.Blocks.extend(zlib.decompress(raw_data[12:]))
+            fHandle.close()
+            print "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000))
+        except:
+            print "CRITICAL ERROR - Failed to load map '%s'." %self.Name + '.save'
+            return False
     
     def Save(self, Verbose = True):
         '''First draft of map format:
@@ -102,8 +108,8 @@ class World(object):
         self.SendPacketToAll(Packet)
 
 
-    def GenerateGenericWorld(self):
-        self.X, self.Y, self.Z = 128,128,64
+    def GenerateGenericWorld(self,x=192,y=192,z=64):
+        self.X, self.Y, self.Z = x,y,z
         GrassLevel = self.Z / 2
         SandLevel = GrassLevel - 2
         self.SpawnY = self.Y / 2
@@ -184,6 +190,9 @@ class World(object):
     def RemovePlayer(self,pPlayer):
         self.Players.remove(pPlayer)
         #Send Some packets to local players...
+        Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
+        Packet.WriteByte(pPlayer.GetId())
+        self.SendPacketToAll(Packet, pPlayer)
 
     def SendBlock(self,pPlayer,x,y,z):
         #We can trust that these coordinates will be within bounds.

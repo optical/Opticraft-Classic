@@ -77,6 +77,7 @@ class SocketManager(object):
             except socket.error, (error_no, error_msg):
                 if error_no == 10054: #They closed the connection...
                     self._RemoveSocket(Socket)
+                    continue
                 else: #An error i haven't accounted for occured - o shit.
                     print "Critical Error! id:", error_no, "Message:", error_msg
                     exit(1)
