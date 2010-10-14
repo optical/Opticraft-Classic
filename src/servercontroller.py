@@ -25,7 +25,7 @@ class ServerController(object):
         reversed(self.PlayerIDs)
         self.SocketToPlayer = dict()
         self.Running = False
-        self.DefaultWorld = World("OptiCraft Default World",True,True)
+        self.DefaultWorld = World("OptiCraft_Default_World",True)
         self.LastKeepAlive = -1
 
     def run(self):
