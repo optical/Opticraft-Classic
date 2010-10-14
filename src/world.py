@@ -1,7 +1,7 @@
+import os.path
 import zlib
 import gzip
 import struct
-import os
 import time
 from array import array
 from opticraftpacket import OptiCraftPacket
@@ -9,14 +9,14 @@ from opcodes import *
 from blocktype import *
 
 class World(object):
-    def __init__(self,Name,IsNew = False,IsDefault = False):
+    def __init__(self,Name,IsDefault = False):
         self.IsDefault = IsDefault
         self.Blocks = array("c")
         self.Players = set()
         self.Name = Name
         self.X, self.Y, self.Z = -1,-1,-1
         self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
-        if not IsNew:
+        if os.path.isfile(self.Name + '.save'):
             self.Load()
         else:
             self.GenerateGenericWorld()
@@ -48,11 +48,11 @@ class World(object):
         self.SpawnX = struct.unpack("h",raw_data[6:8])[0]
         self.SpawnY = struct.unpack("h",raw_data[8:10])[0]
         self.SpawnZ = struct.unpack("h",raw_data[10:12])[0]
-        self.Blocks = zlib.decompress(raw_data[12:])
+        self.Blocks.extend(zlib.decompress(raw_data[12:]))
         fHandle.close()
         print "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000))       
     
-    def Save(self):
+    def Save(self, Verbose = True):
         '''First draft of map format:
         0-2 = X
         2-4 = Y
@@ -76,7 +76,8 @@ class World(object):
         fHandle.write(zlib.compress(self.Blocks,1))
         #We use the lowest level of compression as saving time is much more important here
         fHandle.close()
-        print "Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000))
+        if Verbose:
+            print "Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000))
         self.LastSave = time.time()
 
     def _CalculateOffset(self,x,y,z):
@@ -101,7 +102,7 @@ class World(object):
 
 
     def GenerateGenericWorld(self):
-        self.X, self.Y, self.Z = 256,256,256
+        self.X, self.Y, self.Z = 128,128,64
         GrassLevel = self.Z / 2
         SandLevel = GrassLevel - 2
         self.SpawnY = self.Y / 2
@@ -117,7 +118,7 @@ class World(object):
             else:
                 Block = chr(BLOCK_AIR)
             self.Blocks.extend((self.X*self.Y)*Block)
-        self.Save()
+        self.Save(False)
         
 
     def run(self):
