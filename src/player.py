@@ -11,6 +11,7 @@ class Player(object):
             OpCode = ord(self.SockBuffer[0])
             if PacketSizes.has_key(OpCode) == False:
                 self.Disconnect("Unhandled packet!") #Unimplemented packet type.
+                return
             PacketSize = PacketSizes[OpCode]
             BufLen = len(self.SockBuffer) - 1 #Remove one for opcode
             #print "OpCode:", OpCode
