@@ -14,6 +14,7 @@ class ServerController(object):
         self.Port = 9999
         self.Salt = "SOMESALT"
         self.Name = "OptiCraft Dev Server"
+        self.Motd = "-hax"
         self.MaxClients = 100
         self.Public = True
         self.HeartBeatController = HeartBeatController(self)
@@ -63,6 +64,11 @@ class ServerController(object):
                     
             time.sleep(0.05)
 
+    def GetName(self):
+        return self.Name
+    def GetMotd(self):
+        return self.Motd
+
     def AttemptAddPlayer(self,pPlayer):
         if len(self.PlayerIDs) == 0:
             return False
@@ -91,6 +97,11 @@ class ServerController(object):
 
     def GetPlayerFromSocket(self,Socket):
         return self.SocketToPlayer[Socket]
+    def SendNotice(self,Message):
+        Packet = OptiCraftPacket(SMSG_MESSAGE)
+        Packet.WriteByte(0xFF)
+        Packet.WriteString(Message)
+        self.SendPacketToAll(Packet)
 
     def SendPacketToAll(self,Packet):
         for pPlayer in self.PlayerSet:

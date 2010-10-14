@@ -108,10 +108,11 @@ class Player(object):
             #send the next packet...
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
             OutPacket.WriteByte(7)
-            OutPacket.WriteString("OptiCraft Dev Server")
-            OutPacket.WriteString("Success - Now whats next?")
+            OutPacket.WriteString(self.ServerControl.GetName())
+            OutPacket.WriteString(self.ServerControl.GetMotd())
             OutPacket.WriteByte(0)
             self.SendPacket(OutPacket)
+            self.ServerControl.SendNotice('%s connected to the server' %self.Name)
             return
         else:
             print "Spoofed password!"
