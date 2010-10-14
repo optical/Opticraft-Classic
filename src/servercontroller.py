@@ -86,7 +86,7 @@ class ServerController(object):
         if pPlayer in self.AuthPlayers:
             self.AuthPlayers.remove(pPlayer)
         if pPlayer.GetWorld() != None:
-            pPlayer.GetWorld.RemovePlayer(pPlayer)
+            pPlayer.GetWorld().RemovePlayer(pPlayer)
         self.HeartBeatController.DecreaseClients()
 
     def GetPlayerFromSocket(self,Socket):

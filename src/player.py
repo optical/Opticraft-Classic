@@ -162,7 +162,7 @@ class Player(object):
         if Message[0] == "/":
             #This is a command. Handle it
             #TODO: Implement Commands!
-            self.SendMessage("[NOTICE]: Chat commands are not implemented yet!")
+            self.SendMessage("&4[NOTICE]:&f Chat commands are not implemented yet!")
             return
 
         Packet2 = OptiCraftPacket(SMSG_MESSAGE)
