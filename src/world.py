@@ -13,6 +13,7 @@ class World(object):
         self.IsDefault = IsDefault
         self.Blocks = array("c")
         self.Players = set()
+        self.Name = Name
         self.X, self.Y, self.Z = -1,-1,-1
         self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
         if not IsNew:
@@ -25,13 +26,62 @@ class World(object):
         self.SaveInterval = 180
 
     def Load(self):
-        pass #TODO: Implement world state saving...
+        '''First draft of map format:
+        0-2 = X
+        2-4 = Y
+        4-6 = Z
+        6-8 = SpawnX
+        8-10 = SpawnY
+        12-12 = SpawnZ
+        12+ = zlibbed array data'''
+        start = time.time()
+        try:
+            fHandle = open(self.Name + '.save','rb')
+        except:
+            print "Failed to open up save file for world %s!" %self.Name
+            return False
+        
+        raw_data = fHandle.read()
+        self.X = struct.unpack("h",raw_data[0:2])[0]
+        self.Y = struct.unpack("h",raw_data[2:4])[0]
+        self.Z = struct.unpack("h",raw_data[4:6])[0]
+        self.SpawnX = struct.unpack("h",raw_data[6:8])[0]
+        self.SpawnY = struct.unpack("h",raw_data[8:10])[0]
+        self.SpawnZ = struct.unpack("h",raw_data[10:12])[0]
+        self.Blocks = zlib.decompress(raw_data[12:])
+        fHandle.close()
+        print "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000))       
+    
     def Save(self):
-        print "I would be saving now!" #TODO: Implement world state saving...
+        '''First draft of map format:
+        0-2 = X
+        2-4 = Y
+        4-6 = Z
+        6-8 = SpawnX
+        8-10 = SpawnY
+        12-12 = SpawnZ
+        12+ = zlibbed array data'''
+        start = time.time()
+        try:
+            fHandle = open(self.Name + '.save','wb')
+        except:
+            print "Critical error, could not save world data for world %s" %self.Name
+            return
+        fHandle.write(struct.pack("h",self.X))
+        fHandle.write(struct.pack("h",self.Y))
+        fHandle.write(struct.pack("h",self.Z))
+        fHandle.write(struct.pack("h",self.SpawnX))
+        fHandle.write(struct.pack("h",self.SpawnY))
+        fHandle.write(struct.pack("h",self.SpawnZ))
+        fHandle.write(zlib.compress(self.Blocks,1))
+        #We use the lowest level of compression as saving time is much more important here
+        fHandle.close()
+        print "Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000))
         self.LastSave = time.time()
 
     def _CalculateOffset(self,x,y,z):
         return z*(self.X*self.Y) + y*(self.X) + x
+    
     def AttemptSetBlock(self,x,y,z,val):
         #TODO: Check the block type & coordinates are correct
         if x < 0 or x >= self.X or y < 0 or y >= self.Y or z < 0 or z >= self.Z:
@@ -51,7 +101,7 @@ class World(object):
 
 
     def GenerateGenericWorld(self):
-        self.X, self.Y, self.Z = 128,128,64
+        self.X, self.Y, self.Z = 256,256,256
         GrassLevel = self.Z / 2
         SandLevel = GrassLevel - 2
         self.SpawnY = self.Y / 2
@@ -67,6 +117,7 @@ class World(object):
             else:
                 Block = chr(BLOCK_AIR)
             self.Blocks.extend((self.X*self.Y)*Block)
+        self.Save()
         
 
     def run(self):
