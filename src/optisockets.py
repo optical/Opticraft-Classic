@@ -96,6 +96,7 @@ class SocketManager(object):
                 except:
                     ToRemove.append(pPlayer)
                     self._RemoveSocket(Socket)
+                    continue
                 Remaining = size-result
                 if Remaining > 0:
                     pPlayer.SetOutBuffer(ToSend[result:])
