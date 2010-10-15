@@ -3,6 +3,8 @@ import zlib
 import gzip
 import struct
 import time
+import random
+import shutil
 from array import array
 from opticraftpacket import OptiCraftPacket
 from opcodes import *
@@ -16,7 +18,7 @@ class World(object):
         self.Name = Name
         self.X, self.Y, self.Z = -1,-1,-1
         self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
-        if os.path.isfile(self.Name + '.save'):
+        if os.path.isfile("Worlds/"+ self.Name + '.save'):
             LoadResult = self.Load()
             if LoadResult == False:
                 print "Generating new world for map '%s' - Load a backup if you wish to preserve your data!" %self.Name
@@ -25,8 +27,10 @@ class World(object):
             self.GenerateGenericWorld()
         self.NetworkSize = struct.pack("!i", self.X*self.Y*self.Z)
 
-        self.LastSave = time.time()
-        self.SaveInterval = 180
+        self.LastSave = time.time() + random.randrange(0,30)
+        self.SaveInterval = 60
+        self.LastBackup = time.time() + random.randrange(0,30)
+        self.BackupInterval = 1800
 
     def Load(self):
         '''First draft of map format:
@@ -39,7 +43,7 @@ class World(object):
         12+ = zlibbed array data'''
         start = time.time()
         try:
-            fHandle = open(self.Name + '.save','rb')
+            fHandle = open("Worlds/" +self.Name + '.save','rb')
         except:
             print "Failed to open up save file for world %s!" %self.Name
             return False
@@ -69,7 +73,7 @@ class World(object):
         12+ = zlibbed array data'''
         start = time.time()
         try:
-            fHandle = open(self.Name + '.save','wb')
+            fHandle = open("Worlds/" +self.Name + '.save','wb')
         except:
             print "Critical error, could not save world data for world %s" %self.Name
             return
@@ -86,6 +90,16 @@ class World(object):
             print "Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000))
             self.SendNotice("Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
         self.LastSave = time.time()
+
+    def Backup(self):
+        '''Performs a backup of the current save file'''
+        start = time.time()
+        if os.path.isfile("Worlds/" + self.Name + ".save") == False:
+            return
+        FileName = self.Name + '_' + time.strftime("%d-%m-%Y_%M-%S", time.gmtime()) + '.save'
+        shutil.copy("Worlds/" + self.Name + '.save', "Backups/" + FileName)
+        self.SendNotice("Backed up world in %dms" %(int((time.time()-start) * 1000)))
+        self.LastBackup = time.time()
 
     def _CalculateOffset(self,x,y,z):
         return z*(self.X*self.Y) + y*(self.X) + x
@@ -131,6 +145,8 @@ class World(object):
     def run(self):
         if self.LastSave + self.SaveInterval < time.time():
             self.Save()
+        if self.LastBackup + self.BackupInterval < time.time():
+            self.Backup()
 
         for pPlayer in self.Players:
             if pPlayer.IsLoadingWorld():

@@ -1,6 +1,8 @@
 # To change this template, choose Tools | Templates
 # and open the template in the editor.
 import time
+import os
+import os.path
 from heartbeatcontrol import HeartBeatController
 from opticraftpacket import OptiCraftPacket
 from optisockets import SocketManager
@@ -26,7 +28,13 @@ class ServerController(object):
         reversed(self.PlayerIDs)
         self.SocketToPlayer = dict()
         self.Running = False
-        self.DefaultWorld = World("OptiCraft_Default_World",True)
+        self.ActiveWorlds = []
+        #Check to see we have required directory's
+        if os.path.exists("Worlds") == False:
+            os.mkdir("Worlds")
+        if os.path.exists("Backups") == False:
+            os.mkdir("Backups")
+        self.ActiveWorlds.append(World("Default_World",True))
         self.LastKeepAlive = -1
 
     def run(self):
@@ -45,10 +53,11 @@ class ServerController(object):
             while len(ToRemove) > 0:
                 pPlayer = ToRemove.pop()
                 self.AuthPlayers.remove(pPlayer)
-                self.DefaultWorld.AddPlayer(pPlayer)
+                self.ActiveWorlds[0].AddPlayer(pPlayer)
 
             #TODO: Threading for worlds - Multi worlds..
-            self.DefaultWorld.run()
+            for pWorld in self.ActiveWorlds:
+                pWorld.run()
 
             #Remove any players which need to be deleted.
             while len(self.PlayersPendingRemoval) > 0:
@@ -62,7 +71,7 @@ class ServerController(object):
                 for pPlayer in self.PlayerSet:
                     pPlayer.SendPacket(Packet)
                     
-            time.sleep(0.05)
+            time.sleep(0.001)
 
     def GetName(self):
         return self.Name
