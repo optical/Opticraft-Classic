@@ -115,7 +115,5 @@ class SocketManager(object):
 
     def _RemoveSocket(self,Socket):
         pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
-        if pPlayer in self.WriteJobs:
-            self.WriteJobs.remove(pPlayer)
         self.ServerControl.RemovePlayer(pPlayer)
         self.PlayerSockets.remove(Socket)
