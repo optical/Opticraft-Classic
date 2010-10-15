@@ -1,3 +1,3 @@
 :start
-"opticraft.py"
+"run.py"
 goto start

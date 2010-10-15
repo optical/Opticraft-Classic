@@ -206,9 +206,11 @@ class World(object):
     def RemovePlayer(self,pPlayer):
         self.Players.remove(pPlayer)
         #Send Some packets to local players...
-        Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
-        Packet.WriteByte(pPlayer.GetId())
-        self.SendPacketToAll(Packet, pPlayer)
+        if pPlayer.IsLoadingWorld() == False:
+            Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
+            Packet.WriteByte(pPlayer.GetId())
+            self.SendPacketToAll(Packet, pPlayer)
+            self.SendNotice("%s left the map!" %pPlayer.GetName())
 
     def SendBlock(self,pPlayer,x,y,z):
         #We can trust that these coordinates will be within bounds.
