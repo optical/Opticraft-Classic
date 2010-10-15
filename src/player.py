@@ -35,7 +35,6 @@ class Player(object):
         self.OutBuffer = NewBuffer
     def SendPacket(self,Packet):
         '''Lets the socketmanager know that we have data to send'''
-        print "Sending Packet {%d} - {%s}" %(Packet.OpCode,Packet.data)
         self.OutBuffer += Packet.GetOutData()
         self.ServerControl.SockManager.AddWriteablePlayer(self)
     def Disconnect(self,Message):
