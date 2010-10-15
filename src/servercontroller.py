@@ -22,6 +22,7 @@ class ServerController(object):
         self.HeartBeatController = HeartBeatController(self)
         self.SockManager = SocketManager(self)
         self.PlayerSet = set() #All players logged into the server
+        self.PlayerNames = set() #All logged in players names.
         self.AuthPlayers = set() #Players without a world (Logging in)
         self.PlayersPendingRemoval = list() #Players to remove from our set at the end of a cycle.
         self.PlayerIDs = range(self.MaxClients)
@@ -100,6 +101,12 @@ class ServerController(object):
             del self.SocketToPlayer[pPlayer.GetSocket()]
         if pPlayer in self.AuthPlayers:
             self.AuthPlayers.remove(pPlayer)
+        else:
+            self.SendNotice("%s has left the server" %pPlayer.GetName())
+            
+        if pPlayer.GetName() in self.PlayerNames:
+            self.PlayerNames.remove(pPlayer.GetName())
+
         if pPlayer.GetWorld() != None:
             pPlayer.GetWorld().RemovePlayer(pPlayer)
         self.HeartBeatController.DecreaseClients()

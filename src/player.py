@@ -103,7 +103,12 @@ class Player(object):
             self.Disconnect("Your client is incompatible with this server")
             return
 
+        if self.Name in self.ServerControl.PlayerNames:
+            self.Disconnect("Duplicates are not allowed!")
+            return
+        
         if CorrectPass == HashedPass:
+            self.ServerControl.PlayerNames.add(self.Name)
             self.IsIdentified = True
             #send the next packet...
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
