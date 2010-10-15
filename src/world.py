@@ -28,7 +28,7 @@ class World(object):
         self.NetworkSize = struct.pack("!i", self.X*self.Y*self.Z)
 
         self.LastSave = time.time() + random.randrange(0,30)
-        self.SaveInterval = 60
+        self.SaveInterval = 300
         self.LastBackup = time.time() + random.randrange(0,30)
         self.BackupInterval = 1800
 
@@ -197,7 +197,7 @@ class World(object):
                 pPlayer.SetLoadingWorld(False)
                 self.SendPlayerJoined(pPlayer)
                 self.SendAllPlayers(pPlayer)
-                self.SendNotice('%s joined the map!' %pPlayer.GetName())
+                self.SendNotice('%s joined the map' %pPlayer.GetName())
                 continue
             pPlayer.ProcessPackets()
 
@@ -210,7 +210,7 @@ class World(object):
             Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
             Packet.WriteByte(pPlayer.GetId())
             self.SendPacketToAll(Packet, pPlayer)
-            self.SendNotice("%s left the map!" %pPlayer.GetName())
+            self.SendNotice("%s left the map" %pPlayer.GetName())
 
     def SendBlock(self,pPlayer,x,y,z):
         #We can trust that these coordinates will be within bounds.
