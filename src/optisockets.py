@@ -64,18 +64,13 @@ class SocketManager(object):
         #Finished that. Now to see what our sockets are up to...
         if len(self.PlayerSockets) == 0:
             return #calling select() on windows with 3 empty lists results in an exception.
-        rlist, wlist,xlist = select(self.PlayerSockets,self.PlayerSockets,self.PlayerSockets,0.05) #50ms timeout
-
-        for Socket in xlist:
-            #Socket is dead.
-            self._RemoveSocket(Socket)
-            print "A socket died :("
+        rlist, wlist,xlist = select(self.PlayerSockets,self.PlayerSockets,[],0.05) #50ms timeout
 
         for Socket in rlist:
             try:
                 data = Socket.recv(4096)
             except socket.error, (error_no, error_msg):
-                if error_no == 10054: #They closed the connection...
+                if error_no == 10054 or error_no == 10053: #They closed the connection...
                     self._RemoveSocket(Socket)
                     continue
                 else: #An error i haven't accounted for occured - o shit.
@@ -94,9 +89,13 @@ class SocketManager(object):
                 ToSend = pPlayer.GetOutBuffer()
                 size = len(ToSend)
                 #Let us try send some data :XX
-                print "Trying to send packet of size:", size
-                result = Socket.send(ToSend)
-                print "Managed to send", result, "bytes"
+                try:
+                    print "Trying to send packet of size:", size
+                    result = Socket.send(ToSend)
+                    print "Managed to send", result, "bytes"
+                except:
+                    ToRemove.append(pPlayer)
+                    self._RemoveSocket(Socket)
                 Remaining = size-result
                 if Remaining > 0:
                     pPlayer.SetOutBuffer(ToSend[result:])
@@ -114,5 +113,8 @@ class SocketManager(object):
         self.ClosingSockets.append(Socket)
 
     def _RemoveSocket(self,Socket):
-        self.ServerControl.RemovePlayer(self.ServerControl.GetPlayerFromSocket(Socket))
+        pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
+        if pPlayer in self.WriteJobs:
+            self.WriteJobs.remove(pPlayer)
+        self.ServerControl.RemovePlayer(pPlayer)
         self.PlayerSockets.remove(Socket)
