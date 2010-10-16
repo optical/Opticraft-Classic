@@ -6,6 +6,7 @@ import os.path
 from heartbeatcontrol import HeartBeatController
 from opticraftpacket import OptiCraftPacket
 from optisockets import SocketManager
+from commandhandler import CommandHandler
 from world import World
 from opcodes import *
 
@@ -30,6 +31,19 @@ class ServerController(object):
         self.SocketToPlayer = dict()
         self.Running = False
         self.ActiveWorlds = []
+        self.CommandHandle = CommandHandler(self)
+        self.BannedUsers = dict() #Dictionary of Username:expiry (in ctime)
+        #Load up banned usernames.
+        if os.path.isfile("banned.txt"):
+            try:
+                fHandle = open("banned.txt","r")
+                for line in fHandle:
+                    Tokens = line.split(":")
+                    self.BannedUsers[Tokens[0]] = int(Tokens[1])
+                fHandle.close()
+            except:
+                print "Failed to load banned users.txt!"
+
         #Check to see we have required directory's
         if os.path.exists("Worlds") == False:
             os.mkdir("Worlds")
@@ -79,6 +93,51 @@ class ServerController(object):
     def GetMotd(self):
         return self.Motd
 
+    def IsBanned(self,pPlayer):
+        '''Checks if a player is banned. Also erases any expired bans!'''
+        if self.BannedUsers.has_key(pPlayer.GetName().lower()):
+            ExpiryTime = self.BannedUsers[pPlayer.GetName().lower()]
+            if ExpiryTime == 0 or ExpiryTime > time.time():
+                return True
+            else:
+                del self.BannedUsers[pPlayer.GetName().lower()]
+                self.FlushBans()
+                return False
+        else:
+            return False
+        
+    def AddBan(self,Username,expiry):
+        self.BannedUsers[Username.lower()] = expiry
+        self.FlushBans()
+        for pPlayer in self.PlayerSet:
+            if pPlayer.GetName() == Username:
+                pPlayer.Disconnect("You are banned from this server")
+                
+    def Unban(self,Username):
+        if self.BannedUsers.has_key(Username.lower()) == True:
+            del self.BannedUsers[Username.lower()]
+            self.FlushBans()
+            return True
+        else:
+            return False
+
+    def Kick(self,Operator,Username,Reason):
+        for pPlayer in self.PlayerSet:
+            if pPlayer.GetName() == Username:
+                self.SendNotice("%s was kicked by %s for %s" %(Username,Operator.GetName(),Reason))
+                pPlayer.Disconnect("You were kicked by %s for %s" %(Operator.GetName(),Reason))
+                return True
+        return False
+
+    def FlushBans(self):
+        try:
+            fHandle = open("banned.txt","w")
+            for key in self.BannedUsers:
+                fHandle.write(key + ":" + str(self.BannedUsers[key]) + "\r\n")
+            fHandle.close()
+        except:
+            pass
+
     def AttemptAddPlayer(self,pPlayer):
         if len(self.PlayerIDs) == 0:
             return False
@@ -122,3 +181,9 @@ class ServerController(object):
     def SendPacketToAll(self,Packet):
         for pPlayer in self.PlayerSet:
             pPlayer.SendPacket(Packet)
+
+    def SaveAllWorlds(self):
+        '''This will need to be rewritten come multi-threaded worlds!'''
+        for pWorld in self.ActiveWorlds:
+            pWorld.Save()
+        
