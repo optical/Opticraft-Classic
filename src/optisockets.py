@@ -112,6 +112,11 @@ class SocketManager(object):
         self.ClosingSockets.append(Socket)
 
     def _RemoveSocket(self,Socket):
-        pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
-        self.ServerControl.RemovePlayer(pPlayer)
-        self.PlayerSockets.remove(Socket)
+        #this function can be called twice in a row.
+        #This occurs when the socket is returned in both the rlist and wlist
+        #... after the select() is called, and both the read() and write()
+        #... functions consequently fail.
+        if Socket in self.PlayerSockets:
+            self.PlayerSockets.remove(Socket)
+            pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
+            self.ServerControl.RemovePlayer(pPlayer)
