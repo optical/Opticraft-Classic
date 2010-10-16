@@ -16,7 +16,7 @@ class ServerController(object):
         self.Port = 9999
         self.Salt = "SOMESALT"
         self.Name = "OptiCraft Dev Server"
-        self.Motd = "-hax"
+        self.Motd = "+hax"
         self.MaxClients = 100
         self.Public = True
         self.HeartBeatController = HeartBeatController(self)

@@ -104,13 +104,18 @@ class World(object):
     def _CalculateOffset(self,x,y,z):
         return z*(self.X*self.Y) + y*(self.X) + x
     
-    def AttemptSetBlock(self,x,y,z,val):
+    def AttemptSetBlock(self,pPlayer,x,y,z,val):
         #TODO: Check the block type & coordinates are correct
         if x < 0 or x >= self.X or y < 0 or y >= self.Y or z < 0 or z >= self.Z:
             return True #Cant set that block. But don't return False or it'll try "undo" the change!
-        self.SetBlock(x,y,z,val)
+        if val >= BLOCK_END:
+            return False #Fake block type...
+        if val in DisabledBlocks:
+            pPlayer.SendMessage("&4That block is disabled!")
+            return False
+        self.SetBlock(pPlayer,x,y,z,val)
         return True
-    def SetBlock(self,x,y,z,val):
+    def SetBlock(self,pPlayer,x,y,z,val):
         #Changes a block to a certain value.
         ArrayValue = self._CalculateOffset(x,y,z)
         self.Blocks[ArrayValue] = chr(val)
@@ -119,7 +124,7 @@ class World(object):
         Packet.WriteInt16(z)
         Packet.WriteInt16(y)
         Packet.WriteByte(val)
-        self.SendPacketToAll(Packet)
+        self.SendPacketToAll(Packet,pPlayer)
 
 
     def GenerateGenericWorld(self,x=192,y=192,z=64):
@@ -218,7 +223,7 @@ class World(object):
         Packet.WriteInt16(x)
         Packet.WriteInt16(z)
         Packet.WriteInt16(y)
-        Packet.WriteByte(self.Blocks[self._CalculateOffset(x, y, z)])
+        Packet.WriteByte(ord(self.Blocks[self._CalculateOffset(x, y, z)]))
         pPlayer.SendPacket(Packet)
 
 
