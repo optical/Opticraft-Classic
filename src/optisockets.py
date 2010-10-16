@@ -90,9 +90,7 @@ class SocketManager(object):
                 size = len(ToSend)
                 #Let us try send some data :XX
                 try:
-                    print "Trying to send packet of size:", size
                     result = Socket.send(ToSend)
-                    print "Managed to send", result, "bytes"
                 except:
                     ToRemove.append(pPlayer)
                     self._RemoveSocket(Socket)

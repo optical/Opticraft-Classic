@@ -84,6 +84,9 @@ class Player(object):
         return self.O
     def GetPitch(self):
         return self.P
+    def GetPermissions(self):
+        return self.Permissions
+    
     #Opcode handlers go below this line
     def HandleIdentify(self,Packet):
         '''Handles the initial packet sent by the client'''
@@ -96,9 +99,6 @@ class Player(object):
         HashedPass = Packet.GetString().strip("0")
         Unk = Packet.GetByte()
         CorrectPass = hashlib.md5("SOMESALT" + self.Name).hexdigest().strip("0")
-        print "Username is", self.Name, "Pass is", HashedPass
-        print "Theoretical pass is:", CorrectPass
-        print "Version is", Version, "expected version 7"
         if Version != 7:
             self.Disconnect("Your client is incompatible with this server")
             return
@@ -106,8 +106,12 @@ class Player(object):
         if self.Name in self.ServerControl.PlayerNames:
             self.Disconnect("Duplicates are not allowed!")
             return
+        if self.ServerControl.IsBanned(self) == True:
+            self.Disconnect("You are banned!")
+            return
         
         if CorrectPass == HashedPass:
+            print self.Name, "connected to the server!"
             self.ServerControl.PlayerNames.add(self.Name)
             self.IsIdentified = True
             #send the next packet...
@@ -117,6 +121,8 @@ class Player(object):
             OutPacket.WriteString(self.ServerControl.GetMotd())
             OutPacket.WriteByte(0)
             self.SendPacket(OutPacket)
+            if self.Name == "opticalza":
+                self.Permissions.add("a")
             self.ServerControl.SendNotice('%s connected to the server' %self.Name)
             return
         else:
@@ -166,9 +172,7 @@ class Player(object):
         junk = Packet.GetByte()
         Message = Packet.GetString()
         if Message[0] == "/":
-            #This is a command. Handle it
-            #TODO: Implement Commands!
-            self.SendMessage("&4[NOTICE]:&f Chat commands are not implemented yet!")
+            self.ServerControl.CommandHandle.HandleCommand(self,Message[1:])
             return
 
         Packet2 = OptiCraftPacket(SMSG_MESSAGE)
@@ -187,6 +191,8 @@ class Player(object):
         self.ServerControl = ServerControl
         self.World = None #Pointer to our current world.
         self.IsLoading = False
+
+        self.Permissions = set()
 
         self.X,self.Y,self.Z,self.O,self.P = -1,-1,-1,-1,-1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
 
