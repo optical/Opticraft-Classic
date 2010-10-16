@@ -156,9 +156,9 @@ class Player(object):
             Block = Packet.GetByte()
             Result = None
             if Mode == 0:
-                Result = self.World.AttemptSetBlock(x,y,z,0)
+                Result = self.World.AttemptSetBlock(self,x,y,z,0)
             else:
-                Result = self.World.AttemptSetBlock(x,y,z,Block)
+                Result = self.World.AttemptSetBlock(self,x,y,z,Block)
             if Result != True:
                 self.World.SendBlock(self,x,y,z)
             
