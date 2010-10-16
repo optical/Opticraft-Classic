@@ -8,8 +8,8 @@ if __name__ == "__main__":
         ServerControl.run()
     except:
         fHandle = open("CrashLog.txt","a")
-        fHandle.write("="*15 + "\n")
-        fHandle.write("Crash date: %s" %time.strftime("%c", time.gmtime()))
-        fHandle.write("="*15 + "\n")
+        fHandle.write("="*30 + "\n")
+        fHandle.write("Crash date: %s\n" %time.strftime("%c", time.gmtime()))
+        fHandle.write("="*30 + "\n")
         traceback.print_exc(file=fHandle)
         fHandle.close()
