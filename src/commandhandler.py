@@ -40,6 +40,7 @@ class CmdListCmd(CommandObject):
                     continue #Don't send commands to the client if he doesn't possess the permission to use it!
 
             Commands += key + ' '
+        pPlayer.SendMessage("&eAvailable commands:")
         pPlayer.SendMessage("&e" + Commands)
 
 class HelpCmd(CommandObject):
