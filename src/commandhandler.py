@@ -149,6 +149,9 @@ class CommandHandler(object):
 
     def HandleCommand(self,pPlayer,Message):
         '''Called when a player types a slash command'''
+        if Message == '':
+            pPlayer.SendMessage("&4Please enter in a command!")
+            return
         Tokens = Message.split()
         Command = Tokens[0].lower()
         if self.CommandTable.has_key(Command) == False:
