@@ -101,8 +101,11 @@ class AppearCmd(CommandObject):
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
         if Target != None:
             if pPlayer.GetWorld() != Target.GetWorld():
-                pPlayer.SendMessage("That player is not on your world. Cannot teleport to them!")
+                pPlayer.SendMessage("&4That player is not on your world. Cannot teleport to them!")
             pPlayer.Teleport(Target.GetX(),Target.GetY(),Target.GetZ(),Target.GetOrientation(),Target.GetPitch())
+        else:
+            pPlayer.SendMessage("&4That player is not online!")
+
 
 class SummonCmd(CommandObject):
     '''Summon command handler. Teleports specified player to user location'''
@@ -111,9 +114,10 @@ class SummonCmd(CommandObject):
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
         if Target != None:
             if pPlayer.GetWorld() != Target.GetWorld():
-                pPlayer.SendMessage("That player is not on your world. Cannot teleport to them!")
+                pPlayer.SendMessage("&4That player is not on your world. Cannot teleport to them!")
             Target.Teleport(pPlayer.GetX(),pPlayer.GetY(),pPlayer.GetZ(),pPlayer.GetOrientation(),pPlayer.GetPitch())
-
+        else:
+            pPlayer.SendMessage("&4That player is not online!")
 class SaveCmd(CommandObject):
     '''Handle for the /save command - saves all worlds'''
     def Run(self,pPlayer,Args,Message):
