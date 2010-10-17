@@ -23,7 +23,7 @@ class ServerController(object):
         self.HeartBeatControl = HeartBeatController(self)
         self.SockManager = SocketManager(self)
         self.PlayerSet = set() #All players logged into the server
-        self.PlayerNames = set() #All logged in players names.
+        self.PlayerNames = dict() #All logged in players names.
         self.AuthPlayers = set() #Players without a world (Logging in)
         self.PlayersPendingRemoval = list() #Players to remove from our set at the end of a cycle.
         self.PlayerIDs = range(self.MaxClients)
@@ -95,6 +95,11 @@ class ServerController(object):
     def GetMotd(self):
         return self.Motd
 
+    def GetPlayerFromName(self,Username):
+        '''Returns a player pointer if the user is logged else.
+        ...Otherwise returns none if player is not on'''
+        return self.PlayerNames.get(Username.lower(),None)
+
     def IsBanned(self,pPlayer):
         '''Checks if a player is banned. Also erases any expired bans!'''
         if self.BannedUsers.has_key(pPlayer.GetName().lower()):
@@ -111,10 +116,10 @@ class ServerController(object):
     def AddBan(self,Username,expiry):
         self.BannedUsers[Username.lower()] = expiry
         self.FlushBans()
-        for pPlayer in self.PlayerSet:
-            if pPlayer.GetName() == Username:
-                pPlayer.Disconnect("You are banned from this server")
-                return True
+        pPlayer = self.PlayerNames.get(Username.lower(),None)
+        if pPlayer != None:
+            pPlayer.Disconnect("You are banned from this server")
+            return True
         return False
                 
     def Unban(self,Username):
@@ -126,11 +131,11 @@ class ServerController(object):
             return False
 
     def Kick(self,Operator,Username,Reason):
-        for pPlayer in self.PlayerSet:
-            if pPlayer.GetName() == Username:
-                self.SendNotice("%s was kicked by %s for %s" %(Username,Operator.GetName(),Reason))
-                pPlayer.Disconnect("You were kicked by %s for %s" %(Operator.GetName(),Reason))
-                return True
+        pPlayer = self.PlayerNames.get(Username.lower(),None)
+        if pPlayer != None:
+            self.SendNotice("%s was kicked by %s for %s" %(Username,Operator.GetName(),Reason))
+            pPlayer.Disconnect("You were kicked by %s. Reason: %s" %(Operator.GetName(),Reason))
+            return True
         return False
 
     def FlushBans(self):
@@ -167,8 +172,8 @@ class ServerController(object):
         else:
             self.SendNotice("%s has left the server" %pPlayer.GetName())
             
-        if pPlayer.GetName() in self.PlayerNames:
-            self.PlayerNames.remove(pPlayer.GetName())
+        if pPlayer.GetName().lower() in self.PlayerNames:
+            del self.PlayerNames[pPlayer.GetName().lower()]
 
         if pPlayer.GetWorld() != None:
             pPlayer.GetWorld().RemovePlayer(pPlayer)
