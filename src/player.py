@@ -68,6 +68,7 @@ class Player(object):
     def SetLoadingWorld(self,Val):
         self.IsLoading = Val
     def SetLocation(self,x,y,z,o,p):
+        '''Stores client position. X Y Z are floats with the fractal bit at position 5'''
         self.X = x
         self.Y = y
         self.Z = z
@@ -86,6 +87,19 @@ class Player(object):
         return self.P
     def GetPermissions(self):
         return self.Permissions
+
+    def Teleport(self,x,y,z,o,p):
+        '''Teleports the player to X Y Z. These coordinates have the fractal bit at position 5'''
+        self.SetLocation(x, y, z, o, p)
+        Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
+        Packet.WriteByte(255)
+        Packet.WriteString("")
+        Packet.WriteInt16(x)
+        Packet.WriteInt16(z)
+        Packet.WriteInt16(y)
+        Packet.WriteByte(o)
+        Packet.WriteByte(p)
+        self.SendPacket(Packet)
     
     #Opcode handlers go below this line
     def HandleIdentify(self,Packet):
@@ -103,7 +117,7 @@ class Player(object):
             self.Disconnect("Your client is incompatible with this server")
             return
 
-        if self.Name in self.ServerControl.PlayerNames:
+        if self.Name.lower() in self.ServerControl.PlayerNames:
             self.Disconnect("Duplicates are not allowed!")
             return
         if self.ServerControl.IsBanned(self) == True:
@@ -112,7 +126,7 @@ class Player(object):
         
         if CorrectPass == HashedPass:
             print self.Name, "connected to the server!"
-            self.ServerControl.PlayerNames.add(self.Name)
+            self.ServerControl.PlayerNames[self.Name.lower()] = self
             self.IsIdentified = True
             #send the next packet...
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
@@ -121,7 +135,7 @@ class Player(object):
             OutPacket.WriteString(self.ServerControl.GetMotd())
             OutPacket.WriteByte(0)
             self.SendPacket(OutPacket)
-            if self.Name == "opticalza":
+            if self.Name == "opticalza" or self.Name == "zulubro":
                 self.Permissions.add("a")
             self.ServerControl.SendNotice('%s connected to the server' %self.Name)
             return

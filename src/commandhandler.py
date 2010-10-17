@@ -94,8 +94,25 @@ class KickCmd(CommandObject):
         else:
             pPlayer.SendMessage("&4That user is not online!")
 
+class AppearCmd(CommandObject):
+    '''Appear command handler. Teleports user to specified players location'''
+    def Run(self,pPlayer,Args,Message):
+        Username = Args[0]
+        Target = pPlayer.ServerControl.GetPlayerFromName(Username)
+        if Target != None:
+            if pPlayer.GetWorld() != Target.GetWorld():
+                pPlayer.SendMessage("That player is not on your world. Cannot teleport to them!")
+            pPlayer.Teleport(Target.GetX(),Target.GetY(),Target.GetZ(),Target.GetOrientation(),Target.GetPitch())
 
-
+class SummonCmd(CommandObject):
+    '''Summon command handler. Teleports specified player to user location'''
+    def Run(self,pPlayer,Args,Message):
+        Username = Args[0]
+        Target = pPlayer.ServerControl.GetPlayerFromName(Username)
+        if Target != None:
+            if pPlayer.GetWorld() != Target.GetWorld():
+                pPlayer.SendMessage("That player is not on your world. Cannot teleport to them!")
+            Target.Teleport(pPlayer.GetX(),pPlayer.GetY(),pPlayer.GetZ(),pPlayer.GetOrientation(),pPlayer.GetPitch())
 
 class SaveCmd(CommandObject):
     '''Handle for the /save command - saves all worlds'''
@@ -123,6 +140,8 @@ class CommandHandler(object):
         self.AddCommand("ban", BanCmd, 'a', 'Bans a player from the server', 'Incorrect syntax! Usage: /ban <username>', 1)
         self.AddCommand("unban", UnbanCmd, 'a', 'Unbans a player from the server', 'Incorrect syntax! Usage: /unban <username>', 1)
         self.AddCommand("kick", KickCmd, 'a', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)
+        self.AddCommand("appear", AppearCmd, 'a', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1)
+        self.AddCommand("summon", SummonCmd, 'a', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
 
     def HandleCommand(self,pPlayer,Message):
         '''Called when a player types a slash command'''
