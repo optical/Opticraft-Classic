@@ -143,7 +143,7 @@ class World(object):
                 Block = chr(BLOCK_GRASS)
             else:
                 Block = chr(BLOCK_AIR)
-            self.Blocks.extend((self.X*self.Y)*Block)
+            self.Blocks.fromstring((self.X*self.Y)*Block)
         self.Save(False)
         
 
