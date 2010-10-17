@@ -20,7 +20,7 @@ class ServerController(object):
         self.Motd = "+hax"
         self.MaxClients = 100
         self.Public = True
-        self.HeartBeatController = HeartBeatController(self)
+        self.HeartBeatControl = HeartBeatController(self)
         self.SockManager = SocketManager(self)
         self.PlayerSet = set() #All players logged into the server
         self.PlayerNames = set() #All logged in players names.
@@ -49,14 +49,16 @@ class ServerController(object):
             os.mkdir("Worlds")
         if os.path.exists("Backups") == False:
             os.mkdir("Backups")
-        self.ActiveWorlds.append(World("Default_World",True))
+
+        self.ActiveWorlds.append(World("Main",True))
         self.LastKeepAlive = -1
 
     def run(self):
         '''For now, we will manage everything. Eventually these objects will manage themselves in seperate threads'''
         self.Running = True
+        #Start the heartbeatcontrol thread.
+        self.HeartBeatControl.start()
         while self.Running == True:
-            self.HeartBeatController.run()
             self.SockManager.run()
             ToRemove = list()
             for pPlayer in self.AuthPlayers:
@@ -112,6 +114,8 @@ class ServerController(object):
         for pPlayer in self.PlayerSet:
             if pPlayer.GetName() == Username:
                 pPlayer.Disconnect("You are banned from this server")
+                return True
+        return False
                 
     def Unban(self,Username):
         if self.BannedUsers.has_key(Username.lower()) == True:
@@ -146,7 +150,7 @@ class ServerController(object):
             self.PlayerSet.add(pPlayer)
             self.AuthPlayers.add(pPlayer)
             pPlayer.SetId(self.PlayerIDs.pop())
-            self.HeartBeatController.IncreaseClients()
+            self.HeartBeatControl.IncreaseClients()
 
     def RemovePlayer(self,pPlayer):
         self.PlayersPendingRemoval.append(pPlayer)
@@ -168,7 +172,7 @@ class ServerController(object):
 
         if pPlayer.GetWorld() != None:
             pPlayer.GetWorld().RemovePlayer(pPlayer)
-        self.HeartBeatController.DecreaseClients()
+        self.HeartBeatControl.DecreaseClients()
 
     def GetPlayerFromSocket(self,Socket):
         return self.SocketToPlayer[Socket]
