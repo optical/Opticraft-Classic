@@ -30,7 +30,7 @@ class HeartBeatController(Thread):
                 if Result:
                     #Sleep for FetchInterval seconds minus the time it took to perform the heartbeat.
                     self.LastFetch = time.time()
-                time.sleep(0.1)
+            time.sleep(0.1)
     def FetchUrl(self):
         try:
             Handle = urllib.urlopen("http://www.minecraft.net/heartbeat.jsp",urllib.urlencode({
