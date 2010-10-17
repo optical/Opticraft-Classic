@@ -62,8 +62,9 @@ class BanCmd(CommandObject):
         if ":" in Username:
             pPlayer.SendMessage("&4That is not a valid username!")
             return
-        pPlayer.ServerControl.AddBan(Username, 0) #TODO: Parse input so we can enter expiry!
-        pPlayer.ServerControl.SendNotice("%s was just banned by %s" %(Username,pPlayer.GetName()))
+        Result = pPlayer.ServerControl.AddBan(Username, 0) #TODO: Parse input so we can enter expiry!
+        if Result:
+            pPlayer.ServerControl.SendNotice("%s was just banned by %s" %(Username,pPlayer.GetName()))
         pPlayer.SendMessage("&4Successfully banned %s" %(Username))
 class UnbanCmd(CommandObject):
     '''Unban command handler. Removes a ban for a username'''
@@ -113,6 +114,7 @@ class CommandHandler(object):
         #PUBLIC COMMANDS HERE#
         ######################
         self.AddCommand("cmdlist", CmdListCmd, '', 'Lists all commands available to you', '', 0)
+        self.AddCommand("commands", CmdListCmd, '', 'Lists all commands available to you', '', 0)
         self.AddCommand("help", HelpCmd, '', 'Gives help on a specific command. Usage: /help <cmd>', 'Incorrect syntax! Usage: /help <cmd>', 1)
         ######################
         #ADMIN COMMANDS HERE #

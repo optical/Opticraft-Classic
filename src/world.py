@@ -55,7 +55,7 @@ class World(object):
             self.SpawnX = struct.unpack("h",raw_data[6:8])[0]
             self.SpawnY = struct.unpack("h",raw_data[8:10])[0]
             self.SpawnZ = struct.unpack("h",raw_data[10:12])[0]
-            self.Blocks.extend(zlib.decompress(raw_data[12:]))
+            self.Blocks.fromstring(zlib.decompress(raw_data[12:]))
             fHandle.close()
             print "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000))
         except:
@@ -127,7 +127,7 @@ class World(object):
         self.SendPacketToAll(Packet,pPlayer)
 
 
-    def GenerateGenericWorld(self,x=192,y=192,z=64):
+    def GenerateGenericWorld(self,x=320,y=320,z=96):
         self.X, self.Y, self.Z = x,y,z
         GrassLevel = self.Z / 2
         SandLevel = GrassLevel - 2

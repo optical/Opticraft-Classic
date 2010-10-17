@@ -3,8 +3,8 @@ from servercontroller import ServerController
 import traceback
 import time
 if __name__ == "__main__":
+    ServerControl = ServerController()
     try:
-        ServerControl = ServerController()
         ServerControl.run()
     except:
         fHandle = open("CrashLog.txt","a")
@@ -13,3 +13,5 @@ if __name__ == "__main__":
         fHandle.write("="*30 + "\n")
         traceback.print_exc(file=fHandle)
         fHandle.close()
+        ServerControl.HeartBeatControl.Running = False
+        ServerControl.SaveAllWorlds()

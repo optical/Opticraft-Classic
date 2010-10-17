@@ -1,9 +1,12 @@
 import urllib
 import time
-class HeartBeatController(object):
+from threading import Thread
+
+class HeartBeatController(Thread):
     def __init__(self,ServerControl):
+        Thread.__init__(self)
         self.LastFetch = 0
-        self.FetchInterval = 60
+        self.FetchInterval = 30
         self.MaxClients = ServerControl.MaxClients
         self.Name = ServerControl.Name
         self.Public = ServerControl.Public
@@ -11,6 +14,7 @@ class HeartBeatController(object):
         self.Port = ServerControl.Port
         self.Clients = 0
         self.ServerControl = ServerControl
+        self.Running = True
 
     def IncreaseClients(self):
         self.Clients += 1
@@ -19,9 +23,14 @@ class HeartBeatController(object):
 
 
     def run(self):
-        if self.LastFetch + self.FetchInterval < time.time():
-            self.FetchUrl()
-            self.LastFetch = time.time()
+        while self.Running:
+            if self.LastFetch + self.FetchInterval < time.time():
+                start = time.time()
+                Result = self.FetchUrl()
+                if Result:
+                    #Sleep for FetchInterval seconds minus the time it took to perform the heartbeat.
+                    self.LastFetch = time.time()
+                time.sleep(0.1)
     def FetchUrl(self):
         try:
             Handle = urllib.urlopen("http://www.minecraft.net/heartbeat.jsp",urllib.urlencode({
@@ -38,5 +47,7 @@ class HeartBeatController(object):
             fHandle = open("url.txt","w")
             fHandle.write(url)
             fHandle.close()
+            return True
         except:
             print "Error in heartbeat!"
+            return False
