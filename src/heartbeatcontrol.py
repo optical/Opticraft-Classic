@@ -12,7 +12,7 @@ class HeartBeatController(Thread):
         self.Public = ServerControl.Public
         self.Salt = ServerControl.Salt
         self.Port = ServerControl.Port
-        self.Clients = 0
+        self.Clients = 9
         self.ServerControl = ServerControl
         self.Running = True
 
