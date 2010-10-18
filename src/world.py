@@ -127,7 +127,7 @@ class World(object):
         self.SendPacketToAll(Packet,pPlayer)
 
 
-    def GenerateGenericWorld(self,x=320,y=320,z=96):
+    def GenerateGenericWorld(self,x=512,y=512,z=96):
         self.X, self.Y, self.Z = x,y,z
         GrassLevel = self.Z / 2
         SandLevel = GrassLevel - 2
