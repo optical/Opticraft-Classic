@@ -70,12 +70,9 @@ class SocketManager(object):
             try:
                 data = Socket.recv(4096)
             except socket.error, (error_no, error_msg):
-                if error_no == 10054 or error_no == 10053 or error_no == 104: #They closed the connection...
-                    self._RemoveSocket(Socket)
-                    continue
-                else: #An error i haven't accounted for occured - o shit.
-                    print "Critical Error! id:", error_no, "Message:", error_msg
-                    exit(1)
+                self._RemoveSocket(Socket)
+                continue
+
             if len(data) > 0:
                 #print "Recieved some data:", data
                 pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
