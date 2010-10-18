@@ -70,7 +70,7 @@ class SocketManager(object):
             try:
                 data = Socket.recv(4096)
             except socket.error, (error_no, error_msg):
-                if error_no == 10054 or error_no == 10053: #They closed the connection...
+                if error_no == 10054 or error_no == 10053 or error_no == 104: #They closed the connection...
                     self._RemoveSocket(Socket)
                     continue
                 else: #An error i haven't accounted for occured - o shit.
