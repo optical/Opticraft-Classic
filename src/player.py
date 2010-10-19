@@ -38,7 +38,7 @@ class Player(object):
         self.OutBuffer += Packet.GetOutData()
         self.ServerControl.SockManager.AddWriteablePlayer(self)
     def Disconnect(self,Message):
-        #TODO: Implement message properly =\
+        #TODO: Implement message
         self.ServerControl.SockManager.CloseSocket(self.PlayerSocket)
         self.ServerControl.RemovePlayer(self)
 

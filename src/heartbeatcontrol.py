@@ -25,7 +25,6 @@ class HeartBeatController(Thread):
     def run(self):
         while self.Running:
             if self.LastFetch + self.FetchInterval < time.time():
-                start = time.time()
                 Result = self.FetchUrl()
                 if Result:
                     #Sleep for FetchInterval seconds minus the time it took to perform the heartbeat.
