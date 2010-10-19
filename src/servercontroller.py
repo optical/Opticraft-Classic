@@ -1,25 +1,32 @@
+import random
 # To change this template, choose Tools | Templates
 # and open the template in the editor.
 import time
 import os
 import os.path
+from random import randint
 from heartbeatcontrol import HeartBeatController
 from opticraftpacket import OptiCraftPacket
 from optisockets import SocketManager
 from commandhandler import CommandHandler
+from configreader import ConfigReader
 from world import World
 from opcodes import *
 
 class ServerController(object):
     def __init__(self):
-        #TODO: Replace these hard-coded values with config file results
-        self.Host = ''
-        self.Port = 9999
-        self.Salt = "SOMESALT"
-        self.Name = "OptiCraft Dev Server"
-        self.Motd = "+hax"
-        self.MaxClients = 100
-        self.Public = True
+        self.ConfigValues = ConfigReader()
+        self.ConfigValues.read("opticraft.cfg")
+        self.Host = self.ConfigValues.GetValue("server","ListenInterface",'0.0.0.0')
+        if self.Host == '0.0.0.0':
+            self.Host = ''
+
+        self.Port = int(self.ConfigValues.GetValue("server","Port","6878"))
+        self.Salt = self.ConfigValues.GetValue("server","ForcedSalt",str(random.randint(1,0xFFFFFFFF-1)))
+        self.Name = self.ConfigValues.GetValue("server","Name","An opticraft server")
+        self.Motd = self.ConfigValues.GetValue("server","Motd","Powered by opticraft!")
+        self.MaxClients = int(self.ConfigValues.GetValue("server","Max",120))
+        self.Public = int(self.ConfigValues.GetValue("server","Public","1"))
         self.HeartBeatControl = HeartBeatController(self)
         self.SockManager = SocketManager(self)
         self.PlayerSet = set() #All players logged into the server
@@ -30,7 +37,8 @@ class ServerController(object):
         reversed(self.PlayerIDs)
         self.SocketToPlayer = dict()
         self.Running = False
-        self.ActiveWorlds = []
+        self.ActiveWorlds = list() #A list of worlds currently running.
+        self.IdleWorlds = list() #Worlds which we know exist as .save data, but aren't loaded.
         self.CommandHandle = CommandHandler(self)
         self.BannedUsers = dict() #Dictionary of Username:expiry (in ctime)
         #Load up banned usernames.
@@ -50,7 +58,7 @@ class ServerController(object):
         if os.path.exists("Backups") == False:
             os.mkdir("Backups")
 
-        self.ActiveWorlds.append(World("Main",True))
+        self.ActiveWorlds.append(World(self,self.ConfigValues.GetValue("Worlds","DefaultName","Main")))
         self.LastKeepAlive = -1
 
     def run(self):

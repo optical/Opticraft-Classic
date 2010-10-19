@@ -65,14 +65,15 @@ class BanCmd(CommandObject):
         Result = pPlayer.ServerControl.AddBan(Username, 0) #TODO: Parse input so we can enter expiry!
         if Result:
             pPlayer.ServerControl.SendNotice("%s was just banned by %s" %(Username,pPlayer.GetName()))
-        pPlayer.SendMessage("&4Successfully banned %s" %(Username))
+        pPlayer.SendMessage("Successfully banned %s" %(Username))
+        
 class UnbanCmd(CommandObject):
     '''Unban command handler. Removes a ban for a username'''
     def Run(self,pPlayer,Args,Message):
         Username = Args[0]
         Result = pPlayer.ServerControl.Unban(Username)
         if Result:
-            pPlayer.SendMessage("&4Successfully banned %s" %(Username))
+            pPlayer.SendMessage("Successfully banned %s" %(Username))
         else:
             pPlayer.SendMessage("&4That user was not banned!")
 
@@ -90,7 +91,7 @@ class KickCmd(CommandObject):
 
         Result = pPlayer.ServerControl.Kick(pPlayer,Username,Reason)
         if Result:
-            pPlayer.SendMessage("&4Successfully kicked %s" %(Username))
+            pPlayer.SendMessage("Successfully kicked %s" %(Username))
         else:
             pPlayer.SendMessage("&4That user is not online!")
 
@@ -116,13 +117,20 @@ class SummonCmd(CommandObject):
             if pPlayer.GetWorld() != Target.GetWorld():
                 pPlayer.SendMessage("&4That player is not on your world. Cannot teleport to them!")
             Target.Teleport(pPlayer.GetX(),pPlayer.GetY(),pPlayer.GetZ(),pPlayer.GetOrientation(),pPlayer.GetPitch())
+            pPlayer.SendMessage("Successfully summoned %s",Target.GetName())
         else:
             pPlayer.SendMessage("&4That player is not online!")
 class SaveCmd(CommandObject):
     '''Handle for the /save command - saves all worlds'''
     def Run(self,pPlayer,Args,Message):
         pPlayer.ServerControl.SaveAllWorlds()
-        pPlayer.SendMessage("&eSaved all worlds successfully")
+        pPlayer.SendMessage("Saved all worlds successfully")
+
+class SetSpawnCmd(CommandObject):
+    '''Handle for the /setspawn command - moves the default spawnpoint to the location you are at'''
+    def Run(self,pPlayer,Args,Message):
+        pPlayer.GetWorld().SetSpawn(pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ(), pPlayer.GetOrientation(),0)
+        pPlayer.SendMessage("This worlds spawnpoint has been moved")
 
 
 class CommandHandler(object):
@@ -146,6 +154,7 @@ class CommandHandler(object):
         self.AddCommand("kick", KickCmd, 'a', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)
         self.AddCommand("appear", AppearCmd, 'a', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1)
         self.AddCommand("summon", SummonCmd, 'a', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
+        self.AddCommand("setspawn", SetSpawnCmd, 'a', 'Changes the worlds default spawn location to where you are standing', '', 0)
 
     def HandleCommand(self,pPlayer,Message):
         '''Called when a player types a slash command'''

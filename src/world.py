@@ -1,4 +1,5 @@
 import os.path
+import os
 import zlib
 import gzip
 import struct
@@ -11,13 +12,23 @@ from opcodes import *
 from blocktype import *
 
 class World(object):
-    def __init__(self,Name,IsDefault = False):
-        self.IsDefault = IsDefault
+    def __init__(self,ServerControl,Name):
         self.Blocks = array("c")
         self.Players = set()
         self.Name = Name
         self.X, self.Y, self.Z = -1,-1,-1
         self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
+        self.SpawnOrientation, self.SpawnPitch = 0, 0
+        self.ServerControl = ServerControl
+        #Config values
+        self.DefaultX = self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeX","256")
+        self.DefaultY = self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeY","256")
+        self.DefaultZ = self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeZ","96")
+        self.LastSave = time.time() + random.randrange(0,30)
+        self.SaveInterval = int(self.ServerControl.ConfigValues.GetValue("worlds","SaveTime","300"))
+        self.LastBackup = time.time() + random.randrange(0,30)
+        self.BackupInterval = int(self.ServerControl.ConfigValues.GetValue("worlds","BackupTime","3600"))
+        self.CompressionLevel = int(self.ServerControl.ConfigValues.GetValue("worlds","CompressionLevel",1))
         if os.path.isfile("Worlds/"+ self.Name + '.save'):
             LoadResult = self.Load()
             if LoadResult == False:
@@ -27,10 +38,6 @@ class World(object):
             self.GenerateGenericWorld()
         self.NetworkSize = struct.pack("!i", self.X*self.Y*self.Z)
 
-        self.LastSave = time.time() + random.randrange(0,30)
-        self.SaveInterval = 300
-        self.LastBackup = time.time() + random.randrange(0,30)
-        self.BackupInterval = 1800
 
     def Load(self):
         '''First draft of map format:
@@ -39,8 +46,10 @@ class World(object):
         4-6 = Z
         6-8 = SpawnX
         8-10 = SpawnY
-        12-12 = SpawnZ
-        12+ = zlibbed array data'''
+        10-12 = SpawnZ
+        12-14 = SpawnOrientation
+        14-16 = SpawnPitch
+        16+ = zlibbed array data'''
         start = time.time()
         try:
             fHandle = open("Worlds/" +self.Name + '.save','rb')
@@ -55,11 +64,15 @@ class World(object):
             self.SpawnX = struct.unpack("h",raw_data[6:8])[0]
             self.SpawnY = struct.unpack("h",raw_data[8:10])[0]
             self.SpawnZ = struct.unpack("h",raw_data[10:12])[0]
-            self.Blocks.fromstring(zlib.decompress(raw_data[12:]))
+            self.SpawnOrientation = struct.unpack("h",raw_data[12:14])[0]
+            self.SpawnPitch = struct.unpack("h",raw_data[14:16])[0]
+            self.Blocks.fromstring(zlib.decompress(raw_data[16:]))
             fHandle.close()
             print "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000))
+            if len(self.Blocks) != self.X*self.Y*self.Z:
+                raise Exception()
         except:
-            print "CRITICAL ERROR - Failed to load map '%s'." %self.Name + '.save'
+            print "CRITICAL ERROR - Failed to load map '%s'." %self.Name + 'save'
             return False
     
     def Save(self, Verbose = True):
@@ -70,7 +83,9 @@ class World(object):
         6-8 = SpawnX
         8-10 = SpawnY
         12-12 = SpawnZ
-        12+ = zlibbed array data'''
+        12-14 = SpawnOrientation
+        14-16 = SpawnPitch
+        16+ = zlibbed array data'''
         start = time.time()
         try:
             fHandle = open("Worlds/" +self.Name + '.save','wb')
@@ -83,8 +98,9 @@ class World(object):
         fHandle.write(struct.pack("h",self.SpawnX))
         fHandle.write(struct.pack("h",self.SpawnY))
         fHandle.write(struct.pack("h",self.SpawnZ))
-        fHandle.write(zlib.compress(self.Blocks,1))
-        #We use the lowest level of compression as saving time is much more important here
+        fHandle.write(struct.pack("h",self.SpawnOrientation))
+        fHandle.write(struct.pack("h",self.SpawnPitch))
+        fHandle.write(zlib.compress(self.Blocks,self.CompressionLevel))
         fHandle.close()
         if Verbose:
             print "Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000))
@@ -96,8 +112,10 @@ class World(object):
         start = time.time()
         if os.path.isfile("Worlds/" + self.Name + ".save") == False:
             return
+        if os.path.exists("Backups/" + self.Name) == False:
+            os.mkdir("Backups/" + self.Name)
         FileName = self.Name + '_' + time.strftime("%d-%m-%Y_%M-%S", time.gmtime()) + '.save'
-        shutil.copy("Worlds/" + self.Name + '.save', "Backups/" + FileName)
+        shutil.copy("Worlds/" + self.Name + '.save', "Backups/" + self.Name + "/" + FileName)
         self.SendNotice("Backed up world in %dms" %(int((time.time()-start) * 1000)))
         self.LastBackup = time.time()
 
@@ -105,7 +123,6 @@ class World(object):
         return z*(self.X*self.Y) + y*(self.X) + x
     
     def AttemptSetBlock(self,pPlayer,x,y,z,val):
-        #TODO: Check the block type & coordinates are correct
         if x < 0 or x >= self.X or y < 0 or y >= self.Y or z < 0 or z >= self.Z:
             return True #Cant set that block. But don't return False or it'll try "undo" the change!
         if val >= BLOCK_END:
@@ -115,6 +132,7 @@ class World(object):
             return False
         self.SetBlock(pPlayer,x,y,z,val)
         return True
+
     def SetBlock(self,pPlayer,x,y,z,val):
         #Changes a block to a certain value.
         ArrayValue = self._CalculateOffset(x,y,z)
@@ -126,14 +144,25 @@ class World(object):
         Packet.WriteByte(val)
         self.SendPacketToAll(Packet,pPlayer)
 
+    def SetSpawn(self,x,y,z,o,p):
+        '''Sets the worlds default spawn position. Stored in the format the client uses'''
+        self.SpawnX = x
+        self.SpawnY = y
+        self.SpawnZ = z
+        self.SpawnOrientation = o
+        self.SpawnPitch = p
+
+
 
     def GenerateGenericWorld(self,x=512,y=512,z=96):
         self.X, self.Y, self.Z = x,y,z
         GrassLevel = self.Z / 2
         SandLevel = GrassLevel - 2
-        self.SpawnY = self.Y / 2
-        self.SpawnX = self.X / 2
-        self.SpawnZ = self.Z / 2 +2
+        self.SpawnY = self.Y / 2 * 32
+        self.SpawnX = self.X / 2 * 32
+        self.SpawnZ = (self.Z / 2 + 2) * 32 + 51
+        self.SpawnOrientation = 0
+        self.SpawnPitch = 0
         for z in xrange(self.Z):
             if z < SandLevel:
                 Block = chr(BLOCK_ROCK)
@@ -185,17 +214,14 @@ class World(object):
                 Packet2.WriteInt16(self.Y)
                 pPlayer.SendPacket(Packet2)
 
-                x = self.SpawnX * 32
-                y = self.SpawnY * 32
-                z = self.SpawnZ * 32 + 51 #51 = height of player!
-                pPlayer.SetLocation(x, y, z, 0, 0)
+                pPlayer.SetLocation(self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnOrientation, self.SpawnPitch)
 
                 Packet3 = OptiCraftPacket(SMSG_SPAWNPOINT)
                 Packet3.WriteByte(255)
                 Packet3.WriteString("")
-                Packet3.WriteInt16(x)
-                Packet3.WriteInt16(z)
-                Packet3.WriteInt16(y)
+                Packet3.WriteInt16(self.SpawnX)
+                Packet3.WriteInt16(self.SpawnZ)
+                Packet3.WriteInt16(self.SpawnY)
                 Packet3.WriteByte(0)
                 Packet3.WriteByte(0)
                 pPlayer.SendPacket(Packet3)
