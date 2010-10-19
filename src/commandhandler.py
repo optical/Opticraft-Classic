@@ -117,7 +117,7 @@ class SummonCmd(CommandObject):
             if pPlayer.GetWorld() != Target.GetWorld():
                 pPlayer.SendMessage("&4That player is not on your world. Cannot teleport to them!")
             Target.Teleport(pPlayer.GetX(),pPlayer.GetY(),pPlayer.GetZ(),pPlayer.GetOrientation(),pPlayer.GetPitch())
-            pPlayer.SendMessage("Successfully summoned %s",Target.GetName())
+            pPlayer.SendMessage("Successfully summoned %s" %Target.GetName())
         else:
             pPlayer.SendMessage("&4That player is not online!")
 class SaveCmd(CommandObject):
