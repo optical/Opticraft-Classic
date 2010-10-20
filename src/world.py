@@ -11,6 +11,13 @@ from opticraftpacket import OptiCraftPacket
 from opcodes import *
 from blocktype import *
 
+class BlockLog(object):
+    '''Stores the history of a block'''
+    def __init__(self,Username,Time,Value):
+        self.Username = Username
+        self.Time = Time
+        self.Value = Value
+
 class World(object):
     def __init__(self,ServerControl,Name):
         self.Blocks = array("c")
@@ -20,6 +27,7 @@ class World(object):
         self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
         self.SpawnOrientation, self.SpawnPitch = 0, 0
         self.ServerControl = ServerControl
+        self.BlockHistory = dict()
         #Config values
         self.DefaultX = self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeX","256")
         self.DefaultY = self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeY","256")
@@ -29,6 +37,7 @@ class World(object):
         self.LastBackup = time.time() + random.randrange(0,30)
         self.BackupInterval = int(self.ServerControl.ConfigValues.GetValue("worlds","BackupTime","3600"))
         self.CompressionLevel = int(self.ServerControl.ConfigValues.GetValue("worlds","CompressionLevel",1))
+        self.LogBlocks = int(self.ServerControl.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
         if os.path.isfile("Worlds/"+ self.Name + '.save'):
             LoadResult = self.Load()
             if LoadResult == False:
@@ -121,7 +130,13 @@ class World(object):
 
     def _CalculateOffset(self,x,y,z):
         return z*(self.X*self.Y) + y*(self.X) + x
-    
+
+    def _CalculateCoords(self, offset):
+        x = offset % self.X
+        y = (offset // self.X) % self.Y
+        z = offset // (self.X * self.Y)
+        return x, y, z
+
     def AttemptSetBlock(self,pPlayer,x,y,z,val):
         if x < 0 or x >= self.X or y < 0 or y >= self.Y or z < 0 or z >= self.Z:
             return True #Cant set that block. But don't return False or it'll try "undo" the change!
@@ -130,6 +145,23 @@ class World(object):
         if val in DisabledBlocks:
             pPlayer.SendMessage("&4That block is disabled!")
             return False
+        
+        if pPlayer.GetAboutCmd() == True:
+            #Display block information
+            BlockInfo = self.BlockHistory.get(self._CalculateOffset(x, y, z),None)
+            if BlockInfo == None:
+                pPlayer.SendMessage("No information available for this block (No changes made)")
+            else:
+                now = int(time.time())
+                pPlayer.SendMessage("This block was last changed by %s" %BlockInfo.Username)
+                pPlayer.SendMessage("The old value for the block was %d" %ord(BlockInfo.Value))
+                pPlayer.SendMessage("Changed %s ago" %time.strftime("%H hour(s) %M minutes(s) and %S second(s)", time.gmtime(now-BlockInfo.Time)))
+            pPlayer.SetAboutCmd(False)
+            return False
+
+        ArrayValue = self._CalculateOffset(x,y,z)
+        if self.LogBlocks == True:
+            self.BlockHistory[ArrayValue] = BlockLog(pPlayer.GetName().lower(),int(time.time()),self.Blocks[ArrayValue])
         self.SetBlock(pPlayer,x,y,z,val)
         return True
 
@@ -143,6 +175,24 @@ class World(object):
         Packet.WriteInt16(y)
         Packet.WriteByte(val)
         self.SendPacketToAll(Packet,pPlayer)
+        
+    def UndoActions(self,Username,Time):
+        Username = Username.lower()
+        ToRemove = []
+        NumChanged = 0
+        now = time.time()
+        
+        for key in self.BlockHistory:
+            BlockInfo = self.BlockHistory[key]
+            if BlockInfo.Username == Username and BlockInfo.Time > now-Time:
+                x,y,z = self._CalculateCoords(key)
+                self.SetBlock(None, x,y,z, ord(BlockInfo.Value))
+                NumChanged += 1
+                ToRemove.append(key)
+        
+        while len(ToRemove) > 0:
+            del self.BlockHistory[ToRemove.pop()]
+        return NumChanged
 
     def SetSpawn(self,x,y,z,o,p):
         '''Sets the worlds default spawn position. Stored in the format the client uses'''

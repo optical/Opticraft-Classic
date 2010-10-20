@@ -52,6 +52,16 @@ class HelpCmd(CommandObject):
         else:
             CmdObj = self.CmdHandler.CommandTable[Args[0].lower()]
             pPlayer.SendMessage("&e" + CmdObj.HelpMsg)
+
+class AboutCmd(CommandObject):
+    '''The next block a player destroys/creates will display the blocks infromation'''
+    def Run(self,pPlayer,Args,Message):
+        if pPlayer.World.LogBlocks == True:
+            pPlayer.SetAboutCmd(True)
+            pPlayer.SendMessage("Place/destroy a block to see what was there before")
+        else:
+            pPlayer.SendMessage("Block history is disabled")
+
 ######################
 #ADMIN COMMANDS HERE #
 ######################
@@ -132,6 +142,28 @@ class SetSpawnCmd(CommandObject):
         pPlayer.GetWorld().SetSpawn(pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ(), pPlayer.GetOrientation(),0)
         pPlayer.SendMessage("This worlds spawnpoint has been moved")
 
+class UndoActionsCmd(CommandObject):
+    '''Handle for the /UndoActions command - revereses all the block changes by a player for X seconds'''
+    def Run(self,pPlayer,Args,Message):
+        if pPlayer.GetWorld().LogBlocks == False:
+            pPlayer.SendMessage("&4Block logging is not enabled!")
+            return
+
+        Username = Args[0]
+        Time = Args[1]
+        try:
+            Time = int(Time)
+        except:
+            pPlayer.SendMessage("&4That is not a valud number of seconds")
+            return
+        if Time < 0:
+            pPlayer.SendMessage("&4That is not a valud number of seconds")
+            return
+        Result = pPlayer.GetWorld().UndoActions(Username,Time)
+        if Result > 0:
+            self.CmdHandler.ServerControl.SendNotice("Antigrief: %s's actions have been reversed." %Username)
+        else:
+            pPlayer.SendMessage("&4That player has no recorded history.")
 
 class CommandHandler(object):
     '''Stores all the commands avaliable on opticraft and processes any command messages'''
@@ -142,6 +174,7 @@ class CommandHandler(object):
         ######################
         #PUBLIC COMMANDS HERE#
         ######################
+        self.AddCommand("about", AboutCmd, '', 'Displays history of a block when you destroy/create one', '', 0)
         self.AddCommand("cmdlist", CmdListCmd, '', 'Lists all commands available to you', '', 0)
         self.AddCommand("commands", CmdListCmd, '', 'Lists all commands available to you', '', 0)
         self.AddCommand("help", HelpCmd, '', 'Gives help on a specific command. Usage: /help <cmd>', 'Incorrect syntax! Usage: /help <cmd>', 1)
@@ -155,6 +188,7 @@ class CommandHandler(object):
         self.AddCommand("appear", AppearCmd, 'a', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1)
         self.AddCommand("summon", SummonCmd, 'a', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
         self.AddCommand("setspawn", SetSpawnCmd, 'a', 'Changes the worlds default spawn location to where you are standing', '', 0)
+        self.AddCommand("undoactions", UndoActionsCmd, 'a', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>',2)
 
     def HandleCommand(self,pPlayer,Message):
         '''Called when a player types a slash command'''

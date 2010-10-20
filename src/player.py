@@ -87,6 +87,11 @@ class Player(object):
         return self.P
     def GetPermissions(self):
         return self.Permissions
+    def GetAboutCmd(self):
+        return self.AboutCmd
+    def SetAboutCmd(self,Value):
+        self.AboutCmd = Value
+
 
     def Teleport(self,x,y,z,o,p):
         '''Teleports the player to X Y Z. These coordinates have the fractal bit at position 5'''
@@ -205,6 +210,7 @@ class Player(object):
         self.ServerControl = ServerControl
         self.World = None #Pointer to our current world.
         self.IsLoading = False
+        self.AboutCmd = False
 
         self.Permissions = set()
 
