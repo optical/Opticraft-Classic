@@ -26,7 +26,7 @@ class ServerController(object):
         self.Name = self.ConfigValues.GetValue("server","Name","An opticraft server")
         self.Motd = self.ConfigValues.GetValue("server","Motd","Powered by opticraft!")
         self.MaxClients = int(self.ConfigValues.GetValue("server","Max",120))
-        self.Public = int(self.ConfigValues.GetValue("server","Public","1"))
+        self.Public = self.ConfigValues.GetValue("server","Public","True")
         self.HeartBeatControl = HeartBeatController(self)
         self.SockManager = SocketManager(self)
         self.PlayerSet = set() #All players logged into the server
