@@ -8,8 +8,7 @@ import random
 import shutil
 from array import array
 from opticraftpacket import OptiCraftPacket
-from opcodes import *
-from blocktype import *
+from constants import *
 
 class BlockLog(object):
     '''Stores the history of a block'''
