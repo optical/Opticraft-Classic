@@ -1,6 +1,6 @@
 import hashlib
 from opticraftpacket import OptiCraftPacket
-from opcodes import *
+from constants import *
 class Player(object):
     #Constructor is located at the bottom
     def ProcessPackets(self):
