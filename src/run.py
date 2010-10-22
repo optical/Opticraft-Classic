@@ -2,7 +2,9 @@
 from servercontroller import ServerController
 import traceback
 import time
-if __name__ == "__main__":
+
+
+def Main():
     ServerControl = ServerController()
     try:
         ServerControl.run()
@@ -15,3 +17,6 @@ if __name__ == "__main__":
         fHandle.close()
         ServerControl.HeartBeatControl.Running = False
         ServerControl.SaveAllWorlds()
+
+if __name__ == "__main__":
+    Main()
