@@ -85,8 +85,11 @@ class Player(object):
         return self.O
     def GetPitch(self):
         return self.P
-    def GetPermissions(self):
-        return self.Permissions
+    def GetRank(self):
+        return self.Rank
+    def HasPermission(self,Permission):
+        return FlagToLevel[self.Rank] >= FlagToLevel[Permission]
+
     def GetAboutCmd(self):
         return self.AboutCmd
     def SetAboutCmd(self,Value):
@@ -140,8 +143,7 @@ class Player(object):
             OutPacket.WriteString(self.ServerControl.GetMotd())
             OutPacket.WriteByte(0)
             self.SendPacket(OutPacket)
-            if self.Name == "opticalza" or self.Name == "zulubro" or self.Name == "opticalza1":
-                self.Permissions.add("a")
+            self.Rank = self.ServerControl.GetRank(self.Name)
             self.ServerControl.SendNotice('%s connected to the server' %self.Name)
             return
         else:
@@ -212,7 +214,7 @@ class Player(object):
         self.IsLoading = False
         self.AboutCmd = False
 
-        self.Permissions = set()
+        self.Rank = ''
 
         self.X,self.Y,self.Z,self.O,self.P = -1,-1,-1,-1,-1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
 

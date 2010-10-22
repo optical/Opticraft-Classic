@@ -1,4 +1,5 @@
 '''Command system for opticraft'''
+from constants import *
 
 class CommandObject(object):
     '''Child class for all commands'''
@@ -12,7 +13,7 @@ class CommandObject(object):
     def Execute(self,pPlayer,Message):
         '''Checks player has correct permissions and number of arguments'''
         if self.Permissions != '':
-            if self.Permissions not in pPlayer.GetPermissions():
+            if pPlayer.HasPermission(self.Permissions):
                 pPlayer.SendMessage("&4You do not have the required permissions to use that command!")
                 return
         Tokens = Message.split()
@@ -71,6 +72,9 @@ class BanCmd(CommandObject):
         Username = Args[0]
         if ":" in Username:
             pPlayer.SendMessage("&4That is not a valid username!")
+            return
+        if RankToLevel[pPlayer.ServerControl.GetRank(Username)] >= RankToLevel[pPlayer.GetRank()]:
+            pPlayer.SendMessage("&4You may not ban someone with the same rank or higher then yours")
             return
         Result = pPlayer.ServerControl.AddBan(Username, 0) #TODO: Parse input so we can enter expiry!
         if Result:
