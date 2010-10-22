@@ -82,3 +82,32 @@ BLOCK_OBSIDIAN = 49
 BLOCK_END = 50
 
 DisabledBlocks = set([BLOCK_WATER,BLOCK_STILLWATER,BLOCK_LAVA,BLOCK_STILLLAVA,BLOCK_HARDROCK])
+
+#Permission ranks
+#These are subject to change as more ranks are added over time.
+# 0 = Builder
+# 1 = Operator
+# 2 = Admin
+# 3 = Owner
+
+RankToName = {
+    "" : "",
+    "a": "Admin",
+    "b": "Builder",
+    "o": "Operator",
+    "z": "Owner"
+}
+RankToColour = {
+    "" : "",
+    "a": "&9", #Blue
+    "b": "&a", #Light green
+    "o": "&b", #Teal
+    "z": "&c" #Red
+}
+RankToLevel = {
+    "" : 5,
+    "z": 0xFF,
+    "b": 10,
+    "o": 20,
+    "a": 30,
+}

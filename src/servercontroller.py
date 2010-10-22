@@ -11,7 +11,7 @@ from optisockets import SocketManager
 from commandhandler import CommandHandler
 from configreader import ConfigReader
 from world import World
-from opcodes import *
+from constants import *
 
 class ServerController(object):
     def __init__(self):
@@ -27,6 +27,8 @@ class ServerController(object):
         self.Motd = self.ConfigValues.GetValue("server","Motd","Powered by opticraft!")
         self.MaxClients = int(self.ConfigValues.GetValue("server","Max",120))
         self.Public = self.ConfigValues.GetValue("server","Public","True")
+        self.RankedPlayers = dict()
+        self.LoadRanks()
         self.HeartBeatControl = HeartBeatController(self)
         self.SockManager = SocketManager(self)
         self.PlayerSet = set() #All players logged into the server
@@ -60,6 +62,26 @@ class ServerController(object):
 
         self.ActiveWorlds.append(World(self,self.ConfigValues.GetValue("Worlds","DefaultName","Main")))
         self.LastKeepAlive = -1
+
+    def LoadRanks(self):
+        try:
+            Items = self.ConfigValues.items("ranks")
+        except:
+            return
+        for Username,Rank in Items:
+            self.RankedPlayers[Username.lower()] = Rank.lower()
+
+    def GetRank(self,Username):
+        return self.RankedPlayers.get(Username.lower(),'')
+
+    def SetRank(self,Username,Rank):
+        self.RankedPlayers[Username.lower()] = Rank.lower()
+        try:
+            fHandle = open("opticraft.cfg","w")
+            self.ConfigValues.write(fHandle)
+            fHandle.close()
+        except:
+            return
 
     def run(self):
         '''For now, we will manage everything. Eventually these objects will manage themselves in seperate threads'''
