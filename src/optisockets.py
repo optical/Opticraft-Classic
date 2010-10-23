@@ -41,6 +41,7 @@ class SocketManager(object):
         #Pop a socket off the stack
         PlayerSock, SockAddress = self.ListenSock.Accept()
         while PlayerSock != None and SockAddress != None:
+            PlayerSock.setblocking(0)
             self.PlayerSockets.append(PlayerSock)
             pPlayer = Player(PlayerSock,SockAddress,self.ServerControl)
             result = self.ServerControl.AttemptAddPlayer(pPlayer)
