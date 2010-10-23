@@ -1,41 +1,43 @@
 import hashlib
 from opticraftpacket import OptiCraftPacket
 from constants import *
+import cStringIO
 class Player(object):
     #Constructor is located at the bottom
     def ProcessPackets(self):
         ProcessingPackets = True
         while ProcessingPackets:
-            if len(self.SockBuffer) == 0:
+            RawBuffer = self.SockBuffer.getvalue()
+            if len(RawBuffer) == 0:
                 return
-            OpCode = ord(self.SockBuffer[0])
+            OpCode = ord(RawBuffer[0])
             if PacketSizes.has_key(OpCode) == False:
                 self.Disconnect("Unhandled packet!") #Unimplemented packet type.
                 return
             PacketSize = PacketSizes[OpCode]
-            BufLen = len(self.SockBuffer) - 1 #Remove one for opcode
+            BufLen = len(RawBuffer) - 1 #Remove one for opcode
             #print "OpCode:", OpCode
             #print "Buffer:", self.SockBuffer
             #print "Buflen:", BufLen
             #print "Size:", PacketSize
             if BufLen >= PacketSize:
-                Packet = OptiCraftPacket(OpCode,self.SockBuffer[1:PacketSize+1]) #up to and including end of packet
-                self.SockBuffer = self.SockBuffer[PacketSize+1:] #From end of packet on
+                Packet = OptiCraftPacket(OpCode,RawBuffer[1:PacketSize+1]) #up to and including end of packet
+                self.SockBuffer.truncate(0)
+                self.SockBuffer.write(RawBuffer[PacketSize+1:]) #From end of packet on
                 if self.OpcodeHandler.has_key(OpCode):
                     self.OpcodeHandler[OpCode](Packet)
             else:
                 ProcessingPackets = False
 
-    def Push_Recv_Data(self,Data):
+    def PushRecvData(self,Data):
         '''Called by the Socketmanager. Gives us raw data to be processed'''
-        self.SockBuffer += Data
+        self.SockBuffer.write(Data)
     def GetOutBuffer(self):
         return self.OutBuffer
-    def SetOutBuffer(self,NewBuffer):
-        self.OutBuffer = NewBuffer
+
     def SendPacket(self,Packet):
         '''Lets the socketmanager know that we have data to send'''
-        self.OutBuffer += Packet.GetOutData()
+        self.OutBuffer.write(Packet.GetOutData())
         self.ServerControl.SockManager.AddWriteablePlayer(self)
     def Disconnect(self,Message):
         #TODO: Implement message
@@ -88,7 +90,7 @@ class Player(object):
     def GetRank(self):
         return self.Rank
     def HasPermission(self,Permission):
-        return FlagToLevel[self.Rank] >= FlagToLevel[Permission]
+        return RankToLevel[self.Rank] >= RankToLevel[Permission]
 
     def GetAboutCmd(self):
         return self.AboutCmd
@@ -121,6 +123,7 @@ class Player(object):
         HashedPass = Packet.GetString().strip("0")
         Unk = Packet.GetByte()
         CorrectPass = hashlib.md5("SOMESALT" + self.Name).hexdigest().strip("0")
+        print "Version", Version, "Name:",self.Name,"Pass",HashedPass,"Correct pass",CorrectPass
         if Version != 7:
             self.Disconnect("Your client is incompatible with this server")
             return
@@ -218,9 +221,9 @@ class Player(object):
 
         self.X,self.Y,self.Z,self.O,self.P = -1,-1,-1,-1,-1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
 
-        self.OutBuffer = '' #TODO: Replace this with a mutable buffer
+        self.OutBuffer = cStringIO.StringIO()
         print "Creating player!"
-        self.SockBuffer = '' #TODO: Replace this with a mutable buffer
+        self.SockBuffer = cStringIO.StringIO()
         self.OpcodeHandler = {
             CMSG_IDENTIFY: self.HandleIdentify,
             CMSG_BLOCKCHANGE: self.HandleBlockChange,
