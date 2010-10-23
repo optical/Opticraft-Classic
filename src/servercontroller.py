@@ -111,14 +111,14 @@ class ServerController(object):
                 pPlayer = self.PlayersPendingRemoval.pop()
                 self._RemovePlayer(pPlayer)
                 
-            if self.LastKeepAlive + 1 < time.time():
+            if self.LastKeepAlive + 10 < time.time():
                 self.LastKeepAlive = time.time()
                 Packet = OptiCraftPacket(SMSG_KEEPALIVE)
                 #Send a SMSG_KEEPALIVE packet to all our clients across all worlds.
                 for pPlayer in self.PlayerSet:
                     pPlayer.SendPacket(Packet)
                     
-            time.sleep(0.001)
+            time.sleep(0.02)
 
     def GetName(self):
         return self.Name

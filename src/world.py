@@ -1,5 +1,6 @@
 import os.path
 import os
+import cStringIO
 import zlib
 import gzip
 import struct
@@ -113,7 +114,7 @@ class World(object):
         if Verbose:
             print "Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000))
             self.SendNotice("Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
-        self.LastSave = time.time()
+        self.LastSave = start
 
     def Backup(self):
         '''Performs a backup of the current save file'''
@@ -125,7 +126,7 @@ class World(object):
         FileName = self.Name + '_' + time.strftime("%d-%m-%Y_%M-%S", time.gmtime()) + '.save'
         shutil.copy("Worlds/" + self.Name + '.save', "Backups/" + self.Name + "/" + FileName)
         self.SendNotice("Backed up world in %dms" %(int((time.time()-start) * 1000)))
-        self.LastBackup = time.time()
+        self.LastBackup = start
 
     def _CalculateOffset(self,x,y,z):
         return z*(self.X*self.Y) + y*(self.X) + x
@@ -226,62 +227,58 @@ class World(object):
         
 
     def run(self):
-        if self.LastSave + self.SaveInterval < time.time():
+        now = time.time()
+        if self.LastSave + self.SaveInterval < now:
             self.Save()
-        if self.LastBackup + self.BackupInterval < time.time():
+        if self.LastBackup + self.BackupInterval < now:
             self.Backup()
 
         for pPlayer in self.Players:
             if pPlayer.IsLoadingWorld():
-                #TODO: Pack this in memory!
-                fHandle = gzip.GzipFile("temp","wb")
-                fHandle.write(self.NetworkSize)
-                fHandle.write(self.Blocks)
-                fHandle.close()
-                del fHandle
-                rHandle = open("temp","rb")
-                data = rHandle.read()
-                rHandle.close()
-                os.remove("temp")
-                CurPos = 0
-                EndPos = len(data)
-                while CurPos < EndPos:
-                    ChunkEnd = CurPos+1024
-                    if ChunkEnd > EndPos:
-                        ChunkEnd = EndPos
-                    ChunkSize = ChunkEnd - CurPos
-                    Packet = OptiCraftPacket(SMSG_CHUNK)
-                    Packet.WriteInt16(ChunkSize)
-                    Packet.WriteKBChunk(data[CurPos:ChunkEnd])
-                    Packet.WriteByte(100.0 * (float(ChunkEnd)/float(EndPos)))
-                    pPlayer.SendPacket(Packet)
-                    CurPos = ChunkEnd
-
-                Packet2 = OptiCraftPacket(SMSG_LEVELSIZE)
-                Packet2.WriteInt16(self.X)
-                Packet2.WriteInt16(self.Z)
-                Packet2.WriteInt16(self.Y)
-                pPlayer.SendPacket(Packet2)
-
-                pPlayer.SetLocation(self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnOrientation, self.SpawnPitch)
-
-                Packet3 = OptiCraftPacket(SMSG_SPAWNPOINT)
-                Packet3.WriteByte(255)
-                Packet3.WriteString("")
-                Packet3.WriteInt16(self.SpawnX)
-                Packet3.WriteInt16(self.SpawnZ)
-                Packet3.WriteInt16(self.SpawnY)
-                Packet3.WriteByte(self.SpawnOrientation)
-                Packet3.WriteByte(self.SpawnPitch)
-                pPlayer.SendPacket(Packet3)
-                pPlayer.SetLoadingWorld(False)
-                self.SendPlayerJoined(pPlayer)
-                self.SendAllPlayers(pPlayer)
-                self.SendNotice('%s joined the map' %pPlayer.GetName())
+                self.SendWorld(pPlayer)
                 continue
             pPlayer.ProcessPackets()
 
+    def SendWorld(self,pPlayer):
+        StringHandle = cStringIO.StringIO()
+        fHandle = gzip.GzipFile(filename="temp",fileobj=StringHandle,mode="wb",compresslevel=self.CompressionLevel)
+        fHandle.write(self.NetworkSize)
+        fHandle.write(self.Blocks)
+        fHandle.close()
+        TotalBytes = StringHandle.tell()
+        StringHandle.seek(0)
+        Chunk = StringHandle.read(1024)
+        CurBytes = 0
+        while len(Chunk) > 0:
+            ChunkSize = len(Chunk)
+            CurBytes += ChunkSize
+            Packet = OptiCraftPacket(SMSG_CHUNK)
+            Packet.WriteInt16(ChunkSize)
+            Packet.WriteKBChunk(Chunk)
+            Packet.WriteByte(100.0 * (float(CurBytes)/float(TotalBytes)))
+            pPlayer.SendPacket(Packet)
+            Chunk = StringHandle.read(1024)
 
+        Packet2 = OptiCraftPacket(SMSG_LEVELSIZE)
+        Packet2.WriteInt16(self.X)
+        Packet2.WriteInt16(self.Z)
+        Packet2.WriteInt16(self.Y)
+        pPlayer.SendPacket(Packet2)
+
+        pPlayer.SetLocation(self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnOrientation, self.SpawnPitch)
+        Packet3 = OptiCraftPacket(SMSG_SPAWNPOINT)
+        Packet3.WriteByte(255)
+        Packet3.WriteString("")
+        Packet3.WriteInt16(self.SpawnX)
+        Packet3.WriteInt16(self.SpawnZ)
+        Packet3.WriteInt16(self.SpawnY)
+        Packet3.WriteByte(self.SpawnOrientation)
+        Packet3.WriteByte(self.SpawnPitch)
+        pPlayer.SendPacket(Packet3)
+        pPlayer.SetLoadingWorld(False)
+        self.SendPlayerJoined(pPlayer)
+        self.SendAllPlayers(pPlayer)
+        self.SendNotice('%s joined the map' %pPlayer.GetName())
 
     def RemovePlayer(self,pPlayer):
         self.Players.remove(pPlayer)
@@ -291,7 +288,6 @@ class World(object):
             Packet.WriteByte(pPlayer.GetId())
             self.SendPacketToAll(Packet, pPlayer)
             self.SendNotice("%s left the map" %pPlayer.GetName())
-
     def SendBlock(self,pPlayer,x,y,z):
         #We can trust that these coordinates will be within bounds.
         Packet = OptiCraftPacket(SMSG_BLOCKSET)
@@ -300,8 +296,6 @@ class World(object):
         Packet.WriteInt16(y)
         Packet.WriteByte(ord(self.Blocks[self._CalculateOffset(x, y, z)]))
         pPlayer.SendPacket(Packet)
-
-
     def AddPlayer(self,pPlayer):
         self.Players.add(pPlayer)
         Packet = OptiCraftPacket(SMSG_PRECHUNK)

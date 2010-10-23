@@ -61,7 +61,7 @@ class SocketManager(object):
         #Finished that. Now to see what our sockets are up to...
         if len(self.PlayerSockets) == 0:
             return #calling select() on windows with 3 empty lists results in an exception.
-        rlist, wlist,xlist = select(self.PlayerSockets,self.PlayerSockets,[],0.05) #50ms timeout
+        rlist, wlist,xlist = select(self.PlayerSockets,self.PlayerSockets,[],0.1) #100ms timeout
 
         for Socket in rlist:
             try:
@@ -73,14 +73,14 @@ class SocketManager(object):
             if len(data) > 0:
                 #print "Recieved some data:", data
                 pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
-                pPlayer.Push_Recv_Data(data)
+                pPlayer.PushRecvData(data)
 
         ToRemove = []
         for Socket in wlist:
             pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
             if pPlayer in self.WriteJobs:
                 #pop data and send. ERGH!
-                ToSend = pPlayer.GetOutBuffer()
+                ToSend = pPlayer.GetOutBuffer().getvalue()
                 size = len(ToSend)
                 #Let us try send some data :XX
                 try:
@@ -89,12 +89,10 @@ class SocketManager(object):
                     ToRemove.append(pPlayer)
                     self._RemoveSocket(Socket)
                     continue
-                Remaining = size-result
-                if Remaining > 0:
-                    pPlayer.SetOutBuffer(ToSend[result:])
-                else:
-                    pPlayer.SetOutBuffer('')
-                    ToRemove.append(pPlayer)
+                Buffer = pPlayer.GetOutBuffer()
+                Buffer.truncate(0)
+                Buffer.write(ToSend[result:])
+
         
         for pPlayer in ToRemove:
             self.WriteJobs.remove(pPlayer)

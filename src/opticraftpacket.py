@@ -1,54 +1,50 @@
 import struct
+import cStringIO
 class OptiCraftPacket(object):
     def __init__(self,OpCode,data = ''):
-        self.ReadPos = 0
-        self.WritePos = 0
+        self.ReadPos = 1
         self.OpCode = OpCode
-        self.data = data #TODO: Replace this with an effecient mutable data type (Such as an array)
+        self.data = cStringIO.StringIO()
+        self.data.write(chr(OpCode))
+        if data != '':
+            self.data.write(data)
+            self.data.seek(1) #Return to the position just after the opcode
+            #This is a packet for reading.
 
         #Writing functions - Appends data in a format to the buffer.
         #Once again - these are NOT safe. Passing an argument of the incorrect type will mess up the
         #...Write buffer positions, or throwing exceptions.
     def WriteByte(self,data):
-        self.data += struct.pack("B",data)
-        self.WritePos += 1
+        self.data.write(struct.pack("B",data))
     def WriteString(self,data):
-        self.data += (data + ((64 - len(data)) *' '))
-        self.WritePos += 64
+        self.data.write((data + ((64 - len(data)) *' ')))
     def WriteInt16(self,data):
-        self.data += struct.pack("!h", data)
-        self.WritePos += 2
+       self.data.write(struct.pack("!h", data))
     def WriteInt32(self,data):
-        self.data += struct.pack("!i", data)
-        self.WritePos += 4
+        self.data.write(struct.pack("!i", data))
     def WriteKBChunk(self,data):
-        self.data += (data + ((1024 - len(data)) *'\0'))
-        self.WritePos += 1024
+       self.data.write((data + ((1024 - len(data)) *'\0')))
 
     #Getter functions for unpacking data.
     #These are NOT safe - Exceptions will be thrown if you read beyond the buffer length.
     def GetByte(self):
-        Result = struct.unpack("!B", self.data[self.ReadPos])[0]
         self.ReadPos += 1
-        return Result
+        return struct.unpack("!B", self.data.read(1))[0]
     def GetString(self):
-        Result = self.data[self.ReadPos:self.ReadPos+64].strip()
         self.ReadPos += 64
-        return Result
+        return self.data.read(64).strip()
     def GetInt16(self):
-        Result = struct.unpack("!h", self.data[self.ReadPos:self.ReadPos+2])
         self.ReadPos += 2
-        return Result[0]
+        return struct.unpack("!h", self.data.read(2))[0]
     def GetInt32(self):
-        Result = struct.unpack("!i", self.data[self.ReadPos:self.ReadPos+4])
         self.ReadPos += 4
-        return Result[0]
+        return struct.unpack("!i", self.data.read(4))[0]
     def GetKBChunk(self):
-        Result = self.data[self.ReadPos:self.ReadPos+1024]
         self.ReadPos += 1024
-        return Result
+        return self.data.read(1024)
+
     def GetOpCode(self):
         return self.OpCode
     def GetOutData(self):
         '''Returns the full packet - Opcode+Data which can be then be sent over a socket'''
-        return chr(self.OpCode) + self.data
+        return self.data.getvalue()
