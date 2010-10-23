@@ -37,7 +37,7 @@ class CmdListCmd(CommandObject):
         for key in self.CmdHandler.CommandTable:
             CmdObj = self.CmdHandler.CommandTable[key]
             if CmdObj.Permissions != '':
-                if CmdObj.Permissions not in pPlayer.GetPermissions():
+                if pPlayer.HasPermission(CmdObj.Permissions) == False:
                     continue #Don't send commands to the client if he doesn't possess the permission to use it!
 
             Commands += key + ' '
