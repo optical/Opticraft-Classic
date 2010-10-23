@@ -13,7 +13,7 @@ class CommandObject(object):
     def Execute(self,pPlayer,Message):
         '''Checks player has correct permissions and number of arguments'''
         if self.Permissions != '':
-            if pPlayer.HasPermission(self.Permissions):
+            if pPlayer.HasPermission(self.Permissions) == False:
                 pPlayer.SendMessage("&4You do not have the required permissions to use that command!")
                 return
         Tokens = Message.split()
@@ -185,14 +185,14 @@ class CommandHandler(object):
         ######################
         #ADMIN COMMANDS HERE #
         ######################
+        self.AddCommand("ban", BanCmd, 'o', 'Bans a player from the server', 'Incorrect syntax! Usage: /ban <username>', 1)
+        self.AddCommand("unban", UnbanCmd, 'o', 'Unbans a player from the server', 'Incorrect syntax! Usage: /unban <username>', 1)
+        self.AddCommand("kick", KickCmd, 'o', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)
+        self.AddCommand("appear", AppearCmd, 'o', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1)
+        self.AddCommand("summon", SummonCmd, 'o', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
+        self.AddCommand("undoactions", UndoActionsCmd, 'o', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>',2)
         self.AddCommand("save", SaveCmd, 'a', 'Saves all actively running worlds', '', 0)
-        self.AddCommand("ban", BanCmd, 'a', 'Bans a player from the server', 'Incorrect syntax! Usage: /ban <username>', 1)
-        self.AddCommand("unban", UnbanCmd, 'a', 'Unbans a player from the server', 'Incorrect syntax! Usage: /unban <username>', 1)
-        self.AddCommand("kick", KickCmd, 'a', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)
-        self.AddCommand("appear", AppearCmd, 'a', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1)
-        self.AddCommand("summon", SummonCmd, 'a', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
         self.AddCommand("setspawn", SetSpawnCmd, 'a', 'Changes the worlds default spawn location to where you are standing', '', 0)
-        self.AddCommand("undoactions", UndoActionsCmd, 'a', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>',2)
 
     def HandleCommand(self,pPlayer,Message):
         '''Called when a player types a slash command'''

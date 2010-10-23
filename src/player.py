@@ -56,6 +56,8 @@ class Player(object):
         self.Id = Id
     def GetName(self):
         return self.Name
+    def GetColouredName(self):
+        return '%s%s' %(RankToColour[self.Rank],self.Name)
     def GetSocket(self):
         return self.PlayerSocket
     def GetIP(self):
@@ -201,7 +203,7 @@ class Player(object):
 
         Packet2 = OptiCraftPacket(SMSG_MESSAGE)
         Packet2.WriteByte(self.GetId())
-        Message = self.Name + ": " +Message
+        Message = '%s:&f %s' %(self.GetColouredName(),Message)
         Message = Message[:64]
         Packet2.WriteString(Message)
         self.ServerControl.SendPacketToAll(Packet2)

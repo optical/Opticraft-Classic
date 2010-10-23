@@ -306,7 +306,7 @@ class World(object):
     def SendPlayerJoined(self,pPlayer):
         Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
         Packet.WriteByte(pPlayer.GetId())
-        Packet.WriteString(pPlayer.GetName())
+        Packet.WriteString(pPlayer.GetColouredName())
         Packet.WriteInt16(pPlayer.GetX())
         Packet.WriteInt16(pPlayer.GetZ())
         Packet.WriteInt16(pPlayer.GetY())
@@ -319,7 +319,7 @@ class World(object):
             if pPlayer.IsLoadingWorld() == False and pPlayer != Client:
                 Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
                 Packet.WriteByte(pPlayer.GetId())
-                Packet.WriteString(pPlayer.GetName())
+                Packet.WriteString(pPlayer.GetColouredName())
                 Packet.WriteInt16(pPlayer.GetX())
                 Packet.WriteInt16(pPlayer.GetZ())
                 Packet.WriteInt16(pPlayer.GetY())
