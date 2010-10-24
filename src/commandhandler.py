@@ -195,10 +195,15 @@ class UndoActionsCmd(CommandObject):
 #ADMIN COMMANDS HERE #
 ######################
 class SaveCmd(CommandObject):
-    '''Handle for the /save command - saves all worlds'''
+    '''Handle for the /save command - saves all running worlds'''
     def Run(self,pPlayer,Args,Message):
         pPlayer.ServerControl.SaveAllWorlds()
         pPlayer.SendMessage("Saved all worlds successfully")
+class BackupCmd(CommandObject):
+    '''Handle for the /backup command - backs up all running worlds'''
+    def Run(self,pPlayer,Args,Message):
+        pPlayer.ServerControl.BackupAllWorlds()
+        pPlayer.SendMessage("Backed up all worlds successfully")
 
 class SetSpawnCmd(CommandObject):
     '''Handle for the /setspawn command - moves the default spawnpoint to the location you are at'''
@@ -257,6 +262,7 @@ class CommandHandler(object):
         #ADMIN COMMANDS HERE #
         ######################
         self.AddCommand("save", SaveCmd, 'a', 'Saves all actively running worlds', '', 0)
+        self.AddCommand("backup", BackupCmd, 'a', 'Backs up all actively running worlds', '', 0)
         self.AddCommand("setspawn", SetSpawnCmd, 'a', 'Changes the worlds default spawn location to where you are standing', '', 0)
         ######################
         #OWNER COMMANDS HERE #
