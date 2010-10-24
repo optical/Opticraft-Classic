@@ -7,6 +7,8 @@ from player import Player
 class ListenSocket(object):
     def __init__(self,Host,Port):
         self.Socket = socket.socket()
+        #This allows the server to restart instantly instead of waiting around
+        self.Socket.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEADDR, 1 )
         self.port = Port
         #Temporary hack - REWRITE ME
         self.NewPlayers = list()
@@ -25,6 +27,9 @@ class ListenSocket(object):
         except:
             return None, None
 
+    def Terminate(self):
+        self.Socket.close()
+        del self.Socket
 
 class SocketManager(object):
     def __init__(self,ServerControl):
@@ -34,6 +39,10 @@ class SocketManager(object):
         self.WriteJobs = set() #a set of player pointers who have packets ready to be sent.
         self.ServerControl = ServerControl
 
+    def Terminate(self,Crash):
+        '''Stop the listening socket'''
+        self.ListenSock.Terminate()
+        
     def run(self):
         '''Runs a cycle. Accept sockets from our listen socket, and then perform jobs
         ...on our Playersockets, such as reading and writing'''
@@ -55,9 +64,11 @@ class SocketManager(object):
         while len(self.ClosingSockets) > 0:
             Socket = self.ClosingSockets.pop()
             self.PlayerSockets.remove(Socket)
-            #TODO: Wrap this in try blocks - Once i know what errors can occur
-            Socket.shutdown(socket.SHUT_RDWR)
-            Socket.close()
+            try:
+                Socket.shutdown(socket.SHUT_RDWR)
+                Socket.close()
+            except:
+                pass
             
         #Finished that. Now to see what our sockets are up to...
         if len(self.PlayerSockets) == 0:

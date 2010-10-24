@@ -97,7 +97,9 @@ class World(object):
         16+ = zlibbed array data'''
         start = time.time()
         try:
-            fHandle = open("Worlds/" +self.Name + '.save','wb')
+            #Save to a temp file. Then copy it over. (If we crash during this, the old save is unchanged)
+            #...Crashes may occur if we run out of memory, so do not change this!
+            fHandle = open("Worlds/%s.temp" %(self.Name),'wb')
         except:
             print "Critical error, could not save world data for world %s" %self.Name
             return
@@ -111,6 +113,8 @@ class World(object):
         fHandle.write(struct.pack("h",self.SpawnPitch))
         fHandle.write(zlib.compress(self.Blocks,self.CompressionLevel))
         fHandle.close()
+        shutil.copy("Worlds/%s.temp" %(self.Name),"Worlds/%s.save" %(self.Name))
+        os.remove("Worlds/%s.temp" %(self.Name))
         if Verbose:
             print "Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000))
             self.SendNotice("Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
@@ -123,7 +127,7 @@ class World(object):
             return
         if os.path.exists("Backups/" + self.Name) == False:
             os.mkdir("Backups/" + self.Name)
-        FileName = self.Name + '_' + time.strftime("%d-%m-%Y_%M-%S", time.gmtime()) + '.save'
+        FileName = self.Name + '_' + time.strftime("%d-%m-%Y_%H-%M-%S", time.gmtime()) + '.save'
         shutil.copy("Worlds/" + self.Name + '.save', "Backups/" + self.Name + "/" + FileName)
         self.SendNotice("Backed up world in %dms" %(int((time.time()-start) * 1000)))
         self.LastBackup = start
