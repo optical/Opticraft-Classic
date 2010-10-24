@@ -91,6 +91,8 @@ class Player(object):
         return self.P
     def GetRank(self):
         return self.Rank
+    def SetRank(self,Rank):
+        self.Rank = Rank
     def HasPermission(self,Permission):
         return RankToLevel[self.Rank] >= RankToLevel[Permission]
 
