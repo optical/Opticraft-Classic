@@ -21,4 +21,4 @@ def Main():
         ServerControl.Shutdown(True)
 
 if __name__ == "__main__":
-    Profile.run('Main()', 'profiler.out')
+    Profile.run('Main()', 'profi-%s.out' %time.strftime("%d-%m-%Y_%H-%M-%S", time.gmtime()))
