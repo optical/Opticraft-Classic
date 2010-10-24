@@ -206,7 +206,8 @@ class Player(object):
                     Block = self.BlockOverride
                 Result = self.World.AttemptSetBlock(self,x,y,z,Block)
             if Result != True or self.GetBlockOverride() != -1:
-                self.World.SendBlock(self,x,y,z)
+                if self.World.WithinBounds(x, y, z):
+                    self.World.SendBlock(self,x,y,z)
             
     def HandleChatMessage(self,Packet):
         junk = Packet.GetByte()

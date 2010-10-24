@@ -141,8 +141,13 @@ class World(object):
         z = offset // (self.X * self.Y)
         return x, y, z
 
-    def AttemptSetBlock(self,pPlayer,x,y,z,val):
+    def WithinBounds(self,x,y,z):
         if x < 0 or x >= self.X or y < 0 or y >= self.Y or z < 0 or z >= self.Z:
+            return False
+        return True
+
+    def AttemptSetBlock(self,pPlayer,x,y,z,val):
+        if not self.WithinBounds(x, y, z):
             return True #Cant set that block. But don't return False or it'll try "undo" the change!
         if val >= BLOCK_END:
             return False #Fake block type...
