@@ -36,7 +36,7 @@ class SocketManager(object):
         self.ListenSock = ListenSocket(ServerControl.Host,ServerControl.Port)
         self.PlayerSockets = list() #Used for reading
         self.ClosingSockets = list() #Sockets which need to be terminated.
-        self.WriteJobs = set() #a set of player pointers who have packets ready to be sent.
+        self.WriteList = [] #a list of player pointers who have packets ready to be sent.
         self.ServerControl = ServerControl
 
     def Terminate(self,Crash):
@@ -73,8 +73,7 @@ class SocketManager(object):
         #Finished that. Now to see what our sockets are up to...
         if len(self.PlayerSockets) == 0:
             return #calling select() on windows with 3 empty lists results in an exception.
-        rlist, wlist,xlist = select(self.PlayerSockets,self.PlayerSockets,[],0.1) #100ms timeout
-
+        rlist, wlist,xlist = select(self.PlayerSockets,self.WriteList,[],0.100) #100ms timeout
         for Socket in rlist:
             try:
                 data = Socket.recv(4096)
@@ -90,27 +89,30 @@ class SocketManager(object):
         ToRemove = []
         for Socket in wlist:
             pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
-            if pPlayer in self.WriteJobs:
-                #pop data and send. ERGH!
-                ToSend = pPlayer.GetOutBuffer().getvalue()
-                size = len(ToSend)
-                #Let us try send some data :XX
-                try:
-                    result = Socket.send(ToSend)
-                except:
-                    ToRemove.append(pPlayer)
-                    self._RemoveSocket(Socket)
-                    continue
-                Buffer = pPlayer.GetOutBuffer()
-                Buffer.truncate(0)
-                Buffer.write(ToSend[result:])
+            #pop data and send.
+            ToSend = pPlayer.GetOutBuffer().getvalue()
+            #Let us try send some data :XX
+            try:
+                result = Socket.send(ToSend)
+            except:
+                self._RemoveSocket(Socket)
+                continue
+            Buffer = pPlayer.GetOutBuffer()
+            Buffer.truncate(0)
+            NewData = ToSend[result:]
+            if len(NewData) == 0:
+                ToRemove.append(Socket)
+            Buffer.write(NewData)
 
         
-        for pPlayer in ToRemove:
-            self.WriteJobs.remove(pPlayer)
+        while len(ToRemove) > 0:
+            Socket = ToRemove.pop()
+            self.WriteList.remove(Socket)
+            pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
+            pPlayer.SetWriteFlagged(False)
 
     def AddWriteablePlayer(self,pPlayer):
-        self.WriteJobs.add(pPlayer)
+        self.WriteList.append(pPlayer.GetSocket())
 
     def CloseSocket(self,Socket):
         self.ClosingSockets.append(Socket)
@@ -124,3 +126,6 @@ class SocketManager(object):
             self.PlayerSockets.remove(Socket)
             pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
             self.ServerControl.RemovePlayer(pPlayer)
+            if pPlayer.GetWriteFlagged() == True:
+                self.WriteList.remove(pPlayer.GetSocket())
+                pPlayer.SetWriteFlagged(False)

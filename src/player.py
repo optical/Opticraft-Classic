@@ -38,7 +38,10 @@ class Player(object):
     def SendPacket(self,Packet):
         '''Lets the socketmanager know that we have data to send'''
         self.OutBuffer.write(Packet.GetOutData())
-        self.ServerControl.SockManager.AddWriteablePlayer(self)
+        if self.IsWriteFlagged == False:
+            self.ServerControl.SockManager.AddWriteablePlayer(self)
+            self.IsWriteFlagged = True
+
     def Disconnect(self,Message):
         #TODO: Implement message
         self.ServerControl.SockManager.CloseSocket(self.PlayerSocket)
@@ -95,8 +98,8 @@ class Player(object):
         self.Rank = Rank
     def HasPermission(self,Permission):
         return RankToLevel[self.Rank] >= RankToLevel[Permission]
-
-
+    def GetSocket(self):
+        return self.PlayerSocket
     def SetBlockOverride(self,Block):
         self.BlockOverride = Block
     def GetBlockOverride(self):
@@ -107,6 +110,10 @@ class Player(object):
     def SetAboutCmd(self,Value):
         self.AboutCmd = Value
 
+    def GetWriteFlagged(self):
+        return self.IsWriteFlagged
+    def SetWriteFlagged(self,Value):
+        self.IsWriteFlagged = Value
 
     def Teleport(self,x,y,z,o,p):
         '''Teleports the player to X Y Z. These coordinates have the fractal bit at position 5'''
@@ -228,7 +235,7 @@ class Player(object):
         self.World = None #Pointer to our current world.
         self.IsLoading = False
         self.AboutCmd = False
-
+        self.IsWriteFlagged = False
         self.Rank = ''
         #This is used for commands such as /lava, /water, and /grass
         self.BlockOverride = -1
