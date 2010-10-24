@@ -64,9 +64,8 @@ class SocketManager(object):
         while len(self.ClosingSockets) > 0:
             Socket = self.ClosingSockets.pop()
             self.PlayerSockets.remove(Socket)
-            pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
-            if pPlayer.IsWriteFlagged() == True:
-                self.WriteList.remove(pPlayer)
+            if Socket in self.WriteList:
+                self.WriteList.remove(Socket)
             try:
                 Socket.shutdown(socket.SHUT_RDWR)
                 Socket.close()
