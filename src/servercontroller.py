@@ -4,7 +4,6 @@ import random
 import time
 import os
 import os.path
-from random import randint
 from heartbeatcontrol import HeartBeatController
 from opticraftpacket import OptiCraftPacket
 from optisockets import SocketManager
