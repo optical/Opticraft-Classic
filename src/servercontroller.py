@@ -75,14 +75,29 @@ class ServerController(object):
         return self.RankedPlayers.get(Username.lower(),'')
 
     def SetRank(self,Username,Rank):
-        self.RankedPlayers[Username.lower()] = Rank.lower()
+        if Rank != '':
+            self.RankedPlayers[Username.lower()] = Rank.lower()
+            self.ConfigValues.set("ranks",Username,Rank)
+            pPlayer = self.PlayerNames.get(Username,None)
+            if pPlayer != None:
+                pPlayer.SetRank(Rank)
+                pPlayer.SendMessage("Your rank has been changed to %s!" %RankToName[Rank])
+        else:
+            if Username.lower() in self.RankedPlayers:
+                del self.RankedPlayers[Username.lower()]
+                self.ConfigValues.remove_option("ranks",Username)
+                pPlayer = self.PlayerNames.get(Username.lower(),None)
+                if pPlayer != None:
+                    pPlayer.SetRank('')
+                    pPlayer.SendMessage("You no longer have a rank.")
+            else:
+                return
         try:
             fHandle = open("opticraft.cfg","w")
             self.ConfigValues.write(fHandle)
             fHandle.close()
         except:
             return
-
     def run(self):
         '''For now, we will manage everything. Eventually these objects will manage themselves in seperate threads'''
         self.Running = True
@@ -124,7 +139,7 @@ class ServerController(object):
         self.SaveAllWorlds()
         self.BackupAllWorlds()
         self.SockManager.Terminate(True)
-        self.HeartBeatControl.Running
+        self.HeartBeatControl.Running = False
         self.Running = False
 
     def GetName(self):

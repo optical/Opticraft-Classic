@@ -145,6 +145,23 @@ class SetSpawnCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
         pPlayer.GetWorld().SetSpawn(pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ(), pPlayer.GetOrientation(),0)
         pPlayer.SendMessage("This worlds spawnpoint has been moved")
+class AddRankCmd(CommandObject):
+    '''Handle for the /addrank command - gives a username a rank. Can only be used by admins'''
+    def Run(self,pPlayer,Args,Message):
+        Username = Args[0]
+        Rank = Args[1].lower()
+        PotentialRanks = ["b","o","a"]
+        if Rank not in PotentialRanks:
+            pPlayer.SendMessage("&4Invalid Rank! Valid ranks are: a, o, b")
+            return
+        pPlayer.ServerControl.SetRank(Username,Rank)
+        pPlayer.SendMessage("Successfully set %s's rank to %s" %(Username,Rank))
+class RemoveRankCmd(CommandObject):
+    '''Handle for the /removerank command - gives a username a rank. Can only be used by admins'''
+    def Run(self,pPlayer,Args,Message):
+        Username = Args[0]
+        pPlayer.ServerControl.SetRank(Username,'')
+        pPlayer.SendMessage("Removed %s's rank" %Username)
 
 class UndoActionsCmd(CommandObject):
     '''Handle for the /UndoActions command - revereses all the block changes by a player for X seconds'''
@@ -193,6 +210,8 @@ class CommandHandler(object):
         self.AddCommand("undoactions", UndoActionsCmd, 'o', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>',2)
         self.AddCommand("save", SaveCmd, 'a', 'Saves all actively running worlds', '', 0)
         self.AddCommand("setspawn", SetSpawnCmd, 'a', 'Changes the worlds default spawn location to where you are standing', '', 0)
+        self.AddCommand("addrank", AddRankCmd, 'z', 'Promotes a player to a rank such a admin, operator, or builder', 'Incorrect syntax. Usage: /addrank <username> <a/o/b>', 2)
+        self.AddCommand("removerank", RemoveRankCmd, 'z', 'Removes a players rank', 'Incorrect syntax. Usage: /removerank <username>', 1)
 
     def HandleCommand(self,pPlayer,Message):
         '''Called when a player types a slash command'''
