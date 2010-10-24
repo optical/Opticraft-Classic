@@ -119,6 +119,13 @@ class ServerController(object):
                     pPlayer.SendPacket(Packet)
                     
             time.sleep(0.02)
+    def Shutdown(self,Crash):
+        '''Starts shutting down the server. If crash is true it only saves what is needed'''
+        self.SaveAllWorlds()
+        self.BackupAllWorlds()
+        self.SockManager.Terminate(True)
+        self.HeartBeatControl.Running
+        self.Running = False
 
     def GetName(self):
         return self.Name
@@ -225,4 +232,7 @@ class ServerController(object):
         '''This will need to be rewritten come multi-threaded worlds!'''
         for pWorld in self.ActiveWorlds:
             pWorld.Save()
-        
+    def BackupAllWorlds(self):
+        '''This will need to be rewritten come multi-threaded worlds!'''
+        for pWorld in self.ActiveWorlds:
+            pWorld.Backup()

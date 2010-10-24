@@ -15,8 +15,7 @@ def Main():
         fHandle.write("="*30 + "\n")
         traceback.print_exc(file=fHandle)
         fHandle.close()
-        ServerControl.HeartBeatControl.Running = False
-        ServerControl.SaveAllWorlds()
+        ServerControl.Shutdown(True)
 
 if __name__ == "__main__":
     Main()
