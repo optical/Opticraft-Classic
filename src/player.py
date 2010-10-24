@@ -98,8 +98,6 @@ class Player(object):
         self.Rank = Rank
     def HasPermission(self,Permission):
         return RankToLevel[self.Rank] >= RankToLevel[Permission]
-    def GetSocket(self):
-        return self.PlayerSocket
     def SetBlockOverride(self,Block):
         self.BlockOverride = Block
     def GetBlockOverride(self):
@@ -140,7 +138,6 @@ class Player(object):
         HashedPass = Packet.GetString().strip("0")
         Unk = Packet.GetByte()
         CorrectPass = hashlib.md5("SOMESALT" + self.Name).hexdigest().strip("0")
-        print "Version", Version, "Name:",self.Name,"Pass",HashedPass,"Correct pass",CorrectPass
         if Version != 7:
             self.Disconnect("Your client is incompatible with this server")
             return
