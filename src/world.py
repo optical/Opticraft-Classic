@@ -146,7 +146,8 @@ class World(object):
             return True #Cant set that block. But don't return False or it'll try "undo" the change!
         if val >= BLOCK_END:
             return False #Fake block type...
-        if val in DisabledBlocks:
+        #Rank 5 and below are normal users. 6+ is a builder and can place disabled blocks
+        if RankToLevel[pPlayer.GetRank()] < 6 and val in DisabledBlocks:
             pPlayer.SendMessage("&4That block is disabled!")
             return False
         

@@ -96,6 +96,12 @@ class Player(object):
     def HasPermission(self,Permission):
         return RankToLevel[self.Rank] >= RankToLevel[Permission]
 
+
+    def SetBlockOverride(self,Block):
+        self.BlockOverride = Block
+    def GetBlockOverride(self):
+        return self.BlockOverride
+    
     def GetAboutCmd(self):
         return self.AboutCmd
     def SetAboutCmd(self,Value):
@@ -192,8 +198,10 @@ class Player(object):
             if Mode == 0:
                 Result = self.World.AttemptSetBlock(self,x,y,z,0)
             else:
+                if self.BlockOverride != -1:
+                    Block = self.BlockOverride
                 Result = self.World.AttemptSetBlock(self,x,y,z,Block)
-            if Result != True:
+            if Result != True or self.GetBlockOverride() != -1:
                 self.World.SendBlock(self,x,y,z)
             
     def HandleChatMessage(self,Packet):
@@ -222,6 +230,8 @@ class Player(object):
         self.AboutCmd = False
 
         self.Rank = ''
+        #This is used for commands such as /lava, /water, and /grass
+        self.BlockOverride = -1
 
         self.X,self.Y,self.Z,self.O,self.P = -1,-1,-1,-1,-1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
 
