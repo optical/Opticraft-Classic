@@ -9,6 +9,7 @@ from opticraftpacket import OptiCraftPacket
 from optisockets import SocketManager
 from commandhandler import CommandHandler
 from configreader import ConfigReader
+from zones import Zone
 from world import World
 from constants import *
 
@@ -58,7 +59,10 @@ class ServerController(object):
             os.mkdir("Worlds")
         if os.path.exists("Backups") == False:
             os.mkdir("Backups")
-
+        if os.path.exists("Zones") == False:
+            os.mkdir("Zones")
+        self.Zones = list()
+        self.LoadZones()
         self.ActiveWorlds.append(World(self,self.ConfigValues.GetValue("Worlds","DefaultName","Main")))
         self.LastKeepAlive = -1
 
@@ -69,6 +73,25 @@ class ServerController(object):
             return
         for Username,Rank in Items:
             self.RankedPlayers[Username.lower()] = Rank.lower()
+
+    def LoadZones(self):
+        '''Loads up all the Zone objects into memory'''
+        Files = os.listdir("Zones")
+        for File in Files:
+            if len(File) < 4:
+                continue
+            if File[-3:] != "ini":
+                continue
+            pZone = Zone(File)
+            self.Zones.append(pZone)
+    def AddZone(self,pZone):
+        self.Zones.append(pZone)
+    def InsertZones(self,pWorld):
+        '''Gives the world all its zones to worry about'''
+        for pZone in self.Zones:
+            if pZone.Map == pWorld.Name:
+                pWorld.InsertZone(pZone)
+        
 
     def GetRank(self,Username):
         return self.RankedPlayers.get(Username.lower(),'')

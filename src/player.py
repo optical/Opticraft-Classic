@@ -48,10 +48,30 @@ class Player(object):
         self.ServerControl.RemovePlayer(self)
 
     def SendMessage(self,Message):
-        Packet = OptiCraftPacket(SMSG_MESSAGE)
-        Packet.WriteByte(0)
-        Packet.WriteString(Message[:64])
-        self.SendPacket(Packet)
+        if len(Message) > 64:
+            self._SlowSendMessage(Message)
+        else:
+            Packet = OptiCraftPacket(SMSG_MESSAGE)
+            Packet.WriteByte(0)
+            Packet.WriteString(Message[:64])
+            self.SendPacket(Packet)
+
+    def _SlowSendMessage(self,Message):
+        '''Sends a multiline message'''
+        Tokens = Message.split()
+        if Tokens[0][0] == "&":
+            ColourTag = Tokens[0][0] + Tokens[0][1]
+        else:
+            ColourTag = ''
+        OutStr = str()
+        for Token in Tokens:
+            if len(Token) + len(OutStr) + 1 > 64:
+                self.SendMessage(OutStr)
+                OutStr = ColourTag + Token
+            else:
+                OutStr = OutStr + ' ' + Token
+        if len(OutStr) > 0:
+            self.SendMessage(OutStr)
 
     def GetId(self):
         return self.Id
@@ -125,6 +145,21 @@ class Player(object):
         Packet.WriteByte(o)
         Packet.WriteByte(p)
         self.SendPacket(Packet)
+
+    def IsCreatingZone(self):
+        return self.CreatingZone
+    def GetZoneData(self):
+        return self.ZoneData
+
+    def StartZone(self,Name,Owner,Height):
+        self.ZoneData["Name"] = Name
+        self.ZoneData["Owner"] = Owner
+        self.ZoneData["Height"] = Height
+        self.ZoneData["Phase"] = 1
+        self.CreatingZone = True
+    def FinishCreatingZone(self):
+        self.zData = dict()
+        self.CreatingZone = False
     
     #Opcode handlers go below this line
     def HandleIdentify(self,Packet):
@@ -235,6 +270,8 @@ class Player(object):
         self.AboutCmd = False
         self.IsWriteFlagged = False
         self.Rank = ''
+        self.CreatingZone = False
+        self.ZoneData = dict()
         #This is used for commands such as /lava, /water, and /grass
         self.BlockOverride = -1
 
