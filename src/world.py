@@ -174,6 +174,29 @@ class World(object):
                 pPlayer.SendMessage("Changed %s ago" %time.strftime("%H hour(s) %M minutes(s) and %S second(s)", time.gmtime(now-BlockInfo.Time)))
             pPlayer.SetAboutCmd(False)
             return False
+        if pPlayer.GetTowerCmd() == True and val == 0:
+            BadBlock = self.Blocks[self._CalculateOffset(x, y, z)]
+            while True:
+                CurBlock = self.Blocks[self._CalculateOffset(x, y, z)]
+                if CurBlock == BadBlock:
+                    self.Blocks[self._CalculateOffset(x, y, z)] = chr(0)
+                    Packet = OptiCraftPacket(SMSG_BLOCKSET)
+                    Packet.WriteInt16(x)
+                    Packet.WriteInt16(z)
+                    Packet.WriteInt16(y)
+                    Packet.WriteByte(0)
+                    self.SendPacketToAll(Packet)
+                    z -= 1
+                    if z == 0:
+                        pPlayer.SendMessage("&aTower destroyed!")
+                        pPlayer.SendMessage("&aRemember to DISABLE this command by typing /destroytower again!")
+                        return
+                else:
+                    pPlayer.SendMessage("&aTower destroyed!")
+                    pPlayer.SendMessage("&aRemember to DISABLE this command by typing /destroytower again!")
+                    return True
+            #Destroy the tower of shit
+
         #Zone creation
         if pPlayer.IsCreatingZone():
             zData = pPlayer.GetZoneData()

@@ -127,6 +127,11 @@ class Player(object):
         return self.AboutCmd
     def SetAboutCmd(self,Value):
         self.AboutCmd = Value
+    def GetTowerCmd(self):
+        return self.TowerCmd
+    def SetTowerCmd(self,Value):
+        self.TowerCmd = Value
+
 
     def GetWriteFlagged(self):
         return self.IsWriteFlagged
@@ -268,6 +273,7 @@ class Player(object):
         self.World = None #Pointer to our current world.
         self.IsLoading = False
         self.AboutCmd = False
+        self.TowerCmd = False
         self.IsWriteFlagged = False
         self.Rank = ''
         self.CreatingZone = False
