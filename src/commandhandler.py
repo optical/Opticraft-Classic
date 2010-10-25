@@ -230,6 +230,20 @@ class RemoveRankCmd(CommandObject):
         Username = Args[0]
         pPlayer.ServerControl.SetRank(Username,'')
         pPlayer.SendMessage("Removed %s's rank" %Username)
+
+class PruneBlockLogCmd(CommandObject):
+    def Run(self,pPlayer,Args,Message):
+        if pPlayer.GetWorld().LogBlocks == False:
+            pPlayer.SendMessage("&4Block logging is not enabled!")
+            return
+        Time = Args[0]
+        try:
+            Time = int(Time)
+        except:
+            pPlayer.SendMessage("&4That is not a valid number of seconds!")
+            return
+        num = pPlayer.GetWorld().PruneBlockLogs(Time)
+        pPlayer.SendMessage("Erased %u entry's from the block log",num)
 class CommandHandler(object):
     '''Stores all the commands avaliable on opticraft and processes any command messages'''
     def __init__(self,ServerControl):
@@ -264,6 +278,7 @@ class CommandHandler(object):
         self.AddCommand("save", SaveCmd, 'a', 'Saves all actively running worlds', '', 0)
         self.AddCommand("backup", BackupCmd, 'a', 'Backs up all actively running worlds', '', 0)
         self.AddCommand("setspawn", SetSpawnCmd, 'a', 'Changes the worlds default spawn location to where you are standing', '', 0)
+        self.AddCommand("setspawn", PruneBlockLogCmd, 'a', 'Removes all entrys from the block log older then <seconds>', 'Incorrect syntax. Usage: /pruneblocklog <seconds>', 1)
         ######################
         #OWNER COMMANDS HERE #
         ######################

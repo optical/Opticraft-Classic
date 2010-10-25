@@ -204,6 +204,18 @@ class World(object):
             del self.BlockHistory[ToRemove.pop()]
         return NumChanged
 
+    def PruneBlockLog(self,Time):
+        ToRemove = []
+        now = time.time()
+        NumChanged = 0
+        for key in self.BlockHistory:
+            BlockInfo = self.BlockHistory[key]
+            if BlockInfo.Time > now-time:
+                ToRemove.append(key)
+                NumChanged += 1
+        while len(ToRemove) > 0:
+            del self.BlockHistory[ToRemove.pop()]
+        return NumChanged
     def SetSpawn(self,x,y,z,o,p):
         '''Sets the worlds default spawn position. Stored in the format the client uses'''
         self.SpawnX = x
