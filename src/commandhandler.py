@@ -3,12 +3,13 @@ from constants import *
 
 class CommandObject(object):
     '''Child class for all commands'''
-    def __init__(self,CmdHandler,Permissions,HelpMsg,ErrorMsg,MinArgs):
+    def __init__(self,CmdHandler,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias = False):
         self.Permissions = Permissions
         self.HelpMsg = HelpMsg
         self.ErrorMsg = ErrorMsg
         self.MinArgs = MinArgs
         self.CmdHandler = CmdHandler
+        self.IsAlias = Alias
 
     def Execute(self,pPlayer,Message):
         '''Checks player has correct permissions and number of arguments'''
@@ -36,13 +37,15 @@ class CmdListCmd(CommandObject):
         Commands = ''
         for key in self.CmdHandler.CommandTable:
             CmdObj = self.CmdHandler.CommandTable[key]
+            if CmdObj.IsAlias == True:
+                continue
             if CmdObj.Permissions != '':
                 if pPlayer.HasPermission(CmdObj.Permissions) == False:
                     continue #Don't send commands to the client if he doesn't possess the permission to use it!
 
             Commands += key + ' '
-        pPlayer.SendMessage("&eAvailable commands:")
-        pPlayer.SendMessage("&e" + Commands)
+        pPlayer.SendMessage("&aAvailable commands:")
+        pPlayer.SendMessage("&a" + Commands)
 
 class GrassCmd(CommandObject):
     '''Command handler for /grass command. Replaces all block placed with grass'''
@@ -244,6 +247,24 @@ class PruneBlockLogCmd(CommandObject):
             return
         num = pPlayer.GetWorld().PruneBlockLogs(Time)
         pPlayer.SendMessage("Erased %u entry's from the block log",num)
+
+class CreateZoneCmd(CommandObject):
+    def Run(self,pPlayer,Args,Message):
+        Name = Args[0]
+        Owner = Args[1]
+        Height = Args[2]
+        try:
+            Height = int(Height)
+        except:
+            pPlayer.SendMessage("&4Height must be a valid integer")
+            return
+        if Height <= 0:
+            pPlayer.SendMessage("&4Height must be at least 1!")
+            
+        pPlayer.SendMessage("&aYou have started the zone creation process. Please place a block where you want the first corner of the zone to be")
+        pPlayer.SendMessage("&aRemember, zones are cuboids. You will place two blocks to represent the zone")
+        pPlayer.StartZone(Name,Owner,Height)
+
 class CommandHandler(object):
     '''Stores all the commands avaliable on opticraft and processes any command messages'''
     def __init__(self,ServerControl):
@@ -255,7 +276,7 @@ class CommandHandler(object):
         ######################
         self.AddCommand("about", AboutCmd, '', 'Displays history of a block when you destroy/create one', '', 0)
         self.AddCommand("cmdlist", CmdListCmd, '', 'Lists all commands available to you', '', 0)
-        self.AddCommand("commands", CmdListCmd, '', 'Lists all commands available to you', '', 0)
+        self.AddCommand("commands", CmdListCmd, '', 'Lists all commands available to you', '', 0,Alias=True)
         self.AddCommand("help", HelpCmd, '', 'Gives help on a specific command. Usage: /help <cmd>', 'Incorrect syntax! Usage: /help <cmd>', 1)
         self.AddCommand("grass", GrassCmd, '', 'Allows you to place grass', '', 0)
         ########################
@@ -284,6 +305,7 @@ class CommandHandler(object):
         ######################
         self.AddCommand("addrank", AddRankCmd, 'z', 'Promotes a player to a rank such a admin, operator, or builder', 'Incorrect syntax. Usage: /addrank <username> <a/o/b>', 2)
         self.AddCommand("removerank", RemoveRankCmd, 'z', 'Removes a players rank', 'Incorrect syntax. Usage: /removerank <username>', 1)
+        self.AddCommand("createzone", CreateZoneCmd, 'z', 'Creates a restricted zone', 'Incorrect syntax. Usage: /createzone <name> <owner> <height>', 3)
     def HandleCommand(self,pPlayer,Message):
         '''Called when a player types a slash command'''
         if Message == '':
@@ -298,6 +320,6 @@ class CommandHandler(object):
             CommandObj = self.CommandTable[Command]
             CommandObj.Execute(pPlayer,Message)
 
-    def AddCommand(self,Command,CmdObj,Permissions,HelpMsg,ErrorMsg,MinArgs):
-        self.CommandTable[Command.lower()] = CmdObj(self,Permissions,HelpMsg,ErrorMsg,MinArgs)
+    def AddCommand(self,Command,CmdObj,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias=False):
+        self.CommandTable[Command.lower()] = CmdObj(self,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias)
         

@@ -10,7 +10,7 @@ import shutil
 from array import array
 from opticraftpacket import OptiCraftPacket
 from constants import *
-
+from zones import Zone
 class BlockLog(object):
     '''Stores the history of a block'''
     def __init__(self,Username,Time,Value):
@@ -46,6 +46,9 @@ class World(object):
         else:
             self.GenerateGenericWorld()
         self.NetworkSize = struct.pack("!i", self.X*self.Y*self.Z)
+
+        self.Zones = list()
+        self.ServerControl.InsertZones(self) #Servercontrol manages all the zones
 
 
     def Load(self):
@@ -132,6 +135,9 @@ class World(object):
         self.SendNotice("Backed up world in %dms" %(int((time.time()-start) * 1000)))
         self.LastBackup = start
 
+    def InsertZone(self,pZone):
+        self.Zones.append(pZone)
+
     def _CalculateOffset(self,x,y,z):
         return z*(self.X*self.Y) + y*(self.X) + x
 
@@ -168,6 +174,32 @@ class World(object):
                 pPlayer.SendMessage("Changed %s ago" %time.strftime("%H hour(s) %M minutes(s) and %S second(s)", time.gmtime(now-BlockInfo.Time)))
             pPlayer.SetAboutCmd(False)
             return False
+        #Zone creation
+        if pPlayer.IsCreatingZone():
+            zData = pPlayer.GetZoneData()
+            if zData["Phase"] == 1:
+                #Placing the first corner of the zone.
+                zData["X1"] = x
+                zData["Y1"] = y
+                zData["Z1"] = z
+                zData["Phase"] = 2
+                pPlayer.SendMessage("&aNow place the final corner for the zone.")
+                return True
+            elif zData["Phase"] == 2:
+                FileName = Zone.Create(zData["Name"], zData["X1"], x, zData["Y1"], y, zData["Z1"]-1, z-1, zData["Height"], zData["Owner"], self.Name)
+                self.Zones.append(Zone(FileName))
+                pPlayer.SendMessage("&aSuccessfully created zone \"%s\"" %zData["Name"])
+                #hide the starting block for the zone
+                self.SendBlock(pPlayer, zData["X1"], zData["Y1"], zData["Z1"])
+                pPlayer.FinishCreatingZone()
+                return False
+
+        #ZONES!
+        for pZone in self.Zones:
+            if pZone.IsInZone(x,y,z):
+                if pZone.CanBuild(pPlayer) == False:
+                    pPlayer.SendMessage("&4You cannot build in zone \"%s\"" %pZone.Name)
+                    return False
 
         ArrayValue = self._CalculateOffset(x,y,z)
         if self.LogBlocks == True:
