@@ -194,6 +194,15 @@ class UndoActionsCmd(CommandObject):
         else:
             pPlayer.SendMessage("&4That player has no recorded history.")
 
+class DestroyTowerCmd(CommandObject):
+    def Run(self,pPlayer,Args,Message):
+        if pPlayer.GetTowerCmd():
+            pPlayer.SendMessage("&aTower destruction turned off")
+            pPlayer.SetTowerCmd(False)
+            return
+        else:
+            pPlayer.SetTowerCmd(True)
+            pPlayer.SendMessage("&aClick on the top-most block of the shitty tower to begin destruction")
 ######################
 #ADMIN COMMANDS HERE #
 ######################
@@ -293,6 +302,7 @@ class CommandHandler(object):
         self.AddCommand("kick", KickCmd, 'o', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)
         self.AddCommand("summon", SummonCmd, 'o', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
         self.AddCommand("undoactions", UndoActionsCmd, 'o', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>',2)
+        self.AddCommand("destroyTower",DestroyTowerCmd,'o', 'Destroys a vertical tower of shit','',0)
         ######################
         #ADMIN COMMANDS HERE #
         ######################
