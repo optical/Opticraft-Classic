@@ -36,7 +36,7 @@ class SocketManager(object):
         self.ListenSock = ListenSocket(ServerControl.Host,ServerControl.Port)
         self.PlayerSockets = list() #Used for reading
         self.ClosingSockets = list() #Sockets which need to be terminated.
-        self.WriteList = [] #a list of player pointers who have packets ready to be sent.
+        self.WriteList = list() #a list of player pointers who have packets ready to be sent.
         self.ServerControl = ServerControl
 
     def Terminate(self,Crash):

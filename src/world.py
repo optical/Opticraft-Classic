@@ -22,6 +22,7 @@ class World(object):
     def __init__(self,ServerControl,Name):
         self.Blocks = array("c")
         self.Players = set()
+        self.TransferringPlayers = list()
         self.Name = Name
         self.X, self.Y, self.Z = -1,-1,-1
         self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
@@ -38,6 +39,8 @@ class World(object):
         self.BackupInterval = int(self.ServerControl.ConfigValues.GetValue("worlds","BackupTime","3600"))
         self.CompressionLevel = int(self.ServerControl.ConfigValues.GetValue("worlds","CompressionLevel",1))
         self.LogBlocks = int(self.ServerControl.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
+        self.IdleTimeout = 0 #How long must the world be unoccupied until it unloads itself from memory
+        self.IdleStart = 0 #Not idle.
         if os.path.isfile("Worlds/"+ self.Name + '.save'):
             LoadResult = self.Load()
             if LoadResult == False:
@@ -147,6 +150,9 @@ class World(object):
         return self.Zones
     def DeleteZone(self,pZone):
         self.Zones.remove(pZone)
+
+    def SetIdleTimeout(self,Time):
+        self.IdleTimeout = Time
 
     def _CalculateOffset(self,x,y,z):
         return z*(self.X*self.Y) + y*(self.X) + x
@@ -315,6 +321,17 @@ class World(object):
 
     def run(self):
         now = time.time()
+        if self.IdleTimeout != 0 and len(self.Players) == 0:
+            if self.IdleStart != 0:
+                if self.IdleStart + self.IdleTimeout < now:
+                    self.ServerControl.UnloadWorld(self) #Unload.
+                    return
+            else:
+                self.IdleStart = now
+                print "Im idling... %d" %self.IdleTimeout
+        elif self.IdleStart != 0:
+            self.IdleStart = 0
+
         if self.LastSave + self.SaveInterval < now:
             self.Save()
         if self.LastBackup + self.BackupInterval < now:
@@ -325,6 +342,8 @@ class World(object):
                 self.SendWorld(pPlayer)
                 continue
             pPlayer.ProcessPackets()
+        while len(self.TransferringPlayers) > 0:
+            self.Players.remove(self.TransferringPlayers.pop())
 
     def SendWorld(self,pPlayer):
         StringHandle = cStringIO.StringIO()
@@ -367,14 +386,18 @@ class World(object):
         self.SendAllPlayers(pPlayer)
         self.SendNotice('%s joined the map' %pPlayer.GetName())
 
-    def RemovePlayer(self,pPlayer):
-        self.Players.remove(pPlayer)
+    def RemovePlayer(self,pPlayer,ChangingMaps = False):
+        if not ChangingMaps:
+            self.Players.remove(pPlayer)
         #Send Some packets to local players...
         if pPlayer.IsLoadingWorld() == False:
             Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
             Packet.WriteByte(pPlayer.GetId())
             self.SendPacketToAll(Packet, pPlayer)
             self.SendNotice("%s left the map" %pPlayer.GetName())
+            if ChangingMaps:
+                self.TransferringPlayers.append(pPlayer)
+
     def SendBlock(self,pPlayer,x,y,z):
         #We can trust that these coordinates will be within bounds.
         Packet = OptiCraftPacket(SMSG_BLOCKSET)

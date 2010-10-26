@@ -90,6 +90,33 @@ class Player(object):
         return self.World
     def SetWorld(self,pWorld):
         self.World = pWorld
+    def ChangeWorld(self,Name):
+        #is this an active world? If so - leave and join
+        #else - Boot up new world and then leave/join
+        #Leave our world first.
+        Name = Name.lower()
+        self.World.RemovePlayer(self,True)
+        #Send packet telling client were changing the world.
+        OutPacket = OptiCraftPacket(SMSG_INITIAL)
+        OutPacket.WriteByte(7)
+        OutPacket.WriteString(self.ServerControl.GetName())
+        OutPacket.WriteString("&aChanging map to:&e %s" %Name)
+        OutPacket.WriteByte(0)
+        self.SendPacket(OutPacket)
+        ActiveWorlds, IdleWorlds = self.ServerControl.GetWorlds()
+        for pWorld in ActiveWorlds:
+            if pWorld.Name.lower() == Name:
+                pWorld.AddPlayer(self)
+                return
+        #Its idle...
+        for WorldName in IdleWorlds:
+            if Name == WorldName.lower():
+                Name = WorldName
+                break
+        pWorld = self.ServerControl.LoadWorld(Name)
+        pWorld.AddPlayer(self)
+
+
     def IsLoadingWorld(self):
         return self.IsLoading
     def SetLoadingWorld(self,Val):
@@ -170,7 +197,6 @@ class Player(object):
     def HandleIdentify(self,Packet):
         '''Handles the initial packet sent by the client'''
         if self.IsIdentified == True:
-            self.Disconnect()
             return
 
         Version = Packet.GetByte()
@@ -250,6 +276,8 @@ class Player(object):
                     self.World.SendBlock(self,x,y,z)
             
     def HandleChatMessage(self,Packet):
+        if self.World is None:
+            return
         junk = Packet.GetByte()
         Message = Packet.GetString()
         if Message[0] == "/":
