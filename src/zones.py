@@ -19,8 +19,8 @@ class Zone(object):
         self.Z1 = 0 #Lower of the two Z values
         self.Z2 = 0
         self.Builders = set()
-        self.Load()
         self.ConfigValues = None
+        self.Load()
 
     def IsInZone(self,X,Y,Z):
         if X >= self.X1 and X <= self.X2 and Y >= self.Y1 and Y <= self.Y2 and Z >= self.Z1 and Z <= self.Z2:
@@ -32,9 +32,6 @@ class Zone(object):
         if Name == self.Owner or Name in self.Builders:
             return True
         elif RankToLevel[pPlayer.GetRank()] >= self.MinRankNumeric:
-            print "I have a high rank? %s" %pPlayer.GetRank()
-            print "Numeric = %d" %self.MinRankNumeric
-            print "Rank = %s" %self.MinRank
             return True
         else:
             return False
@@ -88,17 +85,21 @@ class Zone(object):
 
     def AddBuilder(self,Username):
         self.Builders.add(Username.lower())
-        self.ConfigValues.remove_option("Builders",Username.lower())
+        self.ConfigValues.set("Builders",Username.lower(),"1")
         self.Save()
 
     def Save(self):
         fHandle = open("Zones/%s" %self.FileName,"w")
         self.ConfigValues.write(fHandle)
         fHandle.close()
+
+    def Delete(self):
+        '''Deletes the zone from disk'''
+        os.remove("Zones/%s" %self.FileName)
     def DelBuilder(self,Username):
         if Username.lower() in self.Builders:
             self.Builders.remove(Username.lower())
-            self.ConfigValues.set("Builders",Username.lower(),"1")
+            self.ConfigValues.remove_option("Builders",Username.lower())
             self.Save()
     def ChangeOwner(self,Owner):
         self.Owner = Owner.lower()
@@ -106,7 +107,7 @@ class Zone(object):
         self.Save()
 
     def SetMinRank(self,Rank):
-        self.Minrank = Rank
-        self.MinrankNumeric = RankToLevel[self.Rank]
+        self.MinRank = Rank
+        self.MinRankNumeric = RankToLevel[self.MinRank]
         self.ConfigValues.set("Info","Minrank",Rank)
         self.Save()
