@@ -156,7 +156,6 @@ class ZoneInfoCmd(CommandObject):
             pPlayer.SendMessage("This zone has no builders")
 class ZoneListCmd(CommandObject):
     '''Zone list command handler. Lists all zones on a map'''
-    
     def Run(self,pPlayer,Args,Message):
         Zones = pPlayer.GetWorld().GetZones()
         ZoneNames = str("&a")
@@ -407,7 +406,7 @@ class ZCreateCmd(CommandObject):
             return
         if Height <= 0:
             pPlayer.SendMessage("&4Height must be at least 1!")
-        if pPlayer.GetWorld().GetZone(Name) == None:
+        if pPlayer.GetWorld().GetZone(Name) != None:
             pPlayer.SendMessage("&4A Zone with that name already exists!")
             return
         pPlayer.SendMessage("&aYou have started the zone creation process. Please place a block where you want the first corner of the zone to be")
