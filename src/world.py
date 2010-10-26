@@ -137,11 +137,16 @@ class World(object):
 
     def InsertZone(self,pZone):
         self.Zones.append(pZone)
-    def HasZone(self,Name):
+    def GetZone(self,Name):
+        Name = Name.lower()
         for pZone in self.Zones:
-            if pZone.Name == Name:
-                return True
-        return False
+            if pZone.Name.lower() == Name:
+                return pZone
+        return None
+    def GetZones(self):
+        return self.Zones
+    def DeleteZone(self,pZone):
+        self.Zones.remove(pZone)
 
     def _CalculateOffset(self,x,y,z):
         return z*(self.X*self.Y) + y*(self.X) + x

@@ -48,7 +48,7 @@ class Player(object):
         self.ServerControl.RemovePlayer(self)
 
     def SendMessage(self,Message):
-        if len(Message) > 64:
+        if len(Message) > 63:
             self._SlowSendMessage(Message)
         else:
             Packet = OptiCraftPacket(SMSG_MESSAGE)
@@ -65,7 +65,7 @@ class Player(object):
             ColourTag = ''
         OutStr = str()
         for Token in Tokens:
-            if len(Token) + len(OutStr) + 1 > 64:
+            if len(Token) + len(OutStr) + 1 > 63:
                 self.SendMessage(OutStr)
                 OutStr = ColourTag + Token
             else:

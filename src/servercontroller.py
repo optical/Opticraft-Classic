@@ -91,6 +91,8 @@ class ServerController(object):
         for pZone in self.Zones:
             if pZone.Map == pWorld.Name:
                 pWorld.InsertZone(pZone)
+    def DeleteZone(self,pZone):
+        self.Zones.remove(pZone)
         
 
     def GetRank(self,Username):
