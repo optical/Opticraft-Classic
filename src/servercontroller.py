@@ -251,7 +251,7 @@ class ServerController(object):
     def Kick(self,Operator,Username,Reason):
         pPlayer = self.PlayerNames.get(Username.lower(),None)
         if pPlayer != None:
-            self.SendNotice("%s was kicked by %s for %s" %(Username,Operator.GetName(),Reason))
+            self.SendNotice("%s was kicked by %s. Reason: %s" %(Username,Operator.GetName(),Reason))
             pPlayer.Disconnect("You were kicked by %s. Reason: %s" %(Operator.GetName(),Reason))
             return True
         return False

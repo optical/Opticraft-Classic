@@ -228,6 +228,11 @@ class Player(object):
             self.SendPacket(OutPacket)
             self.Rank = self.ServerControl.GetRank(self.Name)
             self.ServerControl.SendNotice('%s connected to the server' %self.Name)
+            pPlayer.SendMessage("&4NOTICE:&a We now have multi-worlds running.")
+            pPlayer.SendMessage("&4NOTICE:&a To see all worlds use /worlds")
+            pPlayer.SendMessage("&4NOTICE:&a To join a world use /j <world>")
+            pPlayer.SendMessage("&4NOTICE:&a To go to the old world use /j Main")
+
             return
         else:
             print "Spoofed password!"
