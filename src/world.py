@@ -396,6 +396,7 @@ class World(object):
             self.SendPacketToAll(Packet, pPlayer)
             self.SendNotice("%s left the map" %pPlayer.GetName())
             if ChangingMaps:
+                self._ChangeMap(pPlayer)
                 self.TransferringPlayers.append(pPlayer)
 
     def SendBlock(self,pPlayer,x,y,z):
@@ -424,6 +425,12 @@ class World(object):
         Packet.WriteByte(pPlayer.GetPitch())
         self.SendPacketToAll(Packet, pPlayer)
 
+    def _ChangeMap(self,pPlayer):
+        for nPlayer in self.Players:
+            if nPlayer != pPlayer:
+                Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
+                Packet.WriteByte(nPlayer.GetId())
+                pPlayer.SendPacket(Packet)
     def SendAllPlayers(self,Client):
         for pPlayer in self.Players:
             if pPlayer.IsLoadingWorld() == False and pPlayer != Client:
