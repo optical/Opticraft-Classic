@@ -26,7 +26,7 @@ class ServerController(object):
         self.Motd = self.ConfigValues.GetValue("server","Motd","Powered by opticraft!")
         self.MaxClients = int(self.ConfigValues.GetValue("server","Max",120))
         self.Public = self.ConfigValues.GetValue("server","Public","True")
-        self.WorldTimeout = int(self.ConfigValues.GetValue("Worlds","IdleTimeout","300"))
+        self.WorldTimeout = int(self.ConfigValues.GetValue("worlds","IdleTimeout","300"))
         self.RankedPlayers = dict()
         self.LoadRanks()
         self.HeartBeatControl = HeartBeatController(self)
@@ -70,11 +70,11 @@ class ServerController(object):
             if FileName[-5:] != ".save":
                 continue
             WorldName = FileName[:-5]
-            if WorldName == self.ConfigValues.GetValue("Worlds","DefaultName","Main"):
+            if WorldName == self.ConfigValues.GetValue("worlds","DefaultName","Main"):
                 #The default world is always loaded
                 continue
             self.IdleWorlds.append(WorldName)
-        self.ActiveWorlds.append(World(self,self.ConfigValues.GetValue("Worlds","DefaultName","Main")))
+        self.ActiveWorlds.append(World(self,self.ConfigValues.GetValue("worlds","DefaultName","Main")))
         self.ActiveWorlds[0].SetIdleTimeout(0) #0 - never becomes idle
         self.LastKeepAlive = -1
 
