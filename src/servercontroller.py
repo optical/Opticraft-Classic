@@ -303,7 +303,12 @@ class ServerController(object):
     def SendNotice(self,Message):
         Packet = OptiCraftPacket(SMSG_MESSAGE)
         Packet.WriteByte(0xFF)
-        Packet.WriteString(Message)
+        Packet.WriteString(Message[:64])
+        self.SendPacketToAll(Packet)
+    def SendMessageToAll(self,Message):
+        Packet = OptiCraftPacket(SMSG_MESSAGE)
+        Packet.WriteByte(0)
+        Packet.WriteString(Message[:64])
         self.SendPacketToAll(Packet)
 
     def SendPacketToAll(self,Packet):
