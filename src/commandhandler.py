@@ -84,6 +84,9 @@ class JoinWorldCmd(CommandObject):
         if pPlayer.ServerControl.WorldExists(World) == False:
             pPlayer.SendMessage("&4That world does not exist!")
             return
+        if pPlayer.GetWorld().Name.lower() == World.lower():
+            pPlayer.SendMessage("&4You are already on that world!")
+            return
         pPlayer.ChangeWorld(World)
 class WorldsCmd(CommandObject):
     '''Handler for the /worlds command. Lists all available worlds.'''
