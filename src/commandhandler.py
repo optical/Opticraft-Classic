@@ -76,6 +76,26 @@ class AboutCmd(CommandObject):
             pPlayer.SendMessage("Place/destroy a block to see what was there before")
         else:
             pPlayer.SendMessage("Block history is disabled")
+
+class JoinWorldCmd(CommandObject):
+    '''Handler for the /join command. Changes the players world'''
+    def Run(self,pPlayer,Args,Message):
+        World = Args[0]
+        if pPlayer.ServerControl.WorldExists(World) == False:
+            pPlayer.SendMessage("&4That world does not exist!")
+            return
+        pPlayer.ChangeWorld(World)
+class WorldsCmd(CommandObject):
+    '''Handler for the /worlds command. Lists all available worlds.'''
+    def Run(self,pPlayer,Args,Message):
+        ActiveWorlds, IdleWorlds = pPlayer.ServerControl.GetWorlds()
+        OutString = str('&a')
+        pPlayer.SendMessage("&aThe following worlds are available:")
+        for pWorld in ActiveWorlds:
+            OutString += pWorld.Name + ' '
+        for WorldName in IdleWorlds:
+            OutString += WorldName + ' '
+        pPlayer.SendMessage(OutString)
 ########################
 #BUILDER COMMANDS HERE #
 ########################
@@ -415,6 +435,10 @@ class CommandHandler(object):
         self.AddCommand("cmdlist", CmdListCmd, '', 'Lists all commands available to you', '', 0)
         self.AddCommand("commands", CmdListCmd, '', 'Lists all commands available to you', '', 0,Alias=True)
         self.AddCommand("help", HelpCmd, '', 'Gives help on a specific command. Usage: /help <cmd>', 'Incorrect syntax! Usage: /help <cmd>', 1)
+        self.AddCommand("worlds", WorldsCmd, '', 'Lists all available worlds', '', 0)
+        self.AddCommand("join", JoinWorldCmd, '', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1)
+        self.AddCommand("j", JoinWorldCmd, '', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
+        self.AddCommand("goto", JoinWorldCmd, '', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
         self.AddCommand("grass", GrassCmd, '', 'Allows you to place grass', '', 0)
         ########################
         #BUILDER COMMANDS HERE #

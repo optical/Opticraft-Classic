@@ -12,7 +12,6 @@ from configreader import ConfigReader
 from zones import Zone
 from world import World
 from constants import *
-
 class ServerController(object):
     def __init__(self):
         self.ConfigValues = ConfigReader()
@@ -27,6 +26,7 @@ class ServerController(object):
         self.Motd = self.ConfigValues.GetValue("server","Motd","Powered by opticraft!")
         self.MaxClients = int(self.ConfigValues.GetValue("server","Max",120))
         self.Public = self.ConfigValues.GetValue("server","Public","True")
+        self.WorldTimeout = int(self.ConfigValues.GetValue("Worlds","IdleTimeout","300"))
         self.RankedPlayers = dict()
         self.LoadRanks()
         self.HeartBeatControl = HeartBeatController(self)
@@ -63,9 +63,49 @@ class ServerController(object):
             os.mkdir("Zones")
         self.Zones = list()
         self.LoadZones()
+        Worlds = os.listdir("Worlds")
+        for FileName in Worlds:
+            if len(FileName) < 5:
+                continue
+            if FileName[-5:] != ".save":
+                continue
+            WorldName = FileName[:-5]
+            if WorldName == self.ConfigValues.GetValue("Worlds","DefaultName","Main"):
+                #The default world is always loaded
+                continue
+            self.IdleWorlds.append(WorldName)
         self.ActiveWorlds.append(World(self,self.ConfigValues.GetValue("Worlds","DefaultName","Main")))
+        self.ActiveWorlds[0].SetIdleTimeout(0) #0 - never becomes idle
         self.LastKeepAlive = -1
 
+    def LoadWorld(self,Name):
+        '''Name will be a valid world name (case sensitive)'''
+        pWorld = World(self,Name)
+        self.ActiveWorlds.append(pWorld)
+        self.IdleWorlds.remove(Name)
+        pWorld.SetIdleTimeout(self.WorldTimeout)
+        return pWorld
+
+    def UnloadWorld(self,pWorld):
+        self.ActiveWorlds.remove(pWorld)
+        self.IdleWorlds.append(pWorld.Name)
+        print "World %s is being pushed to idle state" %pWorld.Name
+    def GetWorlds(self):
+        '''Returns a tuple of lists. First element is a list of active World pointers
+        ...Second element is a list of inactive World names'''
+        ActiveWorlds = [pWorld for pWorld in self.ActiveWorlds]
+        InactiveWorlds = [Name for Name in self.IdleWorlds]
+        return (ActiveWorlds,InactiveWorlds)
+
+    def WorldExists(self,Name):
+        Name = Name.lower()
+        for pWorld in self.ActiveWorlds:
+            if pWorld.Name.lower() == Name:
+                return True
+        for WorldName in self.IdleWorlds:
+            if WorldName.lower() == Name:
+                return True
+        return False
     def LoadRanks(self):
         try:
             Items = self.ConfigValues.items("ranks")
@@ -139,6 +179,7 @@ class ServerController(object):
             while len(ToRemove) > 0:
                 pPlayer = ToRemove.pop()
                 self.AuthPlayers.remove(pPlayer)
+                #Put the player into our default world
                 self.ActiveWorlds[0].AddPlayer(pPlayer)
 
             #TODO: Threading for worlds - Multi worlds..
@@ -188,6 +229,7 @@ class ServerController(object):
                 return False
         else:
             return False
+
         
     def AddBan(self,Username,expiry):
         self.BannedUsers[Username.lower()] = expiry
@@ -235,7 +277,7 @@ class ServerController(object):
 
     def RemovePlayer(self,pPlayer):
         self.PlayersPendingRemoval.append(pPlayer)
-
+        
     def _RemovePlayer(self,pPlayer):
         '''Internally removes a player
         Note:Player poiner may not neccessarily exist in our storage'''
@@ -253,6 +295,7 @@ class ServerController(object):
 
         if pPlayer.GetWorld() != None:
             pPlayer.GetWorld().RemovePlayer(pPlayer)
+        pPlayer.SetWorld(None)
         self.HeartBeatControl.DecreaseClients()
 
     def GetPlayerFromSocket(self,Socket):
