@@ -1,6 +1,6 @@
 '''Command system for opticraft'''
 from constants import *
-
+from ordereddict import OrderedDict
 class CommandObject(object):
     '''Child class for all commands'''
     def __init__(self,CmdHandler,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias = False):
@@ -254,7 +254,7 @@ class PruneBlockLogCmd(CommandObject):
         except:
             pPlayer.SendMessage("&4That is not a valid number of seconds!")
             return
-        num = pPlayer.GetWorld().PruneBlockLogs(Time)
+        num = pPlayer.GetWorld().PruneBlockLog(Time)
         pPlayer.SendMessage("Erased %u entry's from the block log",num)
 
 class CreateZoneCmd(CommandObject):
@@ -269,7 +269,10 @@ class CreateZoneCmd(CommandObject):
             return
         if Height <= 0:
             pPlayer.SendMessage("&4Height must be at least 1!")
-            
+
+        if pPlayer.GetWorld().HasZone(Name) == True:
+            pPlayer.SendMessage("&4A Zone with that name already exists!")
+            return
         pPlayer.SendMessage("&aYou have started the zone creation process. Please place a block where you want the first corner of the zone to be")
         pPlayer.SendMessage("&aRemember, zones are cuboids. You will place two blocks to represent the zone")
         pPlayer.StartZone(Name,Owner,Height)
@@ -277,7 +280,7 @@ class CreateZoneCmd(CommandObject):
 class CommandHandler(object):
     '''Stores all the commands avaliable on opticraft and processes any command messages'''
     def __init__(self,ServerControl):
-        self.CommandTable = dict()
+        self.CommandTable = OrderedDict()
         self.ServerControl = ServerControl
         #Populate the command table here
         ######################
