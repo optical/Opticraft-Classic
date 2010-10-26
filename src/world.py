@@ -204,12 +204,8 @@ class World(object):
                     self.SendPacketToAll(Packet)
                     z -= 1
                     if z == 0:
-                        pPlayer.SendMessage("&aTower destroyed!")
-                        pPlayer.SendMessage("&aRemember to DISABLE this command by typing /destroytower again!")
-                        return
+                        return True
                 else:
-                    pPlayer.SendMessage("&aTower destroyed!")
-                    pPlayer.SendMessage("&aRemember to DISABLE this command by typing /destroytower again!")
                     return True
             #Destroy the tower of shit
 
@@ -281,7 +277,7 @@ class World(object):
         NumChanged = 0
         for key in self.BlockHistory:
             BlockInfo = self.BlockHistory[key]
-            if BlockInfo.Time > now-time:
+            if BlockInfo.Time < now-Time:
                 ToRemove.append(key)
                 NumChanged += 1
         while len(ToRemove) > 0:

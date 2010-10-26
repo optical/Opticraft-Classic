@@ -392,7 +392,7 @@ class PruneBlockLogCmd(CommandObject):
             pPlayer.SendMessage("&4That is not a valid number of seconds!")
             return
         num = pPlayer.GetWorld().PruneBlockLog(Time)
-        pPlayer.SendMessage("Erased %u entry's from the block log",num)
+        pPlayer.SendMessage("Erased %u entry's from the block log" %num)
 
 class ZCreateCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
@@ -447,6 +447,7 @@ class CommandHandler(object):
         #BUILDER COMMANDS HERE #
         ########################
         self.AddCommand("appear", AppearCmd, 'b', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1)
+        self.AddCommand("tp", AppearCmd, 'b', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1, Alias=True)
         self.AddCommand("water", WaterCmd, 'b', 'Allows you to place water', '', 0)
         self.AddCommand("lava", LavaCmd, 'b', 'Allows you to place lava', '', 0)
         #Zone commands

@@ -95,6 +95,7 @@ class Player(object):
         #else - Boot up new world and then leave/join
         #Leave our world first.
         Name = Name.lower()
+        self.ServerControl.SendMessageToAll("%s&f joined map %s" %(self.GetColouredName(), self.World.Name))
         self.World.RemovePlayer(self,True)
         #Send packet telling client were changing the world.
         OutPacket = OptiCraftPacket(SMSG_INITIAL)
