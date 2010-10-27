@@ -177,7 +177,11 @@ class World(object):
         if RankToLevel[pPlayer.GetRank()] < 6 and val in DisabledBlocks:
             pPlayer.SendMessage("&4That block is disabled!")
             return False
-        
+
+        if pPlayer.HasPermission('') == False:
+            pPlayer.SendMessage("&4You are not allowed to build anymore")
+            return False
+
         if pPlayer.GetAboutCmd() == True:
             #Display block information
             BlockInfo = self.BlockHistory.get(self._CalculateOffset(x, y, z),None)
@@ -187,7 +191,7 @@ class World(object):
                 now = int(time.time())
                 pPlayer.SendMessage("This block was last changed by %s" %BlockInfo.Username)
                 pPlayer.SendMessage("The old value for the block was %d" %ord(BlockInfo.Value))
-                pPlayer.SendMessage("Changed %s ago" %time.strftime("%H hour(s) %M minutes(s) and %S second(s)", time.gmtime(now-BlockInfo.Time)))
+                pPlayer.SendMessage("Changed %s ago" %ElapsedTime(now-BlockInfo.Time))
             pPlayer.SetAboutCmd(False)
             return False
         if pPlayer.GetTowerCmd() == True and val == 0:
