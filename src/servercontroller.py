@@ -307,7 +307,7 @@ class ServerController(object):
             pPlayer.GetWorld().RemovePlayer(pPlayer)
         pPlayer.SetWorld(None)
         self.HeartBeatControl.DecreaseClients()
-        self.NumPlayers += 1
+        self.NumPlayers -= 1
 
     def GetPlayerFromSocket(self,Socket):
         return self.SocketToPlayer[Socket]
