@@ -20,6 +20,7 @@ class ServerController(object):
         if self.Host == '0.0.0.0':
             self.Host = ''
 
+        self.StartTime = int(time.time())
         self.Port = int(self.ConfigValues.GetValue("server","Port","6878"))
         self.Salt = self.ConfigValues.GetValue("server","ForcedSalt",str(random.randint(1,0xFFFFFFFF-1)))
         self.Name = self.ConfigValues.GetValue("server","Name","An opticraft server")
@@ -43,6 +44,8 @@ class ServerController(object):
         self.IdleWorlds = list() #Worlds which we know exist as .save data, but aren't loaded.
         self.CommandHandle = CommandHandler(self)
         self.BannedUsers = dict() #Dictionary of Username:expiry (in ctime)
+        self.NumPlayers = 0
+        self.PeakPlayers = 0
         #Load up banned usernames.
         if os.path.isfile("banned.txt"):
             try:
@@ -132,7 +135,9 @@ class ServerController(object):
             if pZone.Map == pWorld.Name:
                 pWorld.InsertZone(pZone)
     def DeleteZone(self,pZone):
-        self.Zones.remove(pZone)
+        '''if pZone is a new zone it wont be in our list'''
+        if pZone in self.Zones:
+            self.Zones.remove(pZone)
         
 
     def GetRank(self,Username):
@@ -211,6 +216,8 @@ class ServerController(object):
         return self.Name
     def GetMotd(self):
         return self.Motd
+    def GetUptimeStr(self):
+        return ElapsedTime((int(time.time())) - self.StartTime)
 
     def GetPlayerFromName(self,Username):
         '''Returns a player pointer if the user is logged else.
@@ -274,6 +281,9 @@ class ServerController(object):
             self.AuthPlayers.add(pPlayer)
             pPlayer.SetId(self.PlayerIDs.pop())
             self.HeartBeatControl.IncreaseClients()
+            self.NumPlayers += 1
+            if self.NumPlayers > self.PeakPlayers:
+                self.PeakPlayers = self.NumPlayers
 
     def RemovePlayer(self,pPlayer):
         self.PlayersPendingRemoval.append(pPlayer)
@@ -297,6 +307,7 @@ class ServerController(object):
             pPlayer.GetWorld().RemovePlayer(pPlayer)
         pPlayer.SetWorld(None)
         self.HeartBeatControl.DecreaseClients()
+        self.NumPlayers += 1
 
     def GetPlayerFromSocket(self,Socket):
         return self.SocketToPlayer[Socket]
