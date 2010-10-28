@@ -35,7 +35,7 @@ class SocketManager(object):
     def __init__(self,ServerControl):
         self.ListenSock = ListenSocket(ServerControl.Host,ServerControl.Port)
         self.PlayerSockets = list() #Used for reading
-        self.ClosingSockets = list() #Sockets which need to be terminated.
+        self.ClosingSockets = set() #Sockets which need to be terminated.
         self.WriteList = list() #a list of player pointers who have packets ready to be sent.
         self.ServerControl = ServerControl
 
@@ -117,7 +117,7 @@ class SocketManager(object):
         self.WriteList.append(pPlayer.GetSocket())
 
     def CloseSocket(self,Socket):
-        self.ClosingSockets.append(Socket)
+        self.ClosingSockets.add(Socket)
 
     def _RemoveSocket(self,Socket):
         #this function can be called twice in a row.
