@@ -59,7 +59,16 @@ class GrassCmd(CommandObject):
         else:
             pPlayer.SetBlockOverride(BLOCK_GRASS)
             pPlayer.SendMessage("Every block you create will now be grass. Type /grass to disable.")
-
+class PaintCmd(CommandObject):
+    '''Command handler for /paint command. When you destroy a block it is replaced with the block you are holding'''
+    def Run(self,pPlayer,Args,Message):
+        if pPlayer.GetPaintCmd():
+            pPlayer.SetPaintCmd(False)
+            pPlayer.SendMessage("&aPaint command has been disabled")
+            return
+        else:
+            pPlayer.SetPaintCmd(True)
+            pPlayer.SendMessage("&aPaint command enabled. Type /paint again to disable")
 class HelpCmd(CommandObject):
     '''Returns a helpful message about a command'''
     def Run(self,pPlayer,Args,Message):
@@ -231,7 +240,7 @@ class AddZoneBuilderCmd(CommandObject):
             pPlayer.SendMessage("&4That user is already a builder for this zone!")
             return
         pZone.AddBuilder(Username)
-        pPlayer.SendMessage("&aSuccessfully added&f %s&a as a builder for zone&f \"%s\"" %(Username,pZone.Name))
+        pPlayer.SendMessage("&aSuccessfully added %s as a builder for zone \"%s\"" %(Username,pZone.Name))
         if pPlayer.ServerControl.GetPlayerFromName(Username) != None:
             pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been added as a builder to zone&f %s" %pZone.Name)
 class DelZoneBuilderCmd(CommandObject):
@@ -613,6 +622,7 @@ class CommandHandler(object):
         self.AddCommand("j", JoinWorldCmd, '', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
         self.AddCommand("goto", JoinWorldCmd, '', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
         self.AddCommand("grass", GrassCmd, '', 'Allows you to place grass', '', 0)
+        self.AddCommand("paint", PaintCmd, '', 'When you destroy a block it will be replaced by what you are currently holding', '', 0)
         self.AddCommand("sinfo", sInfoCmd, '', 'Displays information about the server', '', 0)
         self.AddCommand("ranks", RanksCmd, '', 'Displays information on all the ranks', '', 0)
         #######################
