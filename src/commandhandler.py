@@ -667,8 +667,8 @@ class CommandHandler(object):
         self.AddCommand("backup", BackupCmd, 'a', 'Backs up all actively running worlds', '', 0)
         self.AddCommand("setspawn", SetSpawnCmd, 'a', 'Changes the worlds default spawn location to where you are standing', '', 0)
         self.AddCommand("pruneblocklog", PruneBlockLogCmd, 'a', 'Removes all entrys from the block log older then <seconds>', 'Incorrect syntax. Usage: /pruneblocklog <seconds>', 1)
-        self.AddCommand("addrank", AddRankCmd, 'z', 'Promotes a player to a rank such a admin, operator, or builder', 'Incorrect syntax. Usage: /addrank <username> <t/a/o/b>', 2)
-        self.AddCommand("removerank", RemoveRankCmd, 'z', 'Removes a players rank', 'Incorrect syntax. Usage: /removerank <username>', 1)
+        self.AddCommand("addrank", AddRankCmd, 'a', 'Promotes a player to a rank such a admin, operator, or builder', 'Incorrect syntax. Usage: /addrank <username> <t/a/o/b>', 2)
+        self.AddCommand("removerank", RemoveRankCmd, 'a', 'Removes a players rank', 'Incorrect syntax. Usage: /removerank <username>', 1)
         ######################
         #OWNER COMMANDS HERE #
         ######################
