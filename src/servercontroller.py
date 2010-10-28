@@ -28,6 +28,7 @@ class ServerController(object):
         self.MaxClients = int(self.ConfigValues.GetValue("server","Max",120))
         self.Public = self.ConfigValues.GetValue("server","Public","True")
         self.WorldTimeout = int(self.ConfigValues.GetValue("worlds","IdleTimeout","300"))
+        self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server","PeriodicAnnounceFrequency","0"))
         self.RankedPlayers = dict()
         self.LoadRanks()
         self.HeartBeatControl = HeartBeatController(self)
@@ -45,6 +46,10 @@ class ServerController(object):
         self.CommandHandle = CommandHandler(self)
         self.BannedUsers = dict() #Dictionary of Username:expiry (in time)
         self.BannedIPs = dict() #dictionary of IP:expiry (in time)
+        self.PeriodicNotices = list() #A list of strings of message we will periodicly announce
+        if self.PeriodicAnnounceFrequency != 0:
+            self.LoadAnnouncements()
+        self.LastAnnounce = 0
         self.NumPlayers = 0
         self.PeakPlayers = 0
         #Load up banned usernames.
@@ -148,6 +153,14 @@ class ServerController(object):
         '''if pZone is a new zone it wont be in our list'''
         if pZone in self.Zones:
             self.Zones.remove(pZone)
+
+    def LoadAnnouncements(self):
+        Items = self.ConfigValues.items("announcements")
+        if len(Items) == 0:
+            self.PeriodicAnnounceFrequency = 0
+            return
+        for Item in Items:
+            self.PeriodicNotices.append(Item[1])
         
 
     def GetRank(self,Username):
@@ -183,6 +196,7 @@ class ServerController(object):
         #Start the heartbeatcontrol thread.
         self.HeartBeatControl.start()
         while self.Running == True:
+            now = time.time()
             self.SockManager.run()
             ToRemove = list()
             for pPlayer in self.AuthPlayers:
@@ -206,14 +220,21 @@ class ServerController(object):
                 pPlayer = self.PlayersPendingRemoval.pop()
                 self._RemovePlayer(pPlayer)
                 
-            if self.LastKeepAlive + 1 < time.time():
-                self.LastKeepAlive = time.time()
+            if self.LastKeepAlive + 1 < now:
+                self.LastKeepAlive = now
                 Packet = OptiCraftPacket(SMSG_KEEPALIVE)
                 #Send a SMSG_KEEPALIVE packet to all our clients across all worlds.
                 for pPlayer in self.PlayerSet:
                     pPlayer.SendPacket(Packet)
-                    
-            time.sleep(0.02)
+
+            if self.PeriodicAnnounceFrequency:
+                if self.LastAnnounce + self.PeriodicAnnounceFrequency < now:
+                    Message = self.PeriodicNotices[random.randint(0,len(self.PeriodicNotices)-1)]
+                    self.SendNotice(Message)
+                    self.LastAnnounce = now
+            SleepTime = 0.0 - (time.time() - now)
+            if 0 < SleepTime:
+                time.sleep(0.02)
     def Shutdown(self,Crash):
         '''Starts shutting down the server. If crash is true it only saves what is needed'''
         self.SaveAllWorlds()
