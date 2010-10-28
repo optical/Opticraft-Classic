@@ -2,6 +2,7 @@ import hashlib
 from opticraftpacket import OptiCraftPacket
 from constants import *
 import cStringIO
+import time
 class Player(object):
     #Constructor is located at the bottom
     def ProcessPackets(self):
@@ -84,7 +85,7 @@ class Player(object):
     def GetSocket(self):
         return self.PlayerSocket
     def GetIP(self):
-        return self.PlayerIP
+        return self.PlayerIP[0]
 
     def GetWorld(self):
         return self.World
@@ -134,6 +135,8 @@ class Player(object):
         return self.X
     def GetY(self):
         return self.Y
+    def GetLoginTime(self):
+        return self.LoginTime
     def GetZ(self):
         return self.Z
     def GetOrientation(self):
@@ -312,6 +315,7 @@ class Player(object):
         self.Rank = ''
         self.CreatingZone = False
         self.ZoneData = dict()
+        self.LoginTime = int(time.time())
         #This is used for commands such as /lava, /water, and /grass
         self.BlockOverride = -1
 

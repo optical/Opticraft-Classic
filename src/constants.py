@@ -96,7 +96,7 @@ RankToName = {
     "" : "",
     "s" : "Spectator",
     "a": "Admin",
-    "t": "Trusted",
+    "t": "Recruit",
     "b": "Builder",
     "o": "Operator",
     "z": "Owner"
@@ -118,6 +118,15 @@ RankToLevel = {
     "o": 20,
     "a": 30,
     "z": 0xFF,
+}
+RankToDescription = {
+    "s": "Griefers are set to this rank. They may not build",
+    "" : "",
+    "t": "Users who show potential get promoted to this rank. They may use lava and water",
+    "b": "Users who have proved themself and played for several days get this rank. They may build on builder only maps",
+    "o": "Mature, responsible users get promoted to this. Do not ask to be promoted to this rank",
+    "a": "These users are the server administrators",
+    "z": "This is the owner of the server",
 }
 #Taken from http://snipplr.com/view/5713/python-elapsedtime-human-readable-time-span-given-total-seconds/
 def ElapsedTime(seconds, suffixes=[' year',' week',' day',' hour',' minute',' second'], add_s=True, separator=' '):
