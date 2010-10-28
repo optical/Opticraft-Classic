@@ -111,6 +111,14 @@ class sInfoCmd(CommandObject):
         pPlayer.SendMessage("&aThis server is running a development build of Opticraft on %s." %System)
         pPlayer.SendMessage("&aThere are currently %d users online, with a peak of %d since last restart." %(pPlayer.ServerControl.NumPlayers,pPlayer.ServerControl.PeakPlayers))
         pPlayer.SendMessage("&aCurrent uptime: %s." %pPlayer.ServerControl.GetUptimeStr())
+class RanksCmd(CommandObject):
+    '''Handler for the /ranks command'''
+    def Run(self,pPlayer,Args,Message):
+        pPlayer.SendMessage("&aThe following ranks exist on this server")
+        for Rank in RankToName:
+            if Rank != '':
+                pPlayer.SendMessage("%s%s&a:%s" %(RankToColour[Rank],RankToName[Rank],RankToDescription[Rank]))
+
 #######################
 #TRUSTED COMMANDS HERE#
 #######################
@@ -416,6 +424,22 @@ class PromoteSpectatorCmd(CommandObject):
             return
         pPlayer.ServerControl.SetRank(Username,"s")
         pPlayer.SendMessage("&aSuccessfully removed %s's spectator restriction" %(Username))
+class PlayerInfoCmd(CommandObject):
+    '''Handler for the /playerinfo command. Returns info on a player'''
+    def Run(self,pPlayer,Args,Message):
+        Username = Args[0]
+        Target = pPlayer.ServerControl.GetPlayerFromName(Username)
+        if Target == None:
+            pPlayer.SendMessage("&4That player is not online!")
+            return
+        pPlayer.SendMessage("&a%s has been online for %s" %(Target.GetName(), ElapsedTime(int(time.time()) -Target.GetLoginTime())))
+        pPlayer.SendMessage("&aTheir ip is: %s" %Target.GetIP())
+        if Target.GetRank() != '':
+            pPlayer.SendMessage("&aTheir rank is %s" %RankToName[Target.GetRank()])
+        else:
+            pPlayer.SendMessage("&And they do not have any rank")
+        
+
 ######################
 #ADMIN COMMANDS HERE #
 ######################
@@ -435,6 +459,59 @@ class SetSpawnCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
         pPlayer.GetWorld().SetSpawn(pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ(), pPlayer.GetOrientation(),0)
         pPlayer.SendMessage("This worlds spawnpoint has been moved")
+
+class AddIPBanCmd(CommandObject):
+    '''Handler for the /ipban command. Bans an IP Address from the server'''
+    def Run(self,pPlayer,Args,Message):
+         Arg = Args[0]
+         #Check to see if this is a user...
+         Target = pPlayer.ServerControl.GetPlayerFromName(Arg)
+         if Target != None:
+             pPlayer.ServerControl.AddBan(Arg, 0)
+             pPlayer.SendMessage("&aSuccessfully added username ban on %s" %Arg)
+             #Set arg to the IP address so we can ban that too.
+             Arg = Target.GetIP()
+         #Check if IP is legit. If so, ban it.
+         Parts = Arg.split(".")
+         if len(Parts) != 4:
+             pPlayer.SendMessage("&4That is not a valid ip-address!")
+             return
+         try:
+             for Byte in Parts:
+                 if len(Byte) > 3:
+                     raise Exception
+                 Byte = int(Byte)
+                 if Byte < 0 or Byte > 255:
+                     raise Exception
+         except:
+             pPlayer.SendMessage("&4That is not a valid ip-address!")
+             return
+         #Must be valid
+         pPlayer.ServerControl.AddIPBan(pPlayer,Arg,0)
+         pPlayer.SendMessage("&4Successfully banned ip %s" %Arg)
+
+class DelIPBanCmd(CommandObject):
+    '''Handler for the /delipban command. Removes an IP Address ban'''
+    def Run(self,pPlayer,Args,Message):
+         Arg = Args[0]
+         #Verify this is a valid IP.
+         Parts = Arg.split(".")
+         if len(Parts) != 4:
+             pPlayer.SendMessage("&4That is not a valid ip-address!")
+             return
+         try:
+             for Byte in Parts:
+                 if len(Byte) > 3:
+                     raise Exception
+                 Byte = int(Byte)
+                 if Byte < 0 or Byte > 255:
+                     raise Exception
+         except:
+             pPlayer.SendMessage("&4That is not a valid ip-address!")
+             return
+         pPlayer.ServerControl.UnbanIP(Arg)
+         pPlayer.SendMessage("&aRemoved ban on ip \"%s\"" %Arg)
+
 ######################
 #OWNER COMMANDS HERE #
 ######################
@@ -446,12 +523,22 @@ class AddRankCmd(CommandObject):
         if Rank not in RankToLevel:
             pPlayer.SendMessage("&4Invalid Rank! Valid ranks are: t, b, o, a")
             return
+        #Check to see we can set this rank.
+        NewRank = RankToLevel[Rank]
+        if NewRank >= RankToLevel[pPlayer.GetRank()]:
+            pPlayer.SendMessage("&4You do not have permission to add this rank")
+            return
         pPlayer.ServerControl.SetRank(Username,Rank)
         pPlayer.SendMessage("Successfully set %s's rank to %s" %(Username,Rank))
 class RemoveRankCmd(CommandObject):
     '''Handle for the /removerank command - gives a username a rank. Can only be used by admins'''
     def Run(self,pPlayer,Args,Message):
         Username = Args[0]
+        CurRank = pPlayer.ServerControl.GetRank(Username)
+        RankLevel = RankToLevel[CurRank]
+        if RankToLevel[pPlayer.GetRank()] <= RankLevel:
+            pPlayer.SendMessage("&4You dno not have permission to remove that users rank")
+            return
         pPlayer.ServerControl.SetRank(Username,'')
         pPlayer.SendMessage("Removed %s's rank" %Username)
 
@@ -520,6 +607,7 @@ class CommandHandler(object):
         self.AddCommand("goto", JoinWorldCmd, '', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
         self.AddCommand("grass", GrassCmd, '', 'Allows you to place grass', '', 0)
         self.AddCommand("sinfo", sInfoCmd, '', 'Displays information about the server', '', 0)
+        self.AddCommand("ranks", RanksCmd, '', 'Displays information on all the ranks', '', 0)
         #######################
         #TRUSTED COMMANDS HERE#
         #######################
@@ -545,6 +633,7 @@ class CommandHandler(object):
         self.AddCommand("ban", BanCmd, 'o', 'Bans a player from the server', 'Incorrect syntax! Usage: /ban <username>', 1)
         self.AddCommand("unban", UnbanCmd, 'o', 'Unbans a player from the server', 'Incorrect syntax! Usage: /unban <username>', 1)
         self.AddCommand("kick", KickCmd, 'o', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)
+        self.AddCommand("playerinfo", PlayerInfoCmd, 'o', 'Returns information on a player', 'Incorrect syntax! Usage: /playerinfo <username>',1)
         self.AddCommand("summon", SummonCmd, 'o', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
         self.AddCommand("undoactions", UndoActionsCmd, 'o', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>',2)
         self.AddCommand("promote", PromoteTrustedCmd, 'o', 'Promotes a player to the trusted rank', 'Incorrect syntax! Usage: /promote <username>', 1)
@@ -555,15 +644,17 @@ class CommandHandler(object):
         ######################
         #ADMIN COMMANDS HERE #
         ######################
+        self.AddCommand("addipban", AddIPBanCmd, 'a', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username>', 1)
+        self.AddCommand("delipban", DelIPBanCmd, 'a', 'Removes an IP ban', 'Incorrect syntax! Usage: /delipban <ip/username>', 1)
         self.AddCommand("save", SaveCmd, 'a', 'Saves all actively running worlds', '', 0)
         self.AddCommand("backup", BackupCmd, 'a', 'Backs up all actively running worlds', '', 0)
         self.AddCommand("setspawn", SetSpawnCmd, 'a', 'Changes the worlds default spawn location to where you are standing', '', 0)
         self.AddCommand("pruneblocklog", PruneBlockLogCmd, 'a', 'Removes all entrys from the block log older then <seconds>', 'Incorrect syntax. Usage: /pruneblocklog <seconds>', 1)
+        self.AddCommand("addrank", AddRankCmd, 'z', 'Promotes a player to a rank such a admin, operator, or builder', 'Incorrect syntax. Usage: /addrank <username> <t/a/o/b>', 2)
+        self.AddCommand("removerank", RemoveRankCmd, 'z', 'Removes a players rank', 'Incorrect syntax. Usage: /removerank <username>', 1)
         ######################
         #OWNER COMMANDS HERE #
         ######################
-        self.AddCommand("addrank", AddRankCmd, 'z', 'Promotes a player to a rank such a admin, operator, or builder', 'Incorrect syntax. Usage: /addrank <username> <a/o/b>', 2)
-        self.AddCommand("removerank", RemoveRankCmd, 'z', 'Removes a players rank', 'Incorrect syntax. Usage: /removerank <username>', 1)
         self.AddCommand("zCreate", ZCreateCmd, 'z', 'Creates a restricted zone', 'Incorrect syntax. Usage: /zCreate <name> <owner> <height>', 3)
         self.AddCommand("zDelete", ZDeleteCmd, 'z', 'Deletes a restricted zone', 'Incorrect syntax. Usage: /zDelete <name>', 1)
 

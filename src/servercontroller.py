@@ -43,7 +43,8 @@ class ServerController(object):
         self.ActiveWorlds = list() #A list of worlds currently running.
         self.IdleWorlds = list() #Worlds which we know exist as .save data, but aren't loaded.
         self.CommandHandle = CommandHandler(self)
-        self.BannedUsers = dict() #Dictionary of Username:expiry (in ctime)
+        self.BannedUsers = dict() #Dictionary of Username:expiry (in time)
+        self.BannedIPs = dict() #dictionary of IP:expiry (in time)
         self.NumPlayers = 0
         self.PeakPlayers = 0
         #Load up banned usernames.
@@ -55,8 +56,17 @@ class ServerController(object):
                     self.BannedUsers[Tokens[0]] = int(Tokens[1])
                 fHandle.close()
             except:
-                print "Failed to load banned users.txt!"
-
+                print "Failed to load banned.txt!"
+        #Load up banned IP's
+        if os.path.isfile("banned-ip.txt"):
+            try:
+                fHandle = open("banned-ip.txt","r")
+                for line in fHandle:
+                    Tokens = line.split(":")
+                    self.BannedIPs[Tokens[0]] = int(Tokens[1])
+                fHandle.close()
+            except:
+                print "Failed to load banned-ip.txt!"
         #Check to see we have required directory's
         if os.path.exists("Worlds") == False:
             os.mkdir("Worlds")
@@ -234,23 +244,61 @@ class ServerController(object):
                 del self.BannedUsers[pPlayer.GetName().lower()]
                 self.FlushBans()
                 return False
+        elif self.BannedIPs.has_key(pPlayer.GetIP()):
+            ExpiryTime = self.BannedIPs[pPlayer.GetIP()]
+            if ExpiryTime == 0 or ExpiryTime > time.time():
+                return True
+            else:
+                del self.BannedIPs[pPlayer.GetIP()]
+                self.FlushIPBans()
+                return False
         else:
             return False
 
+    def FlushBans(self):
+        try:
+            fHandle = open("banned.txt","w")
+            for key in self.BannedUsers:
+                fHandle.write(key + ":" + str(self.BannedUsers[key]) + "\r\n")
+            fHandle.close()
+        except:
+            pass
+    def FlushIPBans(self):
+        try:
+            fHandle = open("banned-ip.txt","w")
+            for key in self.BannedIPs:
+                fHandle.write(key + ":" + str(self.BannedIPs[key]) + "\r\n")
+            fHandle.close()
+        except:
+            pass
         
-    def AddBan(self,Username,expiry):
-        self.BannedUsers[Username.lower()] = expiry
+    def AddBan(self,Username,Expiry):
+        self.BannedUsers[Username.lower()] = Expiry
         self.FlushBans()
         pPlayer = self.PlayerNames.get(Username.lower(),None)
         if pPlayer != None:
             pPlayer.Disconnect("You are banned from this server")
             return True
         return False
+    def AddIPBan(self,Admin,IP,Expiry):
+        self.BannedIPs[IP] = Expiry
+        self.FlushIPBans()
+        for pPlayer in self.PlayerSet:
+            if pPlayer.GetIP() == IP:
+                pPlayer.Disconnect("You are ip-banned from this server")
+                self.SendNotice("%s has been ip-banned by %s" %pPlayer.GetName(),Admin.GetName())
                 
     def Unban(self,Username):
         if self.BannedUsers.has_key(Username.lower()) == True:
             del self.BannedUsers[Username.lower()]
             self.FlushBans()
+            return True
+        else:
+            return False
+    def UnbanIP(self,IP):
+        if self.BannedIPs.has_key(IP) == True:
+            del self.BannedIPs[IP]
+            self.FlushIPBans()
             return True
         else:
             return False
@@ -262,15 +310,6 @@ class ServerController(object):
             pPlayer.Disconnect("You were kicked by %s. Reason: %s" %(Operator.GetName(),Reason))
             return True
         return False
-
-    def FlushBans(self):
-        try:
-            fHandle = open("banned.txt","w")
-            for key in self.BannedUsers:
-                fHandle.write(key + ":" + str(self.BannedUsers[key]) + "\r\n")
-            fHandle.close()
-        except:
-            pass
 
     def AttemptAddPlayer(self,pPlayer):
         if len(self.PlayerIDs) == 0:
