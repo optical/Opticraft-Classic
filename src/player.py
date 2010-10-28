@@ -44,7 +44,9 @@ class Player(object):
             self.IsWriteFlagged = True
 
     def Disconnect(self,Message):
-        #TODO: Implement message
+        Packet = OptiCraftPacket(SMSG_DISCONNECT)
+        Packet.WriteString(Message[:64])
+        self.SendPacket(Packet)
         self.ServerControl.SockManager.CloseSocket(self.PlayerSocket)
         self.ServerControl.RemovePlayer(self)
 

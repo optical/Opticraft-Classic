@@ -36,6 +36,7 @@ class SocketManager(object):
         self.ListenSock = ListenSocket(ServerControl.Host,ServerControl.Port)
         self.PlayerSockets = list() #Used for reading
         self.ClosingSockets = set() #Sockets which need to be terminated.
+        self.ClosingPlayers = dict()
         self.WriteList = list() #a list of player pointers who have packets ready to be sent.
         self.ServerControl = ServerControl
 
@@ -61,16 +62,28 @@ class SocketManager(object):
             PlayerSock, SockAddress = self.ListenSock.Accept()
 
         #Shutdown any sockets we need to.
-        while len(self.ClosingSockets) > 0:
-            Socket = self.ClosingSockets.pop()
-            self.PlayerSockets.remove(Socket)
-            if Socket in self.WriteList:
-                self.WriteList.remove(Socket)
-            try:
-                Socket.shutdown(socket.SHUT_RDWR)
-                Socket.close()
-            except:
-                pass
+        if len(self.ClosingSockets) > 0:
+            #Send any last packets to the client. This allows us to show them the kick message
+            WriteableSockets = select([],self.ClosingSockets,[],0.01)
+            WriteableSockets = WriteableSockets[1]
+            for wSocket in WriteableSockets:
+                pPlayer = self.ClosingPlayers[wSocket]
+                try:
+                    wSocket.send(pPlayer.GetOutBuffer().getvalue())
+                except:
+                    pass
+
+            while len(self.ClosingSockets) > 0:
+                Socket = self.ClosingSockets.pop()
+                self.PlayerSockets.remove(Socket)
+                del self.ClosingPlayers[Socket]
+                if Socket in self.WriteList:
+                    self.WriteList.remove(Socket)
+                try:
+                    Socket.shutdown(socket.SHUT_RDWR)
+                    Socket.close()
+                except:
+                    pass
             
         #Finished that. Now to see what our sockets are up to...
         if len(self.PlayerSockets) == 0:
@@ -118,6 +131,7 @@ class SocketManager(object):
 
     def CloseSocket(self,Socket):
         self.ClosingSockets.add(Socket)
+        self.ClosingPlayers[Socket] = self.ServerControl.GetPlayerFromSocket(Socket)
 
     def _RemoveSocket(self,Socket):
         #this function can be called twice in a row.
