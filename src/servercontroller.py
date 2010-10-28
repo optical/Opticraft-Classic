@@ -232,7 +232,8 @@ class ServerController(object):
                     Message = self.PeriodicNotices[random.randint(0,len(self.PeriodicNotices)-1)]
                     self.SendNotice(Message)
                     self.LastAnnounce = now
-            SleepTime = 0.0 - (time.time() - now)
+            SleepTime = 0.02 - (time.time() - now)
+            print SleepTime
             if 0 < SleepTime:
                 time.sleep(0.02)
     def Shutdown(self,Crash):
