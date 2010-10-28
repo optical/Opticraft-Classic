@@ -108,19 +108,23 @@ class sInfoCmd(CommandObject):
         if System == "Linux":
             DistData = platform.linux_distribution()
             System = "%s-%s" %(DistData[0],DistData[1])
+        WorldData = pPlayer.ServerControl.GetWorlds()
         pPlayer.SendMessage("&aThis server is running a development build of Opticraft on %s." %System)
         pPlayer.SendMessage("&aThere are currently %d users online, with a peak of %d since last restart." %(pPlayer.ServerControl.NumPlayers,pPlayer.ServerControl.PeakPlayers))
+        pPlayer.SendMessage("&aThere are %d worlds, %d of which are active and %d idle." %(len(WorldData[0]) + len(WorldData[1]),len(WorldData[0]),len(WorldData[1])))
         pPlayer.SendMessage("&aCurrent uptime: %s." %pPlayer.ServerControl.GetUptimeStr())
 class RanksCmd(CommandObject):
     '''Handler for the /ranks command'''
     def Run(self,pPlayer,Args,Message):
         pPlayer.SendMessage("&aThe following ranks exist on this server")
-        for Rank in RankToName:
+        Items = RankToLevel.items()
+        Items.sort(cmp= lambda x,y: cmp(x[1],y[1]))
+        for Rank,Junk in Items:
             if Rank != '':
-                pPlayer.SendMessage("%s%s&a:%s" %(RankToColour[Rank],RankToName[Rank],RankToDescription[Rank]))
+                pPlayer.SendMessage("&e %s%s&e: %s" %(RankToColour[Rank],RankToName[Rank],RankToDescription[Rank]))
 
 #######################
-#TRUSTED COMMANDS HERE#
+#RECRUIT COMMANDS HERE#
 #######################
 class WaterCmd(CommandObject):
     '''Command handler for /water command. Replaces all block placed with water'''
@@ -437,7 +441,7 @@ class PlayerInfoCmd(CommandObject):
         if Target.GetRank() != '':
             pPlayer.SendMessage("&aTheir rank is %s" %RankToName[Target.GetRank()])
         else:
-            pPlayer.SendMessage("&And they do not have any rank")
+            pPlayer.SendMessage("&aAnd they do not have any rank")
         
 
 ######################
@@ -467,6 +471,9 @@ class AddIPBanCmd(CommandObject):
          #Check to see if this is a user...
          Target = pPlayer.ServerControl.GetPlayerFromName(Arg)
          if Target != None:
+             if RankToLevel[Target.GetRank()] >= RankToLevel[pPlayer.GetRank()]:
+                 pPlayer.SendMessage("&4You may not ban that user.")
+                 return
              pPlayer.ServerControl.AddBan(Arg, 0)
              pPlayer.SendMessage("&aSuccessfully added username ban on %s" %Arg)
              #Set arg to the IP address so we can ban that too.
@@ -488,7 +495,7 @@ class AddIPBanCmd(CommandObject):
              return
          #Must be valid
          pPlayer.ServerControl.AddIPBan(pPlayer,Arg,0)
-         pPlayer.SendMessage("&4Successfully banned ip %s" %Arg)
+         pPlayer.SendMessage("&aSuccessfully banned ip %s" %Arg)
 
 class DelIPBanCmd(CommandObject):
     '''Handler for the /delipban command. Removes an IP Address ban'''

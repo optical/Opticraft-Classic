@@ -286,7 +286,7 @@ class ServerController(object):
         for pPlayer in self.PlayerSet:
             if pPlayer.GetIP() == IP:
                 pPlayer.Disconnect("You are ip-banned from this server")
-                self.SendNotice("%s has been ip-banned by %s" %pPlayer.GetName(),Admin.GetName())
+                self.SendNotice("%s has been ip-banned by %s" %(pPlayer.GetName(),Admin.GetName()))
                 
     def Unban(self,Username):
         if self.BannedUsers.has_key(Username.lower()) == True:

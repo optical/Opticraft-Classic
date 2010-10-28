@@ -95,10 +95,10 @@ DisabledBlocks = set([BLOCK_WATER,BLOCK_STILLWATER,BLOCK_LAVA,BLOCK_STILLLAVA,BL
 RankToName = {
     "" : "",
     "s" : "Spectator",
-    "a": "Admin",
     "t": "Recruit",
     "b": "Builder",
     "o": "Operator",
+    "a": "Admin",
     "z": "Owner"
 }
 RankToColour = {
