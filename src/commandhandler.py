@@ -396,7 +396,7 @@ class PromoteTrustedCmd(CommandObject):
             pPlayer.SendMessage("&4That user already has a rank")
             return
         pPlayer.ServerControl.SetRank(Username,"t")
-        pPlayer.SendMessage("&aSuccessfully set %s's rank to trusted" %(Username))
+        pPlayer.SendMessage("&aSuccessfully set %s's rank to recruit" %(Username))
 
 class DemoteTrustedCmd(CommandObject):
     '''Demotes a user from the trusted rank'''
@@ -404,7 +404,7 @@ class DemoteTrustedCmd(CommandObject):
         Username = Args[0]
         CurRank = pPlayer.ServerControl.GetRank(Username)
         if CurRank != 't':
-            pPlayer.SendMessage("&4That player doesn't have the trusted rank!")
+            pPlayer.SendMessage("&4That player doesn't have the recruit rank!")
             return
         pPlayer.ServerControl.SetRank(Username,"")
         pPlayer.SendMessage("&aSuccessfully removed %s's rank." %(Username))
@@ -643,8 +643,8 @@ class CommandHandler(object):
         self.AddCommand("playerinfo", PlayerInfoCmd, 'o', 'Returns information on a player', 'Incorrect syntax! Usage: /playerinfo <username>',1)
         self.AddCommand("summon", SummonCmd, 'o', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
         self.AddCommand("undoactions", UndoActionsCmd, 'o', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>',2)
-        self.AddCommand("promote", PromoteTrustedCmd, 'o', 'Promotes a player to the trusted rank', 'Incorrect syntax! Usage: /promote <username>', 1)
-        self.AddCommand("demote", DemoteTrustedCmd, 'o', 'Demotes a player from the trusted rank', 'Incorrect syntax! Usage: /demote <username>', 1)
+        self.AddCommand("promote", PromoteTrustedCmd, 'o', 'Promotes a player to the recruit rank', 'Incorrect syntax! Usage: /promote <username>', 1)
+        self.AddCommand("demote", DemoteTrustedCmd, 'o', 'Demotes a player from the recruit rank', 'Incorrect syntax! Usage: /demote <username>', 1)
         self.AddCommand("makespectator",MakeSpectatorCmd, 'o', 'Demotes a player to a spectator which cannot build','Incorrect syntax! Usage: /makespectator <username>',1)
         self.AddCommand("promotespectator",PromoteSpectatorCmd, 'o', 'Gives the player the ability to build again','Incorrect syntax! Usage: /promotespectator <username>',1)
         self.AddCommand("destroyTower",DestroyTowerCmd,'o', 'Destroys a vertical tower of shit','',0,Alias=True) #Hidden command
