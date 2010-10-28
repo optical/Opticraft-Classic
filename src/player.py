@@ -153,7 +153,10 @@ class Player(object):
         self.BlockOverride = Block
     def GetBlockOverride(self):
         return self.BlockOverride
-    
+    def GetPaintCmd(self):
+        return self.PaintCmd
+    def SetPaintCmd(self,Value):
+        self.PaintCmd = Value
     def GetAboutCmd(self):
         return self.AboutCmd
     def SetAboutCmd(self,Value):
@@ -263,9 +266,6 @@ class Player(object):
             NewPacket.WriteByte(self.P)
             self.World.SendPacketToAll(NewPacket, self)
 
-
-
-
     def HandleBlockChange(self,Packet):
         if self.World is not None:
             x = Packet.GetInt16()
@@ -275,7 +275,13 @@ class Player(object):
             Block = Packet.GetByte()
             Result = None
             if Mode == 0:
-                Result = self.World.AttemptSetBlock(self,x,y,z,0)
+                if self.GetPaintCmd() == True:
+                     if self.BlockOverride != -1:
+                         Block = self.BlockOverride
+                     self.World.AttemptSetBlock(self,x,y,z,Block)
+                     Result = False
+                else:
+                    Result = self.World.AttemptSetBlock(self,x,y,z,0)
             else:
                 if self.BlockOverride != -1:
                     Block = self.BlockOverride
@@ -310,6 +316,7 @@ class Player(object):
         self.World = None #Pointer to our current world.
         self.IsLoading = False
         self.AboutCmd = False
+        self.PaintCmd = False
         self.TowerCmd = False
         self.IsWriteFlagged = False
         self.Rank = ''

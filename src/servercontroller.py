@@ -79,6 +79,8 @@ class ServerController(object):
             os.mkdir("Backups")
         if os.path.exists("Zones") == False:
             os.mkdir("Zones")
+        if os.path.exists("Logs") == False:
+            os.mkdir("Logs")
         self.Zones = list()
         self.LoadZones()
         Worlds = os.listdir("Worlds")
@@ -233,7 +235,6 @@ class ServerController(object):
                     self.SendNotice(Message)
                     self.LastAnnounce = now
             SleepTime = 0.02 - (time.time() - now)
-            print SleepTime
             if 0 < SleepTime:
                 time.sleep(0.02)
     def Shutdown(self,Crash):
