@@ -19,7 +19,7 @@ class BlockLog(object):
         self.Value = Value
 
 class World(object):
-    def __init__(self,ServerControl,Name):
+    def __init__(self,ServerControl,Name,NewMap=False,NewX=-1,NewY=-1,NewZ=-1):
         self.Blocks = array("c")
         self.Players = set()
         self.TransferringPlayers = list()
@@ -27,6 +27,7 @@ class World(object):
         self.X, self.Y, self.Z = -1,-1,-1
         self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
         self.SpawnOrientation, self.SpawnPitch = 0, 0
+        self.MinRank = 'g'
         self.ServerControl = ServerControl
         self.BlockHistory = dict()
         #Config values
@@ -45,9 +46,12 @@ class World(object):
             LoadResult = self.Load()
             if LoadResult == False:
                 print "Generating new world for map '%s' - Load a backup if you wish to preserve your data!" %self.Name
-                self.GenerateGenericWorld()
+                self.GenerateGenericWorld(self.DefaultX,self.DefaultY,self.DefaultZ)
         else:
-            self.GenerateGenericWorld()
+            if not NewMap:
+                self.GenerateGenericWorld(self.DefaultX,self.DefaultY,self.DefaultZ)
+            else:
+                self.GenerateGenericWorld(NewX,NewY,NewZ)
         self.NetworkSize = struct.pack("!i", self.X*self.Y*self.Z)
 
         self.Zones = list()
@@ -72,16 +76,17 @@ class World(object):
             print "Failed to open up save file for world %s!" %self.Name
             return False
         try:
-            raw_data = fHandle.read()
-            self.X = struct.unpack("h",raw_data[0:2])[0]
-            self.Y = struct.unpack("h",raw_data[2:4])[0]
-            self.Z = struct.unpack("h",raw_data[4:6])[0]
-            self.SpawnX = struct.unpack("h",raw_data[6:8])[0]
-            self.SpawnY = struct.unpack("h",raw_data[8:10])[0]
-            self.SpawnZ = struct.unpack("h",raw_data[10:12])[0]
-            self.SpawnOrientation = struct.unpack("h",raw_data[12:14])[0]
-            self.SpawnPitch = struct.unpack("h",raw_data[14:16])[0]
-            self.Blocks.fromstring(zlib.decompress(raw_data[16:]))
+            CompressedSize = struct.unpack("i",fHandle.read(4))[0]
+            self.Blocks.fromstring(zlib.decompress(fHandle.read(CompressedSize)))
+            self.X = struct.unpack("h",fHandle.read(2))[0]
+            self.Y = struct.unpack("h",fHandle.read(2))[0]
+            self.Z = struct.unpack("h",fHandle.read(2))[0]
+            self.SpawnX = struct.unpack("h",fHandle.read(2))[0]
+            self.SpawnY = struct.unpack("h",fHandle.read(2))[0]
+            self.SpawnZ = struct.unpack("h",fHandle.read(2))[0]
+            self.SpawnOrientation = struct.unpack("h",fHandle.read(2))[0]
+            self.SpawnPitch = struct.unpack("h",fHandle.read(2))[0]
+            self.MinRank = fHandle.read(1)
             fHandle.close()
             print "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000))
             if len(self.Blocks) != self.X*self.Y*self.Z:
@@ -91,16 +96,19 @@ class World(object):
             return False
     
     def Save(self, Verbose = True):
-        '''First draft of map format:
-        0-2 = X
-        2-4 = Y
-        4-6 = Z
-        6-8 = SpawnX
-        8-10 = SpawnY
-        12-12 = SpawnZ
-        12-14 = SpawnOrientation
-        14-16 = SpawnPitch
-        16+ = zlibbed array data'''
+        '''The map file is a file of the following format:
+        int32 CompressedSize
+        array* Blockstore of length Blocksize
+        int16 X
+        int16 Y
+        int16 Z
+        int16 SpawnX
+        int16 SpawnY
+        int16 SpawnZ
+        int16 SpawnOrientation
+        int16 SpawnPitch
+        byte MinRank
+        '''
         start = time.time()
         try:
             #Save to a temp file. Then copy it over. (If we crash during this, the old save is unchanged)
@@ -108,7 +116,10 @@ class World(object):
             fHandle = open("Worlds/%s.temp" %(self.Name),'wb')
         except:
             print "Critical error, could not save world data for world %s" %self.Name
-            return
+
+        CompressedData = zlib.compress(self.Blocks,self.CompressionLevel)
+        fHandle.write(struct.pack("i",len(CompressedData)))
+        fHandle.write(CompressedData)
         fHandle.write(struct.pack("h",self.X))
         fHandle.write(struct.pack("h",self.Y))
         fHandle.write(struct.pack("h",self.Z))
@@ -117,7 +128,7 @@ class World(object):
         fHandle.write(struct.pack("h",self.SpawnZ))
         fHandle.write(struct.pack("h",self.SpawnOrientation))
         fHandle.write(struct.pack("h",self.SpawnPitch))
-        fHandle.write(zlib.compress(self.Blocks,self.CompressionLevel))
+        fHandle.write(self.MinRank)
         fHandle.close()
         shutil.copy("Worlds/%s.temp" %(self.Name),"Worlds/%s.save" %(self.Name))
         os.remove("Worlds/%s.temp" %(self.Name))
@@ -174,12 +185,8 @@ class World(object):
         if val >= BLOCK_END:
             return False #Fake block type...
         #Rank 5 and below are normal users. 6+ is a builder and can place disabled blocks
-        if RankToLevel[pPlayer.GetRank()] < 6 and val in DisabledBlocks:
-            pPlayer.SendMessage("&4That block is disabled!")
-            return False
-
-        if pPlayer.HasPermission('') == False:
-            pPlayer.SendMessage("&4You are not allowed to build anymore")
+        if pPlayer.HasPermission(self.MinRank) == False:
+            pPlayer.SendMessage("&4Only %s's are allowed to build on this world!" %RankToName[self.MinRank])
             return False
 
         if pPlayer.GetAboutCmd() == True:
@@ -239,7 +246,9 @@ class World(object):
                 if pZone.CanBuild(pPlayer) == False:
                     pPlayer.SendMessage("&4You cannot build in zone \"%s\"" %pZone.Name)
                     return False
-
+        if RankToLevel[pPlayer.GetRank()] < 6 and val in DisabledBlocks:
+            pPlayer.SendMessage("&4That block is disabled!")
+            return False
         ArrayValue = self._CalculateOffset(x,y,z)
         if self.LogBlocks == True:
             self.BlockHistory[ArrayValue] = BlockLog(pPlayer.GetName().lower(),int(time.time()),self.Blocks[ArrayValue])

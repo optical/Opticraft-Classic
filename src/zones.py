@@ -49,8 +49,6 @@ class Zone(object):
         self.Z2 = int(self.ConfigValues.get("Info","Z2"))
         self.Owner = self.ConfigValues.get("Info","Owner")
         self.MinRank = self.ConfigValues.get("Info","Minrank")
-        if self.MinRank == "None":
-            self.MinRank = ""
         self.MinRankNumeric = RankToLevel[self.MinRank]
         for Name,junk in self.ConfigValues.items("Builders"):
             self.Builders.add(Name)

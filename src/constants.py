@@ -93,7 +93,7 @@ DisabledBlocks = set([BLOCK_WATER,BLOCK_STILLWATER,BLOCK_LAVA,BLOCK_STILLLAVA,BL
 # 5 = Owner
 
 RankToName = {
-    "" : "",
+    "g" : "Guest",
     "s" : "Spectator",
     "t": "Recruit",
     "b": "Builder",
@@ -102,7 +102,7 @@ RankToName = {
     "z": "Owner"
 }
 RankToColour = {
-    "" : "",
+    "g" : "",
     "s": "",
     "a": "&9", #Blue
     "b": "&a", #Light green
@@ -112,7 +112,7 @@ RankToColour = {
 }
 RankToLevel = {
     "s": 3,
-    "" : 5,
+    "g" : 5,
     "t": 7,
     "b": 10,
     "o": 20,
@@ -121,13 +121,17 @@ RankToLevel = {
 }
 RankToDescription = {
     "s": "Griefers are set to this rank. They may not build",
-    "" : "",
+    "g" : "Everyone starts out at this rank",
     "t": "Users who show potential get promoted to this rank. They may use lava and water",
     "b": "Users who have proved themself and played for several days get this rank. They may build on builder only maps",
     "o": "Mature, responsible users get promoted to this. Do not ask to be promoted to this rank",
     "a": "These users are the server administrators",
     "z": "This is the owner of the server",
 }
+ValidRanks = ''
+for Rank in RankToName.keys():
+    if Rank != '':
+        ValidRanks = "%s %s " %(ValidRanks,Rank)
 #Taken from http://snipplr.com/view/5713/python-elapsedtime-human-readable-time-span-given-total-seconds/
 def ElapsedTime(seconds, suffixes=[' year',' week',' day',' hour',' minute',' second'], add_s=True, separator=' '):
 	"""

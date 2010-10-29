@@ -3,6 +3,7 @@ from constants import *
 from ordereddict import OrderedDict
 import platform
 import time
+from world import World
 class CommandObject(object):
     '''Child class for all commands'''
     def __init__(self,CmdHandler,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias = False):
@@ -129,8 +130,7 @@ class RanksCmd(CommandObject):
         Items = RankToLevel.items()
         Items.sort(cmp= lambda x,y: cmp(x[1],y[1]))
         for Rank,Junk in Items:
-            if Rank != '':
-                pPlayer.SendMessage("&e %s%s&e: %s" %(RankToColour[Rank],RankToName[Rank],RankToDescription[Rank]))
+            pPlayer.SendMessage("&e %s%s&e: %s" %(RankToColour[Rank],RankToName[Rank],RankToDescription[Rank]))
 
 #######################
 #RECRUIT COMMANDS HERE#
@@ -272,7 +272,7 @@ class zSetMinRankCmd(CommandObject):
         Rank = Args[1]
         Rank = Rank.lower()
         if Rank not in RankToLevel:
-            pPlayer.SendMessage("&4Invalid rank! Valid ranks are: t, b, o, a, z")
+            pPlayer.SendMessage("&4Invalid rank! Valid ranks are: %s" %ValidRanks)
             return
         pZone = pPlayer.GetWorld().GetZone(ZoneName)
         if pZone == None:
@@ -528,6 +528,23 @@ class DelIPBanCmd(CommandObject):
          pPlayer.ServerControl.UnbanIP(Arg)
          pPlayer.SendMessage("&aRemoved ban on ip \"%s\"" %Arg)
 
+class WorldSetRankCmd(CommandObject):
+    '''Sets the mimimum rank required to build on a world'''
+    def Run(self,pPlayer,Args,Message):
+        WorldName = Args[0].lower()
+        Rank = Args[1]
+        if Rank not in RankToName:
+            pPlayer.SendMessage("&4That is not a valid rank! Valid ranks: %s" %ValidRanks)
+            return
+        pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
+        if pWorld == None:
+            pPlayer.SendMessage("&4Could not change rank for that world.")
+            pPlayer.SendMessage("&4Try joining that world then setting the rank.")
+            return
+        else:
+            pWorld.MinRank = Rank
+            pPlayer.SendMessage("&aSuccessfully set %s to be %s only" %(pWorld.Name,RankToName[Rank]))
+
 ######################
 #OWNER COMMANDS HERE #
 ######################
@@ -537,7 +554,7 @@ class AddRankCmd(CommandObject):
         Username = Args[0]
         Rank = Args[1].lower()
         if Rank not in RankToLevel:
-            pPlayer.SendMessage("&4Invalid Rank! Valid ranks are: t, b, o, a")
+            pPlayer.SendMessage("&4Invalid Rank! Valid ranks are: %s" %ValidRanks)
             return
         #Check to see we can set this rank.
         NewRank = RankToLevel[Rank]
@@ -603,7 +620,29 @@ class ZDeleteCmd(CommandObject):
         pPlayer.ServerControl.DeleteZone(pZone)
         pPlayer.SendMessage("&aSuccessfully deleted zone&f \"%s\"" %pZone.Name)
         pZone.Delete()
-
+class CreateWorldCmd(CommandObject):
+    '''Handles the world cretion command'''
+    def Run(self,pPlayer,Args,Message):
+        Name = Args[0]
+        X = Args[1]
+        Y = Args[2]
+        Z = Args[3]
+        try:
+            X = int(X)
+            Y = int(Y)
+            Z = int(Z)
+            if X <= 0 or Y <= 0 or Z <= 0:
+                raise Exception()
+        except:
+            pPlayer.SendMessage("&4Please enter a valid X, Y, and Z coordinates!")
+            return
+        if pPlayer.ServerControl.WorldExists(Name):
+            pPlayer.SendMessage("&4That world already exists!")
+            return
+        pWorld = World(pPlayer.ServerControl,Name,True,X,Y,Z)
+        pPlayer.ServerControl.ActiveWorlds.append(pWorld)
+        pWorld.SetIdleTimeout(pPlayer.ServerControl.WorldTimeout)
+        pPlayer.SendMessage("Successfully created the world!")
 class CommandHandler(object):
     '''Stores all the commands avaliable on opticraft and processes any command messages'''
     def __init__(self,ServerControl):
@@ -613,20 +652,20 @@ class CommandHandler(object):
         ######################
         #PUBLIC COMMANDS HERE#
         ######################
-        self.AddCommand("about", AboutCmd, '', 'Displays history of a block when you destroy/create one', '', 0)
-        self.AddCommand("cmdlist", CmdListCmd, '', 'Lists all commands available to you', '', 0)
-        self.AddCommand("commands", CmdListCmd, '', 'Lists all commands available to you', '', 0,Alias=True)
-        self.AddCommand("help", HelpCmd, '', 'Gives help on a specific command. Usage: /help <cmd>', 'Incorrect syntax! Usage: /help <cmd>', 1)
-        self.AddCommand("worlds", WorldsCmd, '', 'Lists all available worlds', '', 0)
-        self.AddCommand("join", JoinWorldCmd, '', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1)
-        self.AddCommand("j", JoinWorldCmd, '', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
-        self.AddCommand("goto", JoinWorldCmd, '', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
-        self.AddCommand("grass", GrassCmd, '', 'Allows you to place grass', '', 0)
-        self.AddCommand("paint", PaintCmd, '', 'When you destroy a block it will be replaced by what you are currently holding', '', 0)
-        self.AddCommand("sinfo", sInfoCmd, '', 'Displays information about the server', '', 0)
-        self.AddCommand("ranks", RanksCmd, '', 'Displays information on all the ranks', '', 0)
+        self.AddCommand("about", AboutCmd, 'g', 'Displays history of a block when you destroy/create one', '', 0)
+        self.AddCommand("cmdlist", CmdListCmd, 'g', 'Lists all commands available to you', '', 0)
+        self.AddCommand("commands", CmdListCmd, 'g', 'Lists all commands available to you', '', 0,Alias=True)
+        self.AddCommand("help", HelpCmd, 'g', 'Gives help on a specific command. Usage: /help <cmd>', 'Incorrect syntax! Usage: /help <cmd>', 1)
+        self.AddCommand("worlds", WorldsCmd, 'g', 'Lists all available worlds', '', 0)
+        self.AddCommand("join", JoinWorldCmd, 'g', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1)
+        self.AddCommand("j", JoinWorldCmd, 'g', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
+        self.AddCommand("goto", JoinWorldCmd, 'g', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
+        self.AddCommand("grass", GrassCmd, 'g', 'Allows you to place grass', '', 0)
+        self.AddCommand("paint", PaintCmd, 'g', 'When you destroy a block it will be replaced by what you are currently holding', '', 0)
+        self.AddCommand("sinfo", sInfoCmd, 'g', 'Displays information about the server', '', 0)
+        self.AddCommand("ranks", RanksCmd, 'g', 'Displays information on all the ranks', '', 0)
         #######################
-        #TRUSTED COMMANDS HERE#
+        #RECRUIT COMMANDS HERE#
         #######################
         self.AddCommand("water", WaterCmd, 't', 'Allows you to place water', '', 0)
         self.AddCommand("lava", LavaCmd, 't', 'Allows you to place lava', '', 0)
@@ -643,7 +682,6 @@ class CommandHandler(object):
         self.AddCommand("zdelbuilder", DelZoneBuilderCmd, 'b', 'Deletes a builder from a zone', 'Incorrect syntax! Usage: /zdelbuilder <zone> <username>', 2)
         self.AddCommand("zsetrank", zSetMinRankCmd, 'b', 'Changes the minimum non zone-builder rank required to build on this zone', 'Incorrect syntax! Usage: /zsetrank <zone> <rank>', 2)
         self.AddCommand("zsetowner", zChangeOwnerCmd, 'b', 'Changes the owner of a zone', 'Incorrect syntax! Usage: /zsetowner <zone> <username>', 2)
-
         #########################
         #OPERATOR COMMANDS HERE #
         #########################
@@ -667,14 +705,16 @@ class CommandHandler(object):
         self.AddCommand("backup", BackupCmd, 'a', 'Backs up all actively running worlds', '', 0)
         self.AddCommand("setspawn", SetSpawnCmd, 'a', 'Changes the worlds default spawn location to where you are standing', '', 0)
         self.AddCommand("pruneblocklog", PruneBlockLogCmd, 'a', 'Removes all entrys from the block log older then <seconds>', 'Incorrect syntax. Usage: /pruneblocklog <seconds>', 1)
-        self.AddCommand("addrank", AddRankCmd, 'a', 'Promotes a player to a rank such a admin, operator, or builder', 'Incorrect syntax. Usage: /addrank <username> <t/a/o/b>', 2)
+        self.AddCommand("addrank", AddRankCmd, 'a', 'Promotes a player to a rank such a admin, operator, or builder', 'Incorrect syntax. Usage: /addrank <username> <t/a</o/b>', 2)
         self.AddCommand("removerank", RemoveRankCmd, 'a', 'Removes a players rank', 'Incorrect syntax. Usage: /removerank <username>', 1)
+        self.AddCommand("worldsetrank", WorldSetRankCmd, 'a', 'Sets the minimum rank to build on a world', 'Incorrect syntax. Usage: /worldsetrank <world> <t/b/o/a>', 1)
+
         ######################
         #OWNER COMMANDS HERE #
         ######################
         self.AddCommand("zCreate", ZCreateCmd, 'z', 'Creates a restricted zone', 'Incorrect syntax. Usage: /zCreate <name> <owner> <height>', 3)
         self.AddCommand("zDelete", ZDeleteCmd, 'z', 'Deletes a restricted zone', 'Incorrect syntax. Usage: /zDelete <name>', 1)
-
+        self.AddCommand("createworld", CreateWorldCmd, 'z', 'Creates a new world.', 'Incorrect syntax. Usage: /createworld <name> <x> <y> <z>', 1)
     def HandleCommand(self,pPlayer,Message):
         '''Called when a player types a slash command'''
         if Message == '':
