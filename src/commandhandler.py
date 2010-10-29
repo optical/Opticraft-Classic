@@ -648,6 +648,18 @@ class CreateWorldCmd(CommandObject):
         pPlayer.ServerControl.ActiveWorlds.append(pWorld)
         pWorld.SetIdleTimeout(pPlayer.ServerControl.WorldTimeout)
         pPlayer.SendMessage("Successfully created the world!")
+
+class SetDefaultWorldCmd(CommandObject):
+    '''Handler for the /setdefaultworld command'''
+    def Run(self,pPlayer,Args,Message):
+        WorldName = Args[0]
+        pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
+        if pWorld == None:
+            pPlayer.SendMessage("&4Could not set world to default world.")
+            pPlayer.SendMessage("&4Try joining the world and trying again.")
+            return
+        pPlayer.ServerControl.SetDefaultWorld(pWorld)
+        pPlayer.SendMessage("&aDefault world changed to&f \"%s\"" %pWorld.Name)
 class CommandHandler(object):
     '''Stores all the commands avaliable on opticraft and processes any command messages'''
     def __init__(self,ServerControl):
@@ -719,7 +731,9 @@ class CommandHandler(object):
         ######################
         self.AddCommand("zCreate", ZCreateCmd, 'z', 'Creates a restricted zone', 'Incorrect syntax. Usage: /zCreate <name> <owner> <height>', 3)
         self.AddCommand("zDelete", ZDeleteCmd, 'z', 'Deletes a restricted zone', 'Incorrect syntax. Usage: /zDelete <name>', 1)
-        self.AddCommand("createworld", CreateWorldCmd, 'z', 'Creates a new world.', 'Incorrect syntax. Usage: /createworld <name> <x> <y> <z>', 1)
+        self.AddCommand("createworld", CreateWorldCmd, 'z', 'Creates a new world.', 'Incorrect syntax. Usage: /createworld <name> <x> <y> <z>', 4)
+        self.AddCommand("setdefaultworld", SetDefaultWorldCmd, 'z', 'Sets the world you specify to be the default one', 'Incorrect syntax. Usage: /setdefaultworld <name>', 1)
+
     def HandleCommand(self,pPlayer,Message):
         '''Called when a player types a slash command'''
         if Message == '':

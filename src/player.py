@@ -240,7 +240,6 @@ class Player(object):
             self.SendMessage("&4NOTICE:&a We now have multi-worlds running.")
             self.SendMessage("&4NOTICE:&a To see all worlds use /worlds")
             self.SendMessage("&4NOTICE:&a To join a world use /j <world>")
-            self.SendMessage("&4NOTICE:&a To go to the old world use /j Main")
 
             return
         else:

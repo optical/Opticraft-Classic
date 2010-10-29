@@ -132,6 +132,16 @@ class ServerController(object):
             if WorldName.lower() == Name:
                 return True
         return False
+    def SetDefaultWorld(self,pWorld):
+        self.ActiveWorlds.remove(pWorld)
+        self.ActiveWorlds.insert(0,pWorld)
+        self.ConfigValues.set("worlds","DefaultName",pWorld.Name)
+        try:
+            fHandle = open("opticraft.cfg","w")
+            self.ConfigValues.write(fHandle)
+            fHandle.close()
+        except:
+            pass
     def LoadRanks(self):
         try:
             Items = self.ConfigValues.items("ranks")
