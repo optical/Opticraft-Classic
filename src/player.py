@@ -98,7 +98,6 @@ class Player(object):
         #else - Boot up new world and then leave/join
         #Leave our world first.
         Name = Name.lower()
-        self.ServerControl.SendMessageToAll("%s&f joined map %s" %(self.GetColouredName(),Name))
         self.World.RemovePlayer(self,True)
         #Send packet telling client were changing the world.
         OutPacket = OptiCraftPacket(SMSG_INITIAL)
@@ -119,6 +118,7 @@ class Player(object):
                 break
         pWorld = self.ServerControl.LoadWorld(Name)
         pWorld.AddPlayer(self)
+        self.ServerControl.SendMessageToAll("%s&f joined map %s%s" %(self.GetColouredName(),RankToColour[pWorld.MinRank],pWorld.Name))
 
 
     def IsLoadingWorld(self):
