@@ -116,7 +116,13 @@ class ServerController(object):
         ActiveWorlds = [pWorld for pWorld in self.ActiveWorlds]
         InactiveWorlds = [Name for Name in self.IdleWorlds]
         return (ActiveWorlds,InactiveWorlds)
-
+    def GetActiveWorld(self,WorldName):
+        '''Returns a pointer to an active world with name WorldName'''
+        WorldName = WorldName.lower()
+        for pWorld in self.ActiveWorlds:
+            if pWorld.Name.lower() == WorldName:
+                return pWorld
+        return None
     def WorldExists(self,Name):
         Name = Name.lower()
         for pWorld in self.ActiveWorlds:
@@ -166,7 +172,7 @@ class ServerController(object):
         
 
     def GetRank(self,Username):
-        return self.RankedPlayers.get(Username.lower(),'')
+        return self.RankedPlayers.get(Username.lower(),'g')
 
     def SetRank(self,Username,Rank):
         if Rank != '':
