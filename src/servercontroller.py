@@ -175,7 +175,7 @@ class ServerController(object):
         return self.RankedPlayers.get(Username.lower(),'g')
 
     def SetRank(self,Username,Rank):
-        if Rank != '':
+        if Rank != 'g':
             self.RankedPlayers[Username.lower()] = Rank.lower()
             self.ConfigValues.set("ranks",Username,Rank)
             pPlayer = self.PlayerNames.get(Username,None)
@@ -188,7 +188,7 @@ class ServerController(object):
                 self.ConfigValues.remove_option("ranks",Username)
                 pPlayer = self.PlayerNames.get(Username.lower(),None)
                 if pPlayer != None:
-                    pPlayer.SetRank('')
+                    pPlayer.SetRank('g')
                     pPlayer.SendMessage("You no longer have a rank.")
             else:
                 return
