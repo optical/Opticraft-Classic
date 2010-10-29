@@ -31,9 +31,9 @@ class World(object):
         self.ServerControl = ServerControl
         self.BlockHistory = dict()
         #Config values
-        self.DefaultX = self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeX","256")
-        self.DefaultY = self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeY","256")
-        self.DefaultZ = self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeZ","96")
+        self.DefaultX = int(self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeX","256"))
+        self.DefaultY = int(self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeY","256"))
+        self.DefaultZ = int(self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeZ","96"))
         self.LastSave = time.time() + random.randrange(0,30)
         self.SaveInterval = int(self.ServerControl.ConfigValues.GetValue("worlds","SaveTime","300"))
         self.LastBackup = time.time() + random.randrange(0,30)
