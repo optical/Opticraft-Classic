@@ -445,10 +445,11 @@ class PlayerInfoCmd(CommandObject):
         if Target == None:
             pPlayer.SendMessage("&4That player is not online!")
             return
-        pPlayer.SendMessage("&a%s has been online for %s" %(Target.GetName(), ElapsedTime(int(time.time()) -Target.GetLoginTime())))
-        pPlayer.SendMessage("&aTheir ip is: %s" %Target.GetIP())
+        pPlayer.SendMessage("&a%s has been online for&e %s" %(Target.GetName(), ElapsedTime(int(time.time()) -Target.GetLoginTime())))
+        pPlayer.SendMessage("&aTheir ip is:&e %s" %Target.GetIP())
+        pPlayer.SendMessage("They are on world&e \"%s\"" %Target.GetWorld().Name)
         if Target.GetRank() != '':
-            pPlayer.SendMessage("&aTheir rank is %s" %RankToName[Target.GetRank()])
+            pPlayer.SendMessage("&aTheir rank is&e %s" %RankToName[Target.GetRank()])
         else:
             pPlayer.SendMessage("&aAnd they do not have any rank")
         
@@ -561,8 +562,12 @@ class AddRankCmd(CommandObject):
         if NewRank >= RankToLevel[pPlayer.GetRank()]:
             pPlayer.SendMessage("&4You do not have permission to add this rank")
             return
+        Target = pPlayer.ServerControl.GetRank(Username)
+        if RankToLevel[Target] > RankToLevel[Rank]:
+            pPlayer.SendMessage("&4You may not set that players rank!")
+            return
         pPlayer.ServerControl.SetRank(Username,Rank)
-        pPlayer.SendMessage("Successfully set %s's rank to %s" %(Username,Rank))
+        pPlayer.SendMessage("&aSuccessfully set %s's rank to %s" %(Username,Rank))
 class RemoveRankCmd(CommandObject):
     '''Handle for the /removerank command - gives a username a rank. Can only be used by admins'''
     def Run(self,pPlayer,Args,Message):
@@ -570,9 +575,9 @@ class RemoveRankCmd(CommandObject):
         CurRank = pPlayer.ServerControl.GetRank(Username)
         RankLevel = RankToLevel[CurRank]
         if RankToLevel[pPlayer.GetRank()] <= RankLevel:
-            pPlayer.SendMessage("&4You dno not have permission to remove that users rank")
+            pPlayer.SendMessage("&4You do not have permission to remove that users rank")
             return
-        pPlayer.ServerControl.SetRank(Username,'')
+        pPlayer.ServerControl.SetRank(Username,'g')
         pPlayer.SendMessage("Removed %s's rank" %Username)
 
 class PruneBlockLogCmd(CommandObject):
