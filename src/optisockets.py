@@ -58,6 +58,7 @@ class SocketManager(object):
             if result == False:
                 #Server is full - Remove him next cycle.
                 try:
+                    self.PlayerSockets.remove(PlayerSock)
                     PlayerSock.close()
                 except:
                     pass
