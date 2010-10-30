@@ -415,7 +415,7 @@ class DemoteTrustedCmd(CommandObject):
         if CurRank != 't':
             pPlayer.SendMessage("&4That player doesn't have the recruit rank!")
             return
-        pPlayer.ServerControl.SetRank(Username,"")
+        pPlayer.ServerControl.SetRank(Username,"g")
         pPlayer.SendMessage("&aSuccessfully removed %s's rank." %(Username))
 class MakeSpectatorCmd(CommandObject):
     '''Handler for the /makespectator command. Makes a user a spectator'''
