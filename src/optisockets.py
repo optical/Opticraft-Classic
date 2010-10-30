@@ -57,7 +57,10 @@ class SocketManager(object):
             result = self.ServerControl.AttemptAddPlayer(pPlayer)
             if result == False:
                 #Server is full - Remove him next cycle.
-                pPlayer.Disconnect()
+                try:
+                    PlayerSock.close()
+                except:
+                    pass
 
             PlayerSock, SockAddress = self.ListenSock.Accept()
 
