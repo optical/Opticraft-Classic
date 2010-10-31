@@ -7,6 +7,7 @@ import struct
 import time
 import random
 import shutil
+import sqlite3 as dbapi
 from array import array
 from opticraftpacket import OptiCraftPacket
 from constants import *
@@ -42,6 +43,23 @@ class World(object):
         self.LogBlocks = int(self.ServerControl.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
         self.IdleTimeout = 0 #How long must the world be unoccupied until it unloads itself from memory
         self.IdleStart = 0 #Not idle.
+        self.DBConnection = None
+        self.DBCursor = None
+        if self.LogBlocks != 0:
+            if os.exists("Worlds/BlockLogs") == False:
+                os.mkdir("Worlds/BlockLogs")
+            #Setup the DB connections
+            self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" %self.Name)
+            self.DBConnection.text_factory = str
+            self.DBCursor = self.DBConnection.cursor()
+            Result = self.DBConnection.execute("SELECT * FROM sqlite_master where 'type' = 'table' and 'name' = 'Blocklogs'")
+            if Result == None:
+                #Create the table
+                self.DBConnection.execute("CREATE TABLE Blocklogs (Offset INTEGER UNIQUE,Username TEXT,Time INTEGER,OldValue INTEGER)")
+                self.DBConnection.execute("CREATE INDEX Lookup ON Blocklogs (Offset)")
+                self.DBConnection.execute("CREATE INDEX Deletion ON Blocklogs (Username,Time)")
+                self.DBConnection.commit()
+
         if os.path.isfile("Worlds/"+ self.Name + '.save'):
             LoadResult = self.Load()
             if LoadResult == False:
@@ -271,7 +289,7 @@ class World(object):
         ToRemove = []
         NumChanged = 0
         now = time.time()
-        
+        #Reverse stuff in the hashmap
         for key in self.BlockHistory:
             BlockInfo = self.BlockHistory[key]
             if BlockInfo.Username == Username and BlockInfo.Time > now-Time:
@@ -282,20 +300,35 @@ class World(object):
         
         while len(ToRemove) > 0:
             del self.BlockHistory[ToRemove.pop()]
+        #Reverse stuff in SQL DB
+        SQLResult = self.DBConnection.execute("SELECT Offset,Value from Blocklogs where Username = ? and Time > ?", (Username,now-Time))
+        Row = SQLResult.fetchone()
+        while Row != None:
+            x,y,z = self._CalculateCoords(Row[0])
+            self.SetBlock(None, x,y,z, ord(Row[1]))
+            NumChanged += 1         
+            Row = SQLResult.fetchone()
+        self.DBConnection.execute("DELETE FROM Blocklogs where Username = ? and Time > ?",(Username,now-Time))
+        self.DBConnection.commit() #Save DB to disk
         return NumChanged
 
-    def PruneBlockLog(self,Time):
-        ToRemove = []
-        now = time.time()
-        NumChanged = 0
-        for key in self.BlockHistory:
-            BlockInfo = self.BlockHistory[key]
-            if BlockInfo.Time < now-Time:
-                ToRemove.append(key)
-                NumChanged += 1
-        while len(ToRemove) > 0:
-            del self.BlockHistory[ToRemove.pop()]
-        return NumChanged
+    def GetBlockLogEntry(self,Offset):
+        '''Attempts to return a Blocklog entry'''
+        #First check our hashmap.
+        Result = self.BlockHistory.get(Offset,None)
+        if Result != None:
+            #Easy peezy...
+            return Result
+        #Turn to SQL
+        SQLResult = self.DBConnection.execute("SELECT Username,Time,Oldvalue FROM Blocklogs where Offset = ?", (Offset,))
+        if SQLResult == None:
+            return None
+        else:
+            return BlockLog(SQLResult[0],SQLResult[1],SQLResult[2])
+
+    def FlushBlockLog(self):
+        '''Flushes the hashmap of Blocklogs to SQL on disk'''
+
     def SetSpawn(self,x,y,z,o,p):
         '''Sets the worlds default spawn position. Stored in the format the client uses'''
         self.SpawnX = x

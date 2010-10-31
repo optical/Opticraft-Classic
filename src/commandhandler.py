@@ -580,20 +580,6 @@ class RemoveRankCmd(CommandObject):
         pPlayer.ServerControl.SetRank(Username,'g')
         pPlayer.SendMessage("Removed %s's rank" %Username)
 
-class PruneBlockLogCmd(CommandObject):
-    def Run(self,pPlayer,Args,Message):
-        if pPlayer.GetWorld().LogBlocks == False:
-            pPlayer.SendMessage("&4Block logging is not enabled!")
-            return
-        Time = Args[0]
-        try:
-            Time = int(Time)
-        except:
-            pPlayer.SendMessage("&4That is not a valid number of seconds!")
-            return
-        num = pPlayer.GetWorld().PruneBlockLog(Time)
-        pPlayer.SendMessage("Erased %u entry's from the block log" %num)
-
 class ZCreateCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
         Name = Args[0]
@@ -721,7 +707,6 @@ class CommandHandler(object):
         self.AddCommand("save", SaveCmd, 'a', 'Saves all actively running worlds', '', 0)
         self.AddCommand("backup", BackupCmd, 'a', 'Backs up all actively running worlds', '', 0)
         self.AddCommand("setspawn", SetSpawnCmd, 'a', 'Changes the worlds default spawn location to where you are standing', '', 0)
-        self.AddCommand("pruneblocklog", PruneBlockLogCmd, 'a', 'Removes all entrys from the block log older then <seconds>', 'Incorrect syntax. Usage: /pruneblocklog <seconds>', 1)
         self.AddCommand("addrank", AddRankCmd, 'a', 'Promotes a player to a rank such a admin, operator, or builder', 'Incorrect syntax. Usage: /addrank <username> <t/a</o/b>', 2)
         self.AddCommand("removerank", RemoveRankCmd, 'a', 'Removes a players rank', 'Incorrect syntax. Usage: /removerank <username>', 1)
         self.AddCommand("worldsetrank", WorldSetRankCmd, 'a', 'Sets the minimum rank to build on a world', 'Incorrect syntax. Usage: /worldsetrank <world> <t/b/o/a>', 1)

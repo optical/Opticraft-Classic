@@ -8,14 +8,18 @@ def Main():
     ServerControl = ServerController()
     try:
         ServerControl.run()
-    except:
-        fHandle = open("CrashLog.txt","a")
-        fHandle.write("="*30 + "\n")
-        fHandle.write("Crash date: %s\n" %time.strftime("%c", time.gmtime()))
-        fHandle.write("="*30 + "\n")
-        traceback.print_exc(file=fHandle)
-        fHandle.close()
-        ServerControl.Shutdown(True)
-
+    except Exception as inst:
+        try:
+            fHandle = open("CrashLog.txt","a")
+            fHandle.write("="*30 + "\n")
+            fHandle.write("Crash date: %s\n" %time.strftime("%c", time.gmtime()))
+            fHandle.write("="*30 + "\n")
+            traceback.print_exc(file=fHandle)
+            fHandle.close()
+            if type(inst) != MemoryError:
+                ServerControl.Shutdown(True)
+        except:
+            return
+        return
 if __name__ == "__main__":
     Main()
