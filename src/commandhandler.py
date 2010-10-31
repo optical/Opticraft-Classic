@@ -545,7 +545,11 @@ class WorldSetRankCmd(CommandObject):
         else:
             pWorld.MinRank = Rank
             pPlayer.SendMessage("&aSuccessfully set %s to be %s only" %(pWorld.Name,RankToName[Rank]))
-
+class FlushBlockLogCmd(CommandObject):
+    '''Flushes the worlds blocklog to disk'''
+    def Run(self,pPlayer,Args,Message):
+        pPlayer.GetWorld().FlushBlockLog()
+        pPlayer.SendMessage("&aWorld %s's Blocklog has been flushed to disk." %pPlayer.GetWorld().Name)
 ######################
 #OWNER COMMANDS HERE #
 ######################
@@ -698,7 +702,8 @@ class CommandHandler(object):
         self.AddCommand("demote", DemoteTrustedCmd, 'o', 'Demotes a player from the recruit rank', 'Incorrect syntax! Usage: /demote <username>', 1)
         self.AddCommand("makespectator",MakeSpectatorCmd, 'o', 'Demotes a player to a spectator which cannot build','Incorrect syntax! Usage: /makespectator <username>',1)
         self.AddCommand("promotespectator",PromoteSpectatorCmd, 'o', 'Gives the player the ability to build again','Incorrect syntax! Usage: /promotespectator <username>',1)
-        self.AddCommand("destroyTower",DestroyTowerCmd,'o', 'Destroys a vertical tower of shit','',0,Alias=True) #Hidden command
+        self.AddCommand("destroytower",DestroyTowerCmd,'o', 'Destroys a vertical tower of shit','',0,Alias=True) #Hidden command
+        self.AddCommand("flushblocklog",FlushBlockLogCmd,'o', 'Flushes the worlds blocklog to disk','',0)
         ######################
         #ADMIN COMMANDS HERE #
         ######################
