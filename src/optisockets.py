@@ -1,7 +1,7 @@
 import socket
 from select import select
 from player import Player
-
+from opticraftpacket import OptiCraftPacket
 
 
 class ListenSocket(object):
@@ -56,9 +56,15 @@ class SocketManager(object):
             pPlayer = Player(PlayerSock,SockAddress,self.ServerControl)
             result = self.ServerControl.AttemptAddPlayer(pPlayer)
             if result == False:
-                #Server is full - Remove him next cycle.
+                #Server is full
                 try:
                     self.PlayerSockets.remove(PlayerSock)
+                    try:
+                        Packet = OptiCraftPacket(SMSG_DISCONNECT)
+                        Packet.WriteString("The server is full. Try again later")
+                        PlayerSock.send(Packet.GetOutData())
+                    except:
+                        pass
                     PlayerSock.close()
                 except:
                     pass
