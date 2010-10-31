@@ -41,23 +41,24 @@ class World(object):
         self.BackupInterval = int(self.ServerControl.ConfigValues.GetValue("worlds","BackupTime","3600"))
         self.CompressionLevel = int(self.ServerControl.ConfigValues.GetValue("worlds","CompressionLevel",1))
         self.LogBlocks = int(self.ServerControl.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
+        self.LogFlushThreshold = int(self.ServerControl.ConfigValues.GetValue("worlds","LogFlushThreshold",20000))
         self.IdleTimeout = 0 #How long must the world be unoccupied until it unloads itself from memory
         self.IdleStart = 0 #Not idle.
         self.DBConnection = None
         self.DBCursor = None
         if self.LogBlocks != 0:
-            if os.exists("Worlds/BlockLogs") == False:
+            if os.path.exists("Worlds/BlockLogs") == False:
                 os.mkdir("Worlds/BlockLogs")
             #Setup the DB connections
             self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" %self.Name)
             self.DBConnection.text_factory = str
             self.DBCursor = self.DBConnection.cursor()
-            Result = self.DBConnection.execute("SELECT * FROM sqlite_master where 'type' = 'table' and 'name' = 'Blocklogs'")
-            if Result == None:
+            Result = self.DBCursor.execute("SELECT * FROM sqlite_master where name='Blocklogs' and type='table'")
+            if Result.fetchone() == None:
                 #Create the table
-                self.DBConnection.execute("CREATE TABLE Blocklogs (Offset INTEGER UNIQUE,Username TEXT,Time INTEGER,OldValue INTEGER)")
-                self.DBConnection.execute("CREATE INDEX Lookup ON Blocklogs (Offset)")
-                self.DBConnection.execute("CREATE INDEX Deletion ON Blocklogs (Username,Time)")
+                self.DBCursor.execute("CREATE TABLE Blocklogs (Offset INTEGER UNIQUE,Username TEXT,Time INTEGER,OldValue INTEGER)")
+                self.DBCursor.execute("CREATE INDEX Lookup ON Blocklogs (Offset)")
+                self.DBCursor.execute("CREATE INDEX Deletion ON Blocklogs (Username,Time)")
                 self.DBConnection.commit()
 
         if os.path.isfile("Worlds/"+ self.Name + '.save'):
@@ -209,7 +210,7 @@ class World(object):
 
         if pPlayer.GetAboutCmd() == True:
             #Display block information
-            BlockInfo = self.BlockHistory.get(self._CalculateOffset(x, y, z),None)
+            BlockInfo = self.GetBlockLogEntry(x,y,z)
             if BlockInfo == None:
                 pPlayer.SendMessage("No information available for this block (No changes made)")
             else:
@@ -301,26 +302,26 @@ class World(object):
         while len(ToRemove) > 0:
             del self.BlockHistory[ToRemove.pop()]
         #Reverse stuff in SQL DB
-        SQLResult = self.DBConnection.execute("SELECT Offset,Value from Blocklogs where Username = ? and Time > ?", (Username,now-Time))
-        Row = SQLResult.fetchone()
-        while Row != None:
+        SQLResult = self.DBCursor.execute("SELECT Offset,Value from Blocklogs where Username = ? and Time > ?", (Username,now-Time))
+        for Row in SQLResult:
             x,y,z = self._CalculateCoords(Row[0])
             self.SetBlock(None, x,y,z, ord(Row[1]))
-            NumChanged += 1         
-            Row = SQLResult.fetchone()
-        self.DBConnection.execute("DELETE FROM Blocklogs where Username = ? and Time > ?",(Username,now-Time))
+            NumChanged += 1
+        self.DBCursor.execute("DELETE FROM Blocklogs where Username = ? and Time > ?",(Username,now-Time))
         self.DBConnection.commit() #Save DB to disk
         return NumChanged
 
-    def GetBlockLogEntry(self,Offset):
+    def GetBlockLogEntry(self,X,Y,Z):
         '''Attempts to return a Blocklog entry'''
+        Offset = self._CalculateOffset(X, Y, Z)
         #First check our hashmap.
         Result = self.BlockHistory.get(Offset,None)
         if Result != None:
             #Easy peezy...
             return Result
         #Turn to SQL
-        SQLResult = self.DBConnection.execute("SELECT Username,Time,Oldvalue FROM Blocklogs where Offset = ?", (Offset,))
+        self.DBCursor.execute("SELECT Username,Time,Oldvalue FROM Blocklogs where Offset = ?", (Offset,))
+        SQLResult = self.DBCursor.fetchone()
         if SQLResult == None:
             return None
         else:
@@ -328,6 +329,14 @@ class World(object):
 
     def FlushBlockLog(self):
         '''Flushes the hashmap of Blocklogs to SQL on disk'''
+        start = time.time()
+        for key in self.BlockHistory:
+            BlockInfo = self.BlockHistory[key]
+            self.DBCursor.execute("REPLACE INTO Blocklogs VALUES(?,?,?,?)", (key,BlockInfo.Username,BlockInfo.Time,BlockInfo.Value))
+        self.DBConnection.commit() #Commit changes to disk
+        self.BlockHistory = dict() #New hashmap!
+        print "Flushing took", time.time()-start, "seconds!"
+
 
     def SetSpawn(self,x,y,z,o,p):
         '''Sets the worlds default spawn position. Stored in the format the client uses'''
@@ -378,6 +387,9 @@ class World(object):
             self.Save()
         if self.LastBackup + self.BackupInterval < now:
             self.Backup()
+        if len(self.BlockHistory) >= self.LogFlushThreshold:
+            #Write the BlockLog to disk (SQL)
+            self.FlushBlockLog()
 
         for pPlayer in self.Players:
             if pPlayer.IsLoadingWorld():

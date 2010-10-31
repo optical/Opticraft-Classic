@@ -36,7 +36,7 @@ class HeartBeatController(Thread):
                         
     def FetchUrl(self):
         try:
-            Handle = urllib.urlopen("http://www.minecraft.net/heartbeat.jsp",urllib.urlencode({
+            Handle = urllib.urlopen("http://minecraft.net/heartbeat.jsp",urllib.urlencode({
                 "port": self.Port,
                 "users": self.Clients,
                 "max": self.MaxClients,
