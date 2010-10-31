@@ -302,11 +302,14 @@ class World(object):
         while len(ToRemove) > 0:
             del self.BlockHistory[ToRemove.pop()]
         #Reverse stuff in SQL DB
-        SQLResult = self.DBCursor.execute("SELECT Offset,Value from Blocklogs where Username = ? and Time > ?", (Username,now-Time))
-        for Row in SQLResult:
+        SQLResult = self.DBCursor.execute("SELECT Offset,OldValue from Blocklogs where Username = ? and Time > ?", (Username,now-Time))
+        Row = SQLResult.fetchone()
+        while Row != None:
             x,y,z = self._CalculateCoords(Row[0])
-            self.SetBlock(None, x,y,z, ord(Row[1]))
+            print Row
+            self.SetBlock(None, x,y,z, Row[1])
             NumChanged += 1
+            Row = SQLResult.fetchone()
         self.DBCursor.execute("DELETE FROM Blocklogs where Username = ? and Time > ?",(Username,now-Time))
         self.DBConnection.commit() #Save DB to disk
         return NumChanged
@@ -325,14 +328,14 @@ class World(object):
         if SQLResult == None:
             return None
         else:
-            return BlockLog(SQLResult[0],SQLResult[1],SQLResult[2])
+            return BlockLog(SQLResult[0],SQLResult[1],chr(SQLResult[2]))
 
     def FlushBlockLog(self):
         '''Flushes the hashmap of Blocklogs to SQL on disk'''
         start = time.time()
         for key in self.BlockHistory:
             BlockInfo = self.BlockHistory[key]
-            self.DBCursor.execute("REPLACE INTO Blocklogs VALUES(?,?,?,?)", (key,BlockInfo.Username,BlockInfo.Time,BlockInfo.Value))
+            self.DBCursor.execute("REPLACE INTO Blocklogs VALUES(?,?,?,?)", (key,BlockInfo.Username,BlockInfo.Time,ord(BlockInfo.Value)))
         self.DBConnection.commit() #Commit changes to disk
         self.BlockHistory = dict() #New hashmap!
         print "Flushing took", time.time()-start, "seconds!"
