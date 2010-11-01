@@ -156,7 +156,7 @@ class World(object):
             self.SendNotice("Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
         self.LastSave = start
 
-    def Backup(self):
+    def Backup(self,Verbose = True):
         '''Performs a backup of the current save file'''
         start = time.time()
         if os.path.isfile("Worlds/" + self.Name + ".save") == False:
@@ -165,7 +165,8 @@ class World(object):
             os.mkdir("Backups/" + self.Name)
         FileName = self.Name + '_' + time.strftime("%d-%m-%Y_%H-%M-%S", time.gmtime()) + '.save'
         shutil.copy("Worlds/" + self.Name + '.save', "Backups/" + self.Name + "/" + FileName)
-        self.SendNotice("Backed up world in %dms" %(int((time.time()-start) * 1000)))
+        if Verbose:
+            self.SendNotice("Backed up world in %dms" %(int((time.time()-start) * 1000)))
         self.LastBackup = start
 
     def InsertZone(self,pZone):
@@ -306,7 +307,6 @@ class World(object):
         Row = SQLResult.fetchone()
         while Row != None:
             x,y,z = self._CalculateCoords(Row[0])
-            print Row
             self.SetBlock(None, x,y,z, Row[1])
             NumChanged += 1
             Row = SQLResult.fetchone()
@@ -373,16 +373,17 @@ class World(object):
         self.Save(False)
         
 
-    def run(self):
+    def Run(self):
         now = time.time()
         if self.IdleTimeout != 0 and len(self.Players) == 0:
             if self.IdleStart != 0:
                 if self.IdleStart + self.IdleTimeout < now:
                     self.ServerControl.UnloadWorld(self) #Unload.
+                    if self.LogBlocks:
+                        self.FlushBlockLog()
                     return
             else:
                 self.IdleStart = now
-                print "Im idling... %d" %self.IdleTimeout
         elif self.IdleStart != 0:
             self.IdleStart = 0
 
@@ -402,9 +403,15 @@ class World(object):
         while len(self.TransferringPlayers) > 0:
             self.Players.remove(self.TransferringPlayers.pop())
 
+    def Shutdown(self,Crash):
+        self.Save(False)
+        self.Backup(False)
+        self.FlushBlockLog()
+
+
     def SendWorld(self,pPlayer):
         StringHandle = cStringIO.StringIO()
-        fHandle = gzip.GzipFile(filename="temp",fileobj=StringHandle,mode="wb",compresslevel=self.CompressionLevel)
+        fHandle = gzip.GzipFile(fileobj=StringHandle,mode="wb",compresslevel=self.CompressionLevel)
         fHandle.write(self.NetworkSize)
         fHandle.write(self.Blocks)
         fHandle.close()

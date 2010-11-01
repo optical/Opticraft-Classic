@@ -208,14 +208,14 @@ class ServerController(object):
             fHandle.close()
         except:
             return
-    def run(self):
+    def Run(self):
         '''For now, we will manage everything. Eventually these objects will manage themselves in seperate threads'''
         self.Running = True
         #Start the heartbeatcontrol thread.
         self.HeartBeatControl.start()
         while self.Running == True:
             now = time.time()
-            self.SockManager.run()
+            self.SockManager.Run()
             ToRemove = list()
             for pPlayer in self.AuthPlayers:
                 pPlayer.ProcessPackets()
@@ -229,9 +229,8 @@ class ServerController(object):
                 #Put the player into our default world
                 self.ActiveWorlds[0].AddPlayer(pPlayer)
 
-            #TODO: Threading for worlds - Multi worlds..
             for pWorld in self.ActiveWorlds:
-                pWorld.run()
+                pWorld.Run()
 
             #Remove any players which need to be deleted.
             while len(self.PlayersPendingRemoval) > 0:
@@ -255,9 +254,9 @@ class ServerController(object):
                 time.sleep(0.02)
     def Shutdown(self,Crash):
         '''Starts shutting down the server. If crash is true it only saves what is needed'''
-        self.SaveAllWorlds()
-        self.BackupAllWorlds()
         self.SockManager.Terminate(True)
+        for pWorld in self.ActiveWorlds:
+            pWorld.Shutdown(True)
         self.HeartBeatControl.Running = False
         self.Running = False
 
