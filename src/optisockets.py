@@ -44,7 +44,7 @@ class SocketManager(object):
         '''Stop the listening socket'''
         self.ListenSock.Terminate()
         
-    def run(self):
+    def Run(self):
         '''Runs a cycle. Accept sockets from our listen socket, and then perform jobs
         ...on our Playersockets, such as reading and writing'''
 

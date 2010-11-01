@@ -7,8 +7,8 @@ import time
 def Main():
     ServerControl = ServerController()
     try:
-        ServerControl.run()
-    except Exception as inst:
+        ServerControl.Run()
+    except:
         try:
             fHandle = open("CrashLog.txt","a")
             fHandle.write("="*30 + "\n")
@@ -16,10 +16,9 @@ def Main():
             fHandle.write("="*30 + "\n")
             traceback.print_exc(file=fHandle)
             fHandle.close()
-            if type(inst) != MemoryError:
-                ServerControl.Shutdown(True)
+            ServerControl.Shutdown(True)
         except:
-            return
+            print "CRUSH"
         return
 if __name__ == "__main__":
     Main()
