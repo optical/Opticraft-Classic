@@ -253,7 +253,9 @@ class World(object):
                 return True
             elif zData["Phase"] == 2:
                 FileName = Zone.Create(zData["Name"], zData["X1"], x, zData["Y1"], y, zData["Z1"]-1, z-1, zData["Height"], zData["Owner"], self.Name)
-                self.Zones.append(Zone(FileName))
+                pZone = Zone(FileName)
+                self.Zones.append(pZone)
+                self.ServerControl.AddZone(pZone)
                 pPlayer.SendMessage("&aSuccessfully created zone \"%s\"" %zData["Name"])
                 #hide the starting block for the zone
                 self.SendBlock(pPlayer, zData["X1"], zData["Y1"], zData["Z1"])
@@ -406,7 +408,8 @@ class World(object):
     def Shutdown(self,Crash):
         self.Save(False)
         self.Backup(False)
-        self.FlushBlockLog()
+        if self.LogBlocks:
+            self.FlushBlockLog()
 
 
     def SendWorld(self,pPlayer):

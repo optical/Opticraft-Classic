@@ -167,6 +167,8 @@ class ServerController(object):
         for pZone in self.Zones:
             if pZone.Map == pWorld.Name:
                 pWorld.InsertZone(pZone)
+    def GetZones(self):
+        return self.Zones
     def DeleteZone(self,pZone):
         '''if pZone is a new zone it wont be in our list'''
         if pZone in self.Zones:
@@ -254,10 +256,10 @@ class ServerController(object):
                 time.sleep(0.02)
     def Shutdown(self,Crash):
         '''Starts shutting down the server. If crash is true it only saves what is needed'''
+        self.HeartBeatControl.Running = False
         self.SockManager.Terminate(True)
         for pWorld in self.ActiveWorlds:
             pWorld.Shutdown(True)
-        self.HeartBeatControl.Running = False
         self.Running = False
 
     def GetName(self):
