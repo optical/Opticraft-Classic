@@ -103,6 +103,10 @@ class Zone(object):
         self.Owner = Owner.lower()
         self.ConfigValues.set("Info","Owner",Owner.lower())
         self.Save()
+    def SetMap(self,Name):
+        self.Map = Name
+        self.ConfigValues.set("Info","Map",Name)
+        self.Save()
 
     def SetMinRank(self,Rank):
         self.MinRank = Rank

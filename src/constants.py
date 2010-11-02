@@ -102,8 +102,8 @@ RankToName = {
     "z": "Owner"
 }
 RankToColour = {
-    "g" : "",
-    "s": "",
+    "g" : "&f",
+    "s": "&f",
     "a": "&9", #Blue
     "b": "&a", #Light green
     "o": "&b", #Teal

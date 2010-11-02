@@ -118,7 +118,7 @@ class Player(object):
                 break
         pWorld = self.ServerControl.LoadWorld(Name)
         pWorld.AddPlayer(self)
-        self.ServerControl.SendMessageToAll("%s&f joined map %s%s" %(self.GetColouredName(),RankToColour[pWorld.MinRank],pWorld.Name))
+        self.ServerControl.SendMessageToAll("&e%s joined map %s%s" %(self.Name,RankToColour[pWorld.MinRank],pWorld.Name))
 
 
     def IsLoadingWorld(self):

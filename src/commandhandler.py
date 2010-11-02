@@ -2,7 +2,10 @@
 from constants import *
 from ordereddict import OrderedDict
 import platform
+import os
+import os.path
 import time
+import sqlite3 as dbapi
 from world import World
 class CommandObject(object):
     '''Child class for all commands'''
@@ -214,7 +217,6 @@ class ZoneTestCmd(CommandObject):
         y = int(y)
         z = int(z)
         #O_O
-        print "X", x, "Y", y, "Z", z
         Zones = pPlayer.GetWorld().GetZones()
         for pZone in Zones:
             if pZone.IsInZone(x, y, z):
@@ -587,6 +589,9 @@ class RemoveRankCmd(CommandObject):
 class ZCreateCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
         Name = Args[0]
+        if Name.isalnum() == False:
+            pPlayer.SendMessage("&4Invalid name!")
+            return
         Owner = Args[1]
         Height = Args[2]
         try:
@@ -619,6 +624,9 @@ class CreateWorldCmd(CommandObject):
     '''Handles the world cretion command'''
     def Run(self,pPlayer,Args,Message):
         Name = Args[0]
+        if Name.isalnum() == False:
+            pPlayer.SendMessage("&4That is not a valid name!")
+            return
         X = Args[1]
         Y = Args[2]
         Z = Args[3]
@@ -650,6 +658,60 @@ class SetDefaultWorldCmd(CommandObject):
             return
         pPlayer.ServerControl.SetDefaultWorld(pWorld)
         pPlayer.SendMessage("&aDefault world changed to&f \"%s\"" %pWorld.Name)
+
+class RenameWorldCmd(CommandObject):
+    '''Handler for the /renameworld command'''
+    def Run(self,pPlayer,Args,Message):
+        OldName = Args[0].lower()
+        NewName = Args[1]
+        if NewName.isalnum() == False:
+            pPlayer.SendMessage("&4That is not a valid name!")
+            return
+        if pPlayer.ServerControl.WorldExists(OldName) == False:
+            pPlayer.SendMessage("&4That world does not exist!")
+            return
+        if pPlayer.ServerControl.WorldExists(NewName):
+            pPlayer.SendMessage("&4There is already a world with that name!")
+            return
+
+        #Is it an idle world?
+        ActiveWorlds,IdleWorlds = pPlayer.ServerControl.GetWorlds()
+        FoundWorld = False
+        for WorldName in IdleWorlds:
+            if WorldName.lower() == OldName:
+                #Sure is
+                os.rename("Worlds/%s.save" %WorldName, "Worlds/%s.save" %NewName)
+                if os.path.isfile("Worlds/BlockLogs/%s.db" %WorldName):
+                    os.rename("Worlds/BlockLogs/%s.db" %WorldName, "Worlds/BlockLogs/%s.db" %NewName)
+                pPlayer.ServerControl.IdleWorlds.remove(WorldName)
+                pPlayer.ServerControl.IdleWorlds.append(NewName)
+                FoundWorld = True
+                break
+
+        #Is it an active world?
+        if FoundWorld == False:
+            for pWorld in ActiveWorlds:
+                if pWorld.Name.lower() == OldName:
+                    os.rename("Worlds/%s.save" %pWorld.Name, "Worlds/%s.save" %NewName)
+                    #Close the SQL Connection if its active
+                    if pWorld.DBConnection != None:
+                        pWorld.DBConnection.commit()
+                        pWorld.DBConnection.close()
+                        pWorld.DBCursor = None
+                        pWorld.DBConnection = None
+                        os.rename("Worlds/BlockLogs/%s.db" %pWorld.Name, "Worlds/BlockLogs/%s.db" %NewName)
+                        pWorld.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" %NewName)
+                        pWorld.DBCursor = pWorld.DBConnection.cursor()
+                    pWorld.Name = NewName
+                    break
+
+        #Finally, change zones.
+        for pZone in pPlayer.ServerControl.GetZones():
+            if pZone.Map.lower() == OldName:
+                pZone.SetMap(NewName)
+        pPlayer.SendMessage("&aSuccessfully renamed map %s to %s" %(OldName,NewName))
+
+
 class CommandHandler(object):
     '''Stores all the commands avaliable on opticraft and processes any command messages'''
     def __init__(self,ServerControl):
@@ -695,7 +757,8 @@ class CommandHandler(object):
         self.AddCommand("ban", BanCmd, 'o', 'Bans a player from the server', 'Incorrect syntax! Usage: /ban <username>', 1)
         self.AddCommand("unban", UnbanCmd, 'o', 'Unbans a player from the server', 'Incorrect syntax! Usage: /unban <username>', 1)
         self.AddCommand("kick", KickCmd, 'o', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)
-        self.AddCommand("playerinfo", PlayerInfoCmd, 'o', 'Returns information on a player', 'Incorrect syntax! Usage: /playerinfo <username>',1)
+        self.AddCommand("whois", PlayerInfoCmd, 'o', 'Returns information on a player', 'Incorrect syntax! Usage: /playerinfo <username>',1)
+        self.AddCommand("playerinfo", PlayerInfoCmd, 'o', 'Returns information on a player', 'Incorrect syntax! Usage: /playerinfo <username>',1,Alias=True)
         self.AddCommand("summon", SummonCmd, 'o', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
         self.AddCommand("undoactions", UndoActionsCmd, 'o', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>',2)
         self.AddCommand("promote", PromoteTrustedCmd, 'o', 'Promotes a player to the recruit rank', 'Incorrect syntax! Usage: /promote <username>', 1)
@@ -715,15 +778,14 @@ class CommandHandler(object):
         self.AddCommand("addrank", AddRankCmd, 'a', 'Promotes a player to a rank such a admin, operator, or builder', 'Incorrect syntax. Usage: /addrank <username> <t/a</o/b>', 2)
         self.AddCommand("removerank", RemoveRankCmd, 'a', 'Removes a players rank', 'Incorrect syntax. Usage: /removerank <username>', 1)
         self.AddCommand("worldsetrank", WorldSetRankCmd, 'a', 'Sets the minimum rank to build on a world', 'Incorrect syntax. Usage: /worldsetrank <world> <t/b/o/a>', 1)
-
+        self.AddCommand("zCreate", ZCreateCmd, 'a', 'Creates a restricted zone', 'Incorrect syntax. Usage: /zCreate <name> <owner> <height>', 3)
+        self.AddCommand("zDelete", ZDeleteCmd, 'a', 'Deletes a restricted zone', 'Incorrect syntax. Usage: /zDelete <name>', 1)
         ######################
         #OWNER COMMANDS HERE #
         ######################
-        self.AddCommand("zCreate", ZCreateCmd, 'z', 'Creates a restricted zone', 'Incorrect syntax. Usage: /zCreate <name> <owner> <height>', 3)
-        self.AddCommand("zDelete", ZDeleteCmd, 'z', 'Deletes a restricted zone', 'Incorrect syntax. Usage: /zDelete <name>', 1)
         self.AddCommand("createworld", CreateWorldCmd, 'z', 'Creates a new world.', 'Incorrect syntax. Usage: /createworld <name> <x> <y> <z>', 4)
         self.AddCommand("setdefaultworld", SetDefaultWorldCmd, 'z', 'Sets the world you specify to be the default one', 'Incorrect syntax. Usage: /setdefaultworld <name>', 1)
-
+        self.AddCommand("RenameWorld", RenameWorldCmd, 'z', 'Renames a world', 'Incorrect syntax! Usage: /renameworld <oldname> <newname>', 2)
     def HandleCommand(self,pPlayer,Message):
         '''Called when a player types a slash command'''
         if Message == '':
