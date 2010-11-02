@@ -249,7 +249,7 @@ class ServerController(object):
             if self.PeriodicAnnounceFrequency:
                 if self.LastAnnounce + self.PeriodicAnnounceFrequency < now:
                     Message = self.PeriodicNotices[random.randint(0,len(self.PeriodicNotices)-1)]
-                    self.SendNotice(Message)
+                    self.SendMessageToAll(Message)
                     self.LastAnnounce = now
             SleepTime = 0.02 - (time.time() - now)
             if 0 < SleepTime:

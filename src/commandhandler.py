@@ -703,6 +703,13 @@ class RenameWorldCmd(CommandObject):
                         pWorld.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" %NewName)
                         pWorld.DBCursor = pWorld.DBConnection.cursor()
                     pWorld.Name = NewName
+                    #Are we the default map?
+                    if pPlayer.ServerControl.ConfigValues.GetValue("worlds","DefaultName","Main").lower() == OldName:
+                        #<_<
+                        pPlayer.ServerControl.ConfigValues.set("worlds","DefaultName",NewName)
+                        fHandle = open("opticraft.cfg","w")
+                        pPlayer.ServerControl.ConfigValues.write(fHandle)
+                        fHandle.close()
                     break
 
         #Finally, change zones.

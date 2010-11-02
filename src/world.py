@@ -451,7 +451,8 @@ class World(object):
         pPlayer.SetLoadingWorld(False)
         self.SendPlayerJoined(pPlayer)
         self.SendAllPlayers(pPlayer)
-        self.SendNotice('%s joined the map' %pPlayer.GetName())
+        self.ServerControl.SendMessageToAll("&e%s joined map %s%s" %(pPlayer.GetName(),RankToColour[self.MinRank],self.Name))
+
 
     def RemovePlayer(self,pPlayer,ChangingMaps = False):
         if not ChangingMaps:
