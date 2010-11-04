@@ -46,5 +46,5 @@ class OptiCraftPacket(object):
     def GetOpCode(self):
         return self.OpCode
     def GetOutData(self):
-        '''Returns the full packet - Opcode+Data which can be then be sent over a socket'''
+        '''Returns the full packet - Opcode+Data which can then be sent over a socket'''
         return self.data.getvalue()
