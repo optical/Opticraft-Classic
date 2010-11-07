@@ -36,7 +36,7 @@ class ServerController(object):
         self.PlayerSet = set() #All players logged into the server
         self.PlayerNames = dict() #All logged in players names.
         self.AuthPlayers = set() #Players without a world (Logging in)
-        self.PlayersPendingRemoval = list() #Players to remove from our set at the end of a cycle.
+        self.PlayersPendingRemoval = set() #Players to remove from our set at the end of a cycle.
         self.PlayerIDs = range(self.MaxClients)
         reversed(self.PlayerIDs)
         self.SocketToPlayer = dict()
@@ -135,6 +135,7 @@ class ServerController(object):
     def SetDefaultWorld(self,pWorld):
         self.ActiveWorlds.remove(pWorld)
         self.ActiveWorlds.insert(0,pWorld)
+        pWorld.SetIdleTimeout(0)
         self.ConfigValues.set("worlds","DefaultName",pWorld.Name)
         try:
             fHandle = open("opticraft.cfg","w")
@@ -365,7 +366,7 @@ class ServerController(object):
                 self.PeakPlayers = self.NumPlayers
 
     def RemovePlayer(self,pPlayer):
-        self.PlayersPendingRemoval.append(pPlayer)
+        self.PlayersPendingRemoval.add(pPlayer)
         
     def _RemovePlayer(self,pPlayer):
         '''Internally removes a player

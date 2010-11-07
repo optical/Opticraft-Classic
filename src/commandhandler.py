@@ -6,6 +6,7 @@ import os
 import os.path
 import time
 import sqlite3 as dbapi
+import shutil
 from world import World
 class CommandObject(object):
     '''Child class for all commands'''
@@ -699,9 +700,13 @@ class RenameWorldCmd(CommandObject):
                         pWorld.DBConnection.close()
                         pWorld.DBCursor = None
                         pWorld.DBConnection = None
-                        os.rename("Worlds/BlockLogs/%s.db" %pWorld.Name, "Worlds/BlockLogs/%s.db" %NewName)
+                        shutil.copy("Worlds/BlockLogs/%s.db" %pWorld.Name, "Worlds/BlockLogs/%s.db" %NewName)
+                        #The copy will be removed by the IO Thread for the world.
                         pWorld.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" %NewName)
                         pWorld.DBCursor = pWorld.DBConnection.cursor()
+                        #Get the IO Thread to reconnect.
+                        pWorld.IOThread.SetWorldName(NewName)
+                        pWorld.IOThread.Tasks.put(["CONNECT"])
                     pWorld.Name = NewName
                     #Are we the default map?
                     if pPlayer.ServerControl.ConfigValues.GetValue("worlds","DefaultName","Main").lower() == OldName:
