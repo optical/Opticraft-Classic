@@ -8,6 +8,8 @@ import time
 import random
 import shutil
 import sqlite3 as dbapi
+import threading
+import Queue
 from array import array
 from opticraftpacket import OptiCraftPacket
 from constants import *
@@ -18,6 +20,66 @@ class BlockLog(object):
         self.Username = Username
         self.Time = Time
         self.Value = Value
+
+class AsynchronousIOThread(threading.Thread):
+    '''Performs operations on the sqlite DB asynchronously to avoid long blocking
+    ...waits for the disk'''
+    def __init__(self,WorldName):
+        threading.Thread.__init__(self)
+        self.Lock = threading.Lock()
+        self.WorldName = WorldName
+        self.OldName = ''
+        self.DBConnection = None
+        self.Running = True
+        self.Tasks = Queue.Queue()
+        self.Tasks.put(["CONNECT",self.WorldName])
+
+    def SetWorldName(self,Name):
+        self.Lock.acquire()
+        self.OldName = self.WorldName
+        self.WorldName = Name
+        self.Lock.release()
+
+    def run(self):
+        while self.Running:
+            try:
+                Task = self.Tasks.get(True, 0.5)
+            except Queue.Empty:
+                continue
+            #Task is a list of 2 items, [0] is the instruction, [1] is the payload
+            if Task[0] == "FLUSH":
+                #Flush blocks
+                self._FlushBlocksTask(Task[1])
+            elif Task[0] == "EXECUTE":
+                #Task[1] is a string such as "REPLACE INTO BlockLogs VALUES(?,?,?,?)"
+                #Task[2] is a tupe of values to subsitute into the string safely
+                #See: http://docs.python.org/library/sqlite3.html
+                self.DBConnection.execute(Task[1],Task[2])
+                self.DBConnection.commit()
+            elif Task[0] == "CONNECT":
+                #Connect/Reconnect to the DB.
+                self._ConnectTask()
+
+    def _ConnectTask(self):
+        self.Lock.acquire()
+        if self.DBConnection != None:
+            #Shut it off + erase it
+            self.DBConnection.close()
+            self.DBConnection = None
+            os.remove("Worlds/BlockLogs/%s.db" %self.OldName)
+
+        self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" %self.WorldName)
+        self.Lock.release()
+
+    def _FlushBlocksTask(self,Data):
+        start = time.time()
+        for key in Data:
+            BlockInfo = Data[key]
+            self.DBConnection.execute("REPLACE INTO Blocklogs VALUES(?,?,?,?)", (key,BlockInfo.Username,BlockInfo.Time,ord(BlockInfo.Value)))
+        self.DBConnection.commit()
+        print "Flushing took", time.time()-start, "seconds!"
+    def Shutdown(self,Crash):
+        self.Running = False
 
 class World(object):
     def __init__(self,ServerControl,Name,NewMap=False,NewX=-1,NewY=-1,NewZ=-1):
@@ -42,6 +104,7 @@ class World(object):
         self.CompressionLevel = int(self.ServerControl.ConfigValues.GetValue("worlds","CompressionLevel",1))
         self.LogBlocks = int(self.ServerControl.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
         self.LogFlushThreshold = int(self.ServerControl.ConfigValues.GetValue("worlds","LogFlushThreshold",20000))
+        self.IOThread = None
         self.IdleTimeout = 0 #How long must the world be unoccupied until it unloads itself from memory
         self.IdleStart = 0 #Not idle.
         self.DBConnection = None
@@ -60,6 +123,8 @@ class World(object):
                 self.DBCursor.execute("CREATE INDEX Lookup ON Blocklogs (Offset)")
                 self.DBCursor.execute("CREATE INDEX Deletion ON Blocklogs (Username,Time)")
                 self.DBConnection.commit()
+            self.IOThread = AsynchronousIOThread(self.Name)
+            self.IOThread.start()
 
         if os.path.isfile("Worlds/"+ self.Name + '.save'):
             LoadResult = self.Load()
@@ -312,8 +377,7 @@ class World(object):
             self.SetBlock(None, x,y,z, Row[1])
             NumChanged += 1
             Row = SQLResult.fetchone()
-        self.DBCursor.execute("DELETE FROM Blocklogs where Username = ? and Time > ?",(Username,now-Time))
-        self.DBConnection.commit() #Save DB to disk
+        self.IOThread.Tasks.put(["EXECUTE","DELETE FROM Blocklogs where Username = ? and Time > ?",(Username,now-Time)])
         return NumChanged
 
     def GetBlockLogEntry(self,X,Y,Z):
@@ -333,14 +397,9 @@ class World(object):
             return BlockLog(SQLResult[0],SQLResult[1],chr(SQLResult[2]))
 
     def FlushBlockLog(self):
-        '''Flushes the hashmap of Blocklogs to SQL on disk'''
-        start = time.time()
-        for key in self.BlockHistory:
-            BlockInfo = self.BlockHistory[key]
-            self.DBCursor.execute("REPLACE INTO Blocklogs VALUES(?,?,?,?)", (key,BlockInfo.Username,BlockInfo.Time,ord(BlockInfo.Value)))
-        self.DBConnection.commit() #Commit changes to disk
-        self.BlockHistory = dict() #New hashmap!
-        print "Flushing took", time.time()-start, "seconds!"
+        '''Tells the IO Thread to Flush out the blockhistory to the disk'''
+        self.IOThread.Tasks.put(["FLUSH",self.BlockHistory])
+        self.BlockHistory = dict()
 
 
     def SetSpawn(self,x,y,z,o,p):
@@ -381,8 +440,10 @@ class World(object):
             if self.IdleStart != 0:
                 if self.IdleStart + self.IdleTimeout < now:
                     self.ServerControl.UnloadWorld(self) #Unload.
+                    self.Save(False)
                     if self.LogBlocks:
                         self.FlushBlockLog()
+                        self.IOThread.Running = False
                     return
             else:
                 self.IdleStart = now
@@ -521,4 +582,3 @@ class World(object):
         for pPlayer in self.Players:
             if pPlayer != Client or SendToSelf:
                 pPlayer.SendPacket(Packet)
-    
