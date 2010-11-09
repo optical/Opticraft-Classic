@@ -373,7 +373,7 @@ class UndoActionsCmd(CommandObject):
             pPlayer.SendMessage("&4Block logging is not enabled!")
             return
 
-        Username = Args[0]
+        ReversePlayer = Args[0]
         Time = Args[1]
         try:
             Time = int(Time)
@@ -383,11 +383,9 @@ class UndoActionsCmd(CommandObject):
         if Time < 0:
             pPlayer.SendMessage("&4That is not a valud number of seconds")
             return
-        Result = pPlayer.GetWorld().UndoActions(Username,Time)
-        if Result > 0:
-            self.CmdHandler.ServerControl.SendNotice("Antigrief: %s's actions have been reversed." %Username)
-        else:
-            pPlayer.SendMessage("&4That player has no recorded history.")
+        Result = pPlayer.GetWorld().UndoActions(pPlayer.GetName(),ReversePlayer,Time)
+
+        pPlayer.SendMessage("&a%s actions are being reversed. This may take a few moments" %ReversePlayer)
 
 class DestroyTowerCmd(CommandObject):
     '''Handler for the /destroy tower command. This destroy a tower of blocks'''
