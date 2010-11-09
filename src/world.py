@@ -20,14 +20,20 @@ class BlockLog(object):
         self.Username = Username
         self.Time = Time
         self.Value = Value
-
+class BlockChange(object):
+    '''Used between threads IOThread creates these and sends them to the World thread
+    in order for changes to be made in a thread-safe manner'''
+    def __init__(self,Offset,Value):
+        self.Offset = Offset
+        self.Value = Value
 class AsynchronousIOThread(threading.Thread):
     '''Performs operations on the sqlite DB asynchronously to avoid long blocking
     ...waits for the disk'''
-    def __init__(self,WorldName):
+    def __init__(self,pWorld):
         threading.Thread.__init__(self)
         self.Lock = threading.Lock()
-        self.WorldName = WorldName
+        self.WorldName = pWorld.Name
+        self.World = pWorld
         self.OldName = ''
         self.DBConnection = None
         self.Running = True
@@ -50,6 +56,12 @@ class AsynchronousIOThread(threading.Thread):
             if Task[0] == "FLUSH":
                 #Flush blocks
                 self._FlushBlocksTask(Task[1])
+            elif Task[0] == "UNDO_ACTIONS":
+                #Task 1-4 is: Number of blocks changed thus far (int)
+                #Username (Who used the command
+                #Username of blocks to undo,
+                #Timestamp of oldest block allowed
+                self._UndoActionsTask(Task[1], Task[2], Task[3], Task[4])
             elif Task[0] == "EXECUTE":
                 #Task[1] is a string such as "REPLACE INTO BlockLogs VALUES(?,?,?,?)"
                 #Task[2] is a tupe of values to subsitute into the string safely
@@ -78,8 +90,24 @@ class AsynchronousIOThread(threading.Thread):
             self.DBConnection.execute("REPLACE INTO Blocklogs VALUES(?,?,?,?)", (key,BlockInfo.Username,BlockInfo.Time,ord(BlockInfo.Value)))
         self.DBConnection.commit()
         print "Flushing took", time.time()-start, "seconds!"
+        
+    def _UndoActionsTask(self,Username,ReverseName,NumChanged,Time):
+        now = time.time()
+        SQLResult = self.DBConnection.execute("SELECT Offset,OldValue from Blocklogs where Username = ? and Time > ?", (ReverseName,now-Time))
+        Row = SQLResult.fetchone()
+        BlockChangeList = [Username,ReverseName,0]
+        while Row != None:
+            BlockChangeList.append(BlockChange(Row[0],Row[1]))
+            NumChanged += 1
+            Row = SQLResult.fetchone()
+        BlockChangeList[2] = NumChanged
+        self.World.AddBlockChanges(BlockChangeList)
+        self.DBConnection.execute("DELETE FROM Blocklogs where Username = ? and Time > ?",(ReverseName,now-Time))
+        self.DBConnection.commit()
+        print "%s reversed %s's actions. %d changed in %f time" %(Username,ReverseName,NumChanged,time.time()-now)
     def Shutdown(self,Crash):
         self.Running = False
+        self.IOThread.Running = False
 
 class World(object):
     def __init__(self,ServerControl,Name,NewMap=False,NewX=-1,NewY=-1,NewZ=-1):
@@ -105,6 +133,7 @@ class World(object):
         self.LogBlocks = int(self.ServerControl.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
         self.LogFlushThreshold = int(self.ServerControl.ConfigValues.GetValue("worlds","LogFlushThreshold",20000))
         self.IOThread = None
+        self.AsyncBlockChanges = Queue.Queue()
         self.IdleTimeout = 0 #How long must the world be unoccupied until it unloads itself from memory
         self.IdleStart = 0 #Not idle.
         self.DBConnection = None
@@ -123,7 +152,7 @@ class World(object):
                 self.DBCursor.execute("CREATE INDEX Lookup ON Blocklogs (Offset)")
                 self.DBCursor.execute("CREATE INDEX Deletion ON Blocklogs (Username,Time)")
                 self.DBConnection.commit()
-            self.IOThread = AsynchronousIOThread(self.Name)
+            self.IOThread = AsynchronousIOThread(self)
             self.IOThread.start()
 
         if os.path.isfile("Worlds/"+ self.Name + '.save'):
@@ -353,7 +382,7 @@ class World(object):
         Packet.WriteByte(val)
         self.SendPacketToAll(Packet,pPlayer)
         
-    def UndoActions(self,Username,Time):
+    def UndoActions(self,Username,ReversePlayer,Time):
         Username = Username.lower()
         ToRemove = []
         NumChanged = 0
@@ -361,7 +390,7 @@ class World(object):
         #Reverse stuff in the hashmap
         for key in self.BlockHistory:
             BlockInfo = self.BlockHistory[key]
-            if BlockInfo.Username == Username and BlockInfo.Time > now-Time:
+            if BlockInfo.Username == ReversePlayer and BlockInfo.Time > now-Time:
                 x,y,z = self._CalculateCoords(key)
                 self.SetBlock(None, x,y,z, ord(BlockInfo.Value))
                 NumChanged += 1
@@ -370,15 +399,10 @@ class World(object):
         while len(ToRemove) > 0:
             del self.BlockHistory[ToRemove.pop()]
         #Reverse stuff in SQL DB
-        SQLResult = self.DBCursor.execute("SELECT Offset,OldValue from Blocklogs where Username = ? and Time > ?", (Username,now-Time))
-        Row = SQLResult.fetchone()
-        while Row != None:
-            x,y,z = self._CalculateCoords(Row[0])
-            self.SetBlock(None, x,y,z, Row[1])
-            NumChanged += 1
-            Row = SQLResult.fetchone()
-        self.IOThread.Tasks.put(["EXECUTE","DELETE FROM Blocklogs where Username = ? and Time > ?",(Username,now-Time)])
-        return NumChanged
+        self.IOThread.Tasks.put(["UNDO_ACTIONS",Username,ReversePlayer,NumChanged,Time])
+
+    def AddBlockChanges(self,BlockChangeList):
+        self.AsyncBlockChanges.put(BlockChangeList)
 
     def GetBlockLogEntry(self,X,Y,Z):
         '''Attempts to return a Blocklog entry'''
@@ -457,6 +481,33 @@ class World(object):
         if len(self.BlockHistory) >= self.LogFlushThreshold:
             #Write the BlockLog to disk (SQL)
             self.FlushBlockLog()
+        #Check for pending block changes from the IO Thread
+        #This is only used when Blockhistory is enabled.
+        if self.LogBlocks == True:
+            while True:
+                try:
+                    Data = self.AsyncBlockChanges.get_nowait()
+                except Queue.Empty:
+                    break
+                #Data is a list where the 0th element is a string of
+                #the username who initiated the block changes
+                #The 1th element is the player whos actions have been reversed
+                #The 2th element is the number of blocks changed (from the hashmap, and from disk)
+                #The rest of the elements are BlockChange objects
+                Username = Data[0]
+                ReversedPlayer = Data[1]
+                NumChanged = Data[2]
+
+                for i in xrange(3,len(Data)):
+                    x,y,z = self._CalculateCoords(Data[i].Offset)
+                    self.SetBlock(None, x, y, z, Data[i].Value)
+                Initiator = self.ServerControl.GetPlayerFromName(Username)
+                if Initiator:
+                    Initiator.SendMessage("&aFinished reversing %s's actions" %ReversedPlayer)
+                if NumChanged > 0:
+                    self.ServerControl.SendNotice("Antigrief: %s's actions have been reversed." %ReversedPlayer)
+                elif Initiator and NumChanged == 0:
+                    Initiator.SendMessage("&4%s had no block history!" %ReversedPlayer)
 
         for pPlayer in self.Players:
             if pPlayer.IsLoadingWorld():
