@@ -107,7 +107,6 @@ class AsynchronousIOThread(threading.Thread):
         print "%s reversed %s's actions. %d changed in %f time" %(Username,ReverseName,NumChanged,time.time()-now)
     def Shutdown(self,Crash):
         self.Running = False
-        self.IOThread.Running = False
 
 class World(object):
     def __init__(self,ServerControl,Name,NewMap=False,NewX=-1,NewY=-1,NewZ=-1):
@@ -467,7 +466,7 @@ class World(object):
                     self.Save(False)
                     if self.LogBlocks:
                         self.FlushBlockLog()
-                        self.IOThread.Running = False
+                        self.IOThread.Shutdown(False)
                     return
             else:
                 self.IdleStart = now
@@ -521,7 +520,7 @@ class World(object):
         self.Save(False)
         self.Backup(False)
         if self.LogBlocks:
-            self.FlushBlockLog()
+            self.IOThread.Shutdown(Crash)
 
 
     def SendWorld(self,pPlayer):

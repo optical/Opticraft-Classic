@@ -259,11 +259,11 @@ class Player(object):
             self.SetLocation(x, y, z, o, p)
             NewPacket = OptiCraftPacket(SMSG_PLAYERPOS)
             NewPacket.WriteByte(self.GetId())
-            NewPacket.WriteInt16(self.X)
-            NewPacket.WriteInt16(self.Z)
-            NewPacket.WriteInt16(self.Y)
-            NewPacket.WriteByte(self.O)
-            NewPacket.WriteByte(self.P)
+            NewPacket.WriteInt16(x)
+            NewPacket.WriteInt16(z)
+            NewPacket.WriteInt16(y)
+            NewPacket.WriteByte(o)
+            NewPacket.WriteByte(p)
             self.World.SendPacketToAll(NewPacket, self)
 
     def HandleBlockChange(self,Packet):
@@ -291,21 +291,39 @@ class Player(object):
                     self.World.SendBlock(self,x,y,z)
             
     def HandleChatMessage(self,Packet):
-        if self.World is None:
+        if self.World == None:
             return
         junk = Packet.GetByte()
         Message = Packet.GetString()
         if Message[0] == "/":
             self.ServerControl.CommandHandle.HandleCommand(self,Message[1:])
-            return
+        elif Message[0] == "@":
+            self.HandlePrivateMessage(Message[1:])
+        else:
+            Packet2 = OptiCraftPacket(SMSG_MESSAGE)
+            Packet2.WriteByte(self.GetId())
+            Message = '%s:&f %s' %(self.GetColouredName(),Message)
+            Message = Message[:64]
+            Packet2.WriteString(Message)
+            self.ServerControl.SendPacketToAll(Packet2)
 
-        Packet2 = OptiCraftPacket(SMSG_MESSAGE)
-        Packet2.WriteByte(self.GetId())
-        Message = '%s:&f %s' %(self.GetColouredName(),Message)
-        Message = Message[:64]
-        Packet2.WriteString(Message)
-        self.ServerControl.SendPacketToAll(Packet2)
-        
+    def HandlePrivateMessage(self,Message):
+        if len(Message) == 0:
+            self.SendMessage("&4Enter in a username to PM!")
+            return
+        Tokens = Message.split()
+        Username = Tokens[0]
+        Contents = ' '.join(Tokens[1:])
+        Reciever = self.ServerControl.GetPlayerFromName(Username)
+        if Reciever == None:
+            self.SendMessage("&4That user is not online!")
+            return
+        if len(Contents) == 0:
+            self.SendMessage("&4Enter something to say!")
+            return
+        Reciever.SendMessage('&bfrom %s&b: %s' %(self.GetColouredName(),Contents))
+        self.SendMessage('&bto %s&b: %s' %(Reciever.GetColouredName(), Contents))
+
     def __init__(self,PlayerSocket,SockAddress,ServerControl):
         self.PlayerSocket = PlayerSocket
         self.PlayerIP = SockAddress
