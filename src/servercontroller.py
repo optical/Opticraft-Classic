@@ -221,7 +221,7 @@ class ServerController(object):
         self.Running = True
         #Start the heartbeatcontrol thread.
         self.HeartBeatControl.start()
-        signal.signal(signal.SIGKILL,self.HandleKill)
+        signal.signal(signal.SIGTERM,self.HandleKill)
         while self.Running == True:
             now = time.time()
             self.SockManager.Run()
