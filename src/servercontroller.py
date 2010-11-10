@@ -4,6 +4,7 @@ import random
 import time
 import os
 import os.path
+import signal
 from heartbeatcontrol import HeartBeatController
 from opticraftpacket import OptiCraftPacket
 from optisockets import SocketManager
@@ -12,6 +13,8 @@ from configreader import ConfigReader
 from zones import Zone
 from world import World
 from constants import *
+class SigkillException(Exception):
+    pass
 class ServerController(object):
     def __init__(self):
         self.ConfigValues = ConfigReader()
@@ -211,11 +214,14 @@ class ServerController(object):
             fHandle.close()
         except:
             return
+    def HandleKill(self,SignalNumber,Frame):
+        raise SigkillException()
     def Run(self):
         '''For now, we will manage everything. Eventually these objects will manage themselves in seperate threads'''
         self.Running = True
         #Start the heartbeatcontrol thread.
         self.HeartBeatControl.start()
+        signal.signal(signal.SIGKILL,self.HandleKill)
         while self.Running == True:
             now = time.time()
             self.SockManager.Run()
