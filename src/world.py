@@ -306,12 +306,12 @@ class World(object):
             #Display block information
             BlockInfo = self.GetBlockLogEntry(x,y,z)
             if BlockInfo == None:
-                pPlayer.SendMessage("No information available for this block (No changes made)")
+                pPlayer.SendMessage("&aNo information available for this block (No changes made)")
             else:
                 now = int(time.time())
-                pPlayer.SendMessage("This block was last changed by %s" %BlockInfo.Username)
-                pPlayer.SendMessage("The old value for the block was %d" %ord(BlockInfo.Value))
-                pPlayer.SendMessage("Changed %s ago" %ElapsedTime(now-BlockInfo.Time))
+                pPlayer.SendMessage("&aThis block was last changed by&f %s" %BlockInfo.Username)
+                pPlayer.SendMessage("&aThe old value for the block was&f %d" %ord(BlockInfo.Value))
+                pPlayer.SendMessage("&aChanged&f %s &aago" %ElapsedTime(now-BlockInfo.Time))
             pPlayer.SetAboutCmd(False)
             return False
         if pPlayer.GetTowerCmd() == True and val == 0:
@@ -426,7 +426,7 @@ class World(object):
 
 
     def SetSpawn(self,x,y,z,o,p):
-        '''Sets the worlds default spawn position. Stored in the format the client uses'''
+        '''Sets the worlds default spawn position. Stored in the format the client uses (pixels)'''
         self.SpawnX = x
         self.SpawnY = y
         self.SpawnZ = z

@@ -27,7 +27,7 @@ class CommandObject(object):
         Tokens = Message.split()
         Args = len(Tokens)-1
         if Args < self.MinArgs:
-            pPlayer.SendMessage(self.ErrorMsg)
+            pPlayer.SendMessage('%s%s' %('&4',self.ErrorMsg))
             return
         else:
             self.Run(pPlayer,Message.split()[1:],Message)
@@ -58,12 +58,12 @@ class GrassCmd(CommandObject):
     '''Command handler for /grass command. Replaces all block placed with grass'''
     def Run(self,pPlayer,Args,Message):
         if pPlayer.GetBlockOverride() == BLOCK_GRASS:
-            pPlayer.SendMessage("You are no longer placing grass")
+            pPlayer.SendMessage("&aYou are no longer placing grass")
             pPlayer.SetBlockOverride(-1)
             return
         else:
             pPlayer.SetBlockOverride(BLOCK_GRASS)
-            pPlayer.SendMessage("Every block you create will now be grass. Type /grass to disable.")
+            pPlayer.SendMessage("&aEvery block you create will now be grass. Type /grass to disable.")
 class PaintCmd(CommandObject):
     '''Command handler for /paint command. When you destroy a block it is replaced with the block you are holding'''
     def Run(self,pPlayer,Args,Message):
@@ -82,16 +82,16 @@ class HelpCmd(CommandObject):
             return
         else:
             CmdObj = self.CmdHandler.CommandTable[Args[0].lower()]
-            pPlayer.SendMessage("&e" + CmdObj.HelpMsg)
+            pPlayer.SendMessage("&a" + CmdObj.HelpMsg)
 
 class AboutCmd(CommandObject):
     '''The next block a player destroys/creates will display the blocks infromation'''
     def Run(self,pPlayer,Args,Message):
         if pPlayer.World.LogBlocks == True:
             pPlayer.SetAboutCmd(True)
-            pPlayer.SendMessage("Place/destroy a block to see what was there before")
+            pPlayer.SendMessage("&aPlace/destroy a block to see what was there before")
         else:
-            pPlayer.SendMessage("Block history is disabled")
+            pPlayer.SendMessage("&4Block history is disabled")
 
 class JoinWorldCmd(CommandObject):
     '''Handler for the /join command. Changes the players world'''
@@ -143,23 +143,23 @@ class WaterCmd(CommandObject):
     '''Command handler for /water command. Replaces all block placed with water'''
     def Run(self,pPlayer,Args,Message):
         if pPlayer.GetBlockOverride() == BLOCK_STILLWATER:
-            pPlayer.SendMessage("You are no longer placing water")
+            pPlayer.SendMessage("&aYou are no longer placing water")
             pPlayer.SetBlockOverride(-1)
             return
         else:
             pPlayer.SetBlockOverride(BLOCK_STILLWATER)
-            pPlayer.SendMessage("Every block you create will now be water. Type /water to disable.")
+            pPlayer.SendMessage("&aEvery block you create will now be water. Type /water to disable.")
 
 class LavaCmd(CommandObject):
     '''Command handler for /lava command. Replaces all block placed with lava'''
     def Run(self,pPlayer,Args,Message):
         if pPlayer.GetBlockOverride() == BLOCK_STILLLAVA:
-            pPlayer.SendMessage("You are no longer placing lava")
+            pPlayer.SendMessage("&aYou are no longer placing lava")
             pPlayer.SetBlockOverride(-1)
             return
         else:
             pPlayer.SetBlockOverride(BLOCK_STILLLAVA)
-            pPlayer.SendMessage("Every block you create will now be lava. Type /lava to disable.")
+            pPlayer.SendMessage("&aEvery block you create will now be lava. Type /lava to disable.")
 
 ########################
 #BUILDER COMMANDS HERE #
