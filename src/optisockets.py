@@ -1,4 +1,5 @@
 import socket
+import errno
 from select import select
 from player import Player
 from opticraftpacket import OptiCraftPacket
@@ -24,8 +25,12 @@ class ListenSocket(object):
     def Accept(self):
         try:
             return self.Socket.accept()
-        except:
-            return None, None
+        except socket.error, (error_no, error_msg):
+            if error_no == errno.EWOULDBLOCK:
+                return None, None
+            else:
+                #Critical error
+                raise socket.error
 
     def Terminate(self):
         self.Socket.close()
@@ -103,7 +108,8 @@ class SocketManager(object):
             try:
                 data = Socket.recv(4096)
             except socket.error, (error_no, error_msg):
-                self._RemoveSocket(Socket)
+                if error_no != errno.EWOULDBLOCK:
+                    self._RemoveSocket(Socket)
                 continue
 
             if len(data) > 0:
@@ -119,8 +125,9 @@ class SocketManager(object):
             #Let us try send some data :XX
             try:
                 result = Socket.send(ToSend)
-            except:
-                self._RemoveSocket(Socket)
+            except socket.error, (error_no, error_msg):
+                if error_no != errno.EWOULDBLOCK:
+                    self._RemoveSocket(Socket)
                 continue
             Buffer = pPlayer.GetOutBuffer()
             Buffer.truncate(0)
