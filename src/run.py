@@ -2,13 +2,14 @@
 from servercontroller import ServerController
 import traceback
 import time
-
+from console import *
 
 def Main():
     ServerControl = ServerController()
     try:
         ServerControl.Run()
     except:
+        Console.Error("Server","Server is shutting down.")
         fHandle = open("CrashLog.txt","a")
         fHandle.write("="*30 + "\n")
         fHandle.write("Crash date: %s\n" %time.strftime("%c", time.gmtime()))

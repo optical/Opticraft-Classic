@@ -3,7 +3,7 @@ import errno
 from select import select
 from player import Player
 from opticraftpacket import OptiCraftPacket
-
+from console import *
 
 class ListenSocket(object):
     def __init__(self,Host,Port):
@@ -19,7 +19,7 @@ class ListenSocket(object):
             self.Socket.listen(5)
             self.Socket.setblocking(0)
         except:
-            print "Critical error - could not bind socket to port %d on interface \"%s\"" %(Port,Host)
+            Console.Error("ListenSocket","Critical error - could not bind socket to port %d on interface \"%s\"" %(Port,Host))
             exit(1)
 
     def Accept(self):
@@ -113,7 +113,6 @@ class SocketManager(object):
                 continue
 
             if len(data) > 0:
-                #print "Recieved some data:", data
                 pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
                 pPlayer.PushRecvData(data)
 

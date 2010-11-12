@@ -1,6 +1,7 @@
 import hashlib
 from opticraftpacket import OptiCraftPacket
 from constants import *
+from console import *
 import cStringIO
 import time
 class Player(object):
@@ -217,14 +218,16 @@ class Player(object):
             return
 
         if self.Name.lower() in self.ServerControl.PlayerNames:
+            Console.Debug("Player","%s tried to connect but is already online." %self.Name)
             self.Disconnect("Duplicates are not allowed!")
             return
         if self.ServerControl.IsBanned(self) == True:
+            Console.Debug("Player","Banned player %s tried to connect." %self.Name)
             self.Disconnect("You are banned!")
             return
         
         if CorrectPass == HashedPass:
-            print self.Name, "connected to the server!"
+            Console.Out("Player", "%s connected to the server" %self.Name)
             self.ServerControl.PlayerNames[self.Name.lower()] = self
             self.IsIdentified = True
             #send the next packet...
@@ -242,7 +245,7 @@ class Player(object):
 
             return
         else:
-            print "Spoofed password!"
+            Console.Warning("Player","%s Failed to authenticate. Disconnecting" %self.Name)
             self.Disconnect("Could not authenticate your username.")
             return
     def HandleMovement(self,Packet):
@@ -347,7 +350,7 @@ class Player(object):
         self.X,self.Y,self.Z,self.O,self.P = -1,-1,-1,-1,-1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
 
         self.OutBuffer = cStringIO.StringIO()
-        print "Creating player!"
+        Console.Debug("Player","Player object created. IP: %s" %SockAddress[0])
         self.SockBuffer = cStringIO.StringIO()
         self.OpcodeHandler = {
             CMSG_IDENTIFY: self.HandleIdentify,
