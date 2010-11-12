@@ -14,6 +14,7 @@ from array import array
 from opticraftpacket import OptiCraftPacket
 from constants import *
 from zones import Zone
+from console import *
 class BlockLog(object):
     '''Stores the history of a block'''
     def __init__(self,Username,Time,Value):
@@ -89,7 +90,7 @@ class AsynchronousIOThread(threading.Thread):
             BlockInfo = Data[key]
             self.DBConnection.execute("REPLACE INTO Blocklogs VALUES(?,?,?,?)", (key,BlockInfo.Username,BlockInfo.Time,ord(BlockInfo.Value)))
         self.DBConnection.commit()
-        print "Flushing took", time.time()-start, "seconds!"
+        Console.Debug("IOThread","Flushing took %.3f seconds!" %(time.time()-start))
         
     def _UndoActionsTask(self,Username,ReverseName,NumChanged,Time):
         now = time.time()
@@ -104,7 +105,7 @@ class AsynchronousIOThread(threading.Thread):
         self.World.AddBlockChanges(BlockChangeList)
         self.DBConnection.execute("DELETE FROM Blocklogs where Username = ? and Time > ?",(ReverseName,now-Time))
         self.DBConnection.commit()
-        print "%s reversed %s's actions. %d changed in %f time" %(Username,ReverseName,NumChanged,time.time()-now)
+        Console.Debug("IOThread","%s reversed %s's actions. %d changed in %f seconds" %(Username,ReverseName,NumChanged,time.time()-now))
     def Shutdown(self,Crash):
         self.Running = False
 
@@ -157,7 +158,7 @@ class World(object):
         if os.path.isfile("Worlds/"+ self.Name + '.save'):
             LoadResult = self.Load()
             if LoadResult == False:
-                print "Generating new world for map '%s' - Load a backup if you wish to preserve your data!" %self.Name
+                Console.Warning("World","Generating new world for map '%s' - Load a backup if you wish to preserve your data!" %self.Name)
                 self.GenerateGenericWorld(self.DefaultX,self.DefaultY,self.DefaultZ)
         else:
             if not NewMap:
@@ -185,7 +186,7 @@ class World(object):
         try:
             fHandle = open("Worlds/" +self.Name + '.save','rb')
         except:
-            print "Failed to open up save file for world %s!" %self.Name
+            Console.Warning("World","Failed to open up save file for world %s!" %self.Name)
             return False
         try:
             CompressedSize = struct.unpack("i",fHandle.read(4))[0]
@@ -200,11 +201,11 @@ class World(object):
             self.SpawnPitch = struct.unpack("h",fHandle.read(2))[0]
             self.MinRank = fHandle.read(1)
             fHandle.close()
-            print "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000))
+            Console.Out("World", "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
             if len(self.Blocks) != self.X*self.Y*self.Z:
                 raise Exception()
         except:
-            print "CRITICAL ERROR - Failed to load map '%s'." %self.Name + 'save'
+            Console.Warning("World","Failed to load map '%s'. The save file is out of date or corrupt." %self.Name + 'save')
             return False
     
     def Save(self, Verbose = True):
@@ -227,7 +228,7 @@ class World(object):
             #...Crashes may occur if we run out of memory, so do not change this!
             fHandle = open("Worlds/%s.temp" %(self.Name),'wb')
         except:
-            print "Critical error, could not save world data for world %s" %self.Name
+            Console.Error("World","Failed to saved world %s to disk." %self.Name)
 
         CompressedData = zlib.compress(self.Blocks,self.CompressionLevel)
         fHandle.write(struct.pack("i",len(CompressedData)))
@@ -245,7 +246,7 @@ class World(object):
         shutil.copy("Worlds/%s.temp" %(self.Name),"Worlds/%s.save" %(self.Name))
         os.remove("Worlds/%s.temp" %(self.Name))
         if Verbose:
-            print "Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000))
+            Console.Out("World","Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
             self.SendNotice("Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
         self.LastSave = start
 

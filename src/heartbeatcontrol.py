@@ -1,7 +1,7 @@
 import urllib
 import time
 from threading import Thread
-
+from console import *
 class HeartBeatController(Thread):
     def __init__(self,ServerControl):
         Thread.__init__(self)
@@ -15,6 +15,7 @@ class HeartBeatController(Thread):
         self.Clients = 9
         self.ServerControl = ServerControl
         self.Running = True
+        self.FirstHeartbeat = True
 
     def IncreaseClients(self):
         self.Clients += 1
@@ -46,11 +47,14 @@ class HeartBeatController(Thread):
                 "salt": self.Salt,
             }))
             url = Handle.read().strip()
-            print "Got URL:", url
+            if self.FirstHeartbeat:
+                self.FirstHeartbeat = False
+                Console.Out("Heartbeat","Your url is: %s" %url)
+                Console.Out("Heartbeat","This has been saved to url.txt")
             fHandle = open("url.txt","w")
             fHandle.write(url)
             fHandle.close()
             return True
         except:
-            print "Error in heartbeat!"
+            Console.Error("Heartbeat","Failed to register heartbeat, trying again...")
             return False

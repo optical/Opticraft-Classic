@@ -1,10 +1,9 @@
 import random
-# To change this template, choose Tools | Templates
-# and open the template in the editor.
 import time
 import os
 import os.path
 import signal
+import platform
 from heartbeatcontrol import HeartBeatController
 from opticraftpacket import OptiCraftPacket
 from optisockets import SocketManager
@@ -13,17 +12,20 @@ from configreader import ConfigReader
 from zones import Zone
 from world import World
 from constants import *
+from console import *
 class SigkillException(Exception):
     pass
+#This is used for writing to the command line (Console, stdout)
 class ServerController(object):
     def __init__(self):
+        Console.Out("Startup","Opticraft is starting up.")
+        self.StartTime = int(time.time())
         self.ConfigValues = ConfigReader()
         self.ConfigValues.read("opticraft.cfg")
         self.Host = self.ConfigValues.GetValue("server","ListenInterface",'0.0.0.0')
         if self.Host == '0.0.0.0':
             self.Host = ''
-
-        self.StartTime = int(time.time())
+        Console.SetLogLevel(int(self.ConfigValues.GetValue("server","loglevel",LOG_LEVEL_DEBUG)))
         self.Port = int(self.ConfigValues.GetValue("server","Port","6878"))
         self.Salt = self.ConfigValues.GetValue("server","ForcedSalt",str(random.randint(1,0xFFFFFFFF-1)))
         self.Name = self.ConfigValues.GetValue("server","Name","An opticraft server")
@@ -64,7 +66,7 @@ class ServerController(object):
                     self.BannedUsers[Tokens[0]] = int(Tokens[1])
                 fHandle.close()
             except:
-                print "Failed to load banned.txt!"
+                Console.Error("ServerControl","Failed to load banned.txt!")
         #Load up banned IP's
         if os.path.isfile("banned-ip.txt"):
             try:
@@ -74,7 +76,7 @@ class ServerController(object):
                     self.BannedIPs[Tokens[0]] = int(Tokens[1])
                 fHandle.close()
             except:
-                print "Failed to load banned-ip.txt!"
+                Console.Error("ServerControl", "Failed to load banned-ip.txt!")
         #Check to see we have required directory's
         if os.path.exists("Worlds") == False:
             os.mkdir("Worlds")
@@ -112,7 +114,7 @@ class ServerController(object):
     def UnloadWorld(self,pWorld):
         self.ActiveWorlds.remove(pWorld)
         self.IdleWorlds.append(pWorld.Name)
-        print "World %s is being pushed to idle state" %pWorld.Name
+        Console.Out("World","World %s is being pushed to idle state" %pWorld.Name)
     def GetWorlds(self):
         '''Returns a tuple of lists. First element is a list of active World pointers
         ...Second element is a list of inactive World names'''
@@ -217,11 +219,13 @@ class ServerController(object):
     def HandleKill(self,SignalNumber,Frame):
         raise SigkillException()
     def Run(self):
-        '''For now, we will manage everything. Eventually these objects will manage themselves in seperate threads'''
+        '''Main Thread from the application. Runs The sockets and worlds'''
         self.Running = True
         #Start the heartbeatcontrol thread.
         self.HeartBeatControl.start()
-        signal.signal(signal.SIGTERM,self.HandleKill)
+        if platform.system() == 'linux':
+            signal.signal(signal.SIGTERM,self.HandleKill)
+        Console.Out("Startup","Startup procedure completed in %.0fms" %((time.time() -self.StartTime)*1000))
         while self.Running == True:
             now = time.time()
             self.SockManager.Run()
@@ -274,7 +278,7 @@ class ServerController(object):
     def GetMotd(self):
         return self.Motd
     def GetUptimeStr(self):
-        return ElapsedTime((int(time.time())) - self.StartTime)
+        return ElapsedTime((int(time.time())) - int(self.StartTime))
 
     def GetPlayerFromName(self,Username):
         '''Returns a player pointer if the user is logged else.
@@ -377,6 +381,7 @@ class ServerController(object):
     def _RemovePlayer(self,pPlayer):
         '''Internally removes a player
         Note:Player poiner may not neccessarily exist in our storage'''
+        Console.Out("Player","Player %s has left the server" %pPlayer.GetName())
         if pPlayer in self.PlayerSet:
             self.PlayerSet.remove(pPlayer)
             self.PlayerIDs.append(pPlayer.GetId()) #Make the Id avaliable for use again.
