@@ -1,4 +1,5 @@
 import urllib2
+import urllib
 import time
 from threading import Thread
 from console import *
@@ -47,10 +48,19 @@ class HeartBeatController(Thread):
             fHandle = open("stats.txt","w")
             fHandle.write("%d\n%d\n%d\n%s\n%s\n%s" %(self.Port,self.Clients,self.MaxClients,self.Name,self.Public,self.Salt))
             fHandle.close()
-        url = "http://www.minecraft.net/heartbeat.jsp?port=%d&users=%d&max=%d&name=%s&public=%s&version=7&salt=%s" %(
-        self.Port,self.Clients,self.MaxClients,self.Name,self.Public,self.Salt)
-        Handle = urllib2.urlopen(url)
+        url = "http://www.minecraft.net/heartbeat.jsp"
+        data = {
+        "port": self.Port,
+        "max": self.MaxClients,
+        "name": self.Name,
+        "public": self.Public,
+        "version": 7,
+        "salt": self.Salt,
+        "users": self.Clients
+        }
+        url = '%s?%s' %(url,urllib.urlencode(data))
         try:
+            Handle = urllib2.urlopen(url)
             if self.FirstHeartbeat:
                 url = Handle.read().strip()
                 self.FirstHeartbeat = False
