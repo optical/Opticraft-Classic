@@ -24,7 +24,7 @@ class HeartBeatController(Thread):
     def IncreaseClients(self):
         self.Clients += 1
         if self.Clients > self.Peak:
-            self.Peak = seal.Clients
+            self.Peak = self.Clients
     def DecreaseClients(self):
         self.Clients -= 1
 
