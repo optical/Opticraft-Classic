@@ -211,7 +211,6 @@ class Player(object):
         Version = Packet.GetByte()
         self.Name = Packet.GetString()
         HashedPass = Packet.GetString().strip("0")
-        Unk = Packet.GetByte()
         CorrectPass = hashlib.md5("SOMESALT" + self.Name).hexdigest().strip("0")
         if Version != 7:
             self.Disconnect("Your client is incompatible with this server")
@@ -226,7 +225,7 @@ class Player(object):
             self.Disconnect("You are banned!")
             return
         
-        if CorrectPass == HashedPass:
+        if CorrectPass == HashedPass or self.ServerControl.LanMode == True:
             Console.Out("Player", "%s connected to the server" %self.Name)
             self.ServerControl.PlayerNames[self.Name.lower()] = self
             self.IsIdentified = True
@@ -251,7 +250,7 @@ class Player(object):
     def HandleMovement(self,Packet):
         #This is sent even when the player isn't moving!
         if self.World is not None:
-            junk = Packet.GetByte()
+            Packet.GetByte()
             x = Packet.GetInt16()
             z = Packet.GetInt16()
             y = Packet.GetInt16()
@@ -296,7 +295,7 @@ class Player(object):
     def HandleChatMessage(self,Packet):
         if self.World == None:
             return
-        junk = Packet.GetByte()
+        Packet.GetByte() #junk
         Message = Packet.GetString()
         if Message[0] == "/":
             self.ServerControl.CommandHandle.HandleCommand(self,Message[1:])
@@ -309,6 +308,9 @@ class Player(object):
             Message = Message[:64]
             Packet2.WriteString(Message)
             self.ServerControl.SendPacketToAll(Packet2)
+            if self.ServerControl.LogChat:
+                TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
+                self.ServerControl.ChatLogHandle.write("%s <%s>: %s" %(TimeFormat,self.GetName(), Message))
 
     def HandlePrivateMessage(self,Message):
         if len(Message) == 0:
@@ -324,6 +326,10 @@ class Player(object):
         if len(Contents) == 0:
             self.SendMessage("&4Enter something to say!")
             return
+        if self.ServerControl.LogChat:
+            TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
+            self.ServerControl.PMLogHandle.write("%s <%s> to <%s>: %s" %(TimeFormat,self.GetName(),Reciever.GetName(), Contents))
+            
         Reciever.SendMessage('&bfrom %s&b: %s' %(self.GetColouredName(),Contents))
         self.SendMessage('&bto %s&b: %s' %(Reciever.GetColouredName(), Contents))
 

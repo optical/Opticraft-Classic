@@ -10,8 +10,9 @@ import shutil
 from world import World
 class CommandObject(object):
     '''Child class for all commands'''
-    def __init__(self,CmdHandler,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias = False):
+    def __init__(self,CmdHandler,Permissions,HelpMsg,ErrorMsg,MinArgs,Name,Alias = False):
         self.Permissions = Permissions
+        self.Name = Name
         self.HelpMsg = HelpMsg
         self.ErrorMsg = ErrorMsg
         self.MinArgs = MinArgs
@@ -24,13 +25,15 @@ class CommandObject(object):
             if pPlayer.HasPermission(self.Permissions) == False:
                 pPlayer.SendMessage("&4You do not have the required permissions to use that command!")
                 return
-        Tokens = Message.split()
-        Args = len(Tokens)-1
+        Tokens = Message.split()[1:]
+        Args = len(Tokens)
         if Args < self.MinArgs:
             pPlayer.SendMessage('%s%s' %('&4',self.ErrorMsg))
             return
         else:
-            self.Run(pPlayer,Message.split()[1:],Message)
+            self.Run(pPlayer,Tokens,Message)
+            if self.CmdHandler.LogFile != None:
+                self.CmdHandler.LogCommand(pPlayer, self.Name, Tokens)
 
     def Run(self,pPlayer,Args,Message):
         '''Subclasses will perform their work here'''
@@ -727,6 +730,12 @@ class CommandHandler(object):
     def __init__(self,ServerControl):
         self.CommandTable = OrderedDict()
         self.ServerControl = ServerControl
+        self.LogFile = None
+        if ServerControl.LogCommands:
+            try:
+                self.LogFile = open("Logs/commands.log","a")
+            except IOError:
+                Console.Warning("Logging","Unable to open file \"Logs/commands.log\" - logging disabled")
         #Populate the command table here
         ######################
         #PUBLIC COMMANDS HERE#
@@ -811,5 +820,10 @@ class CommandHandler(object):
             CommandObj.Execute(pPlayer,Message)
 
     def AddCommand(self,Command,CmdObj,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias=False):
-        self.CommandTable[Command.lower()] = CmdObj(self,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias)
-        
+        self.CommandTable[Command.lower()] = CmdObj(self,Permissions,HelpMsg,ErrorMsg,MinArgs,Command,Alias)
+
+    def LogCommand(self,Username,Command,Args):
+        TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
+        OutStr = "%s User %s (%s) used command %s with args %s\n" %(TimeFormat,pPlayer.GetName(),pPlayer.GetIP(), Command, ' '.join(Args))
+        self.LogFile.write(OutStr)
+        self.LogFile.flush()

@@ -25,15 +25,29 @@ class ServerController(object):
         self.Host = self.ConfigValues.GetValue("server","ListenInterface",'0.0.0.0')
         if self.Host == '0.0.0.0':
             self.Host = ''
-        Console.SetLogLevel(int(self.ConfigValues.GetValue("server","loglevel",LOG_LEVEL_DEBUG)))
+        #Check to see we have required directory's
+        if os.path.exists("Worlds") == False:
+            os.mkdir("Worlds")
+        if os.path.exists("Backups") == False:
+            os.mkdir("Backups")
+        if os.path.exists("Zones") == False:
+            os.mkdir("Zones")
+        if os.path.exists("Logs") == False:
+            os.mkdir("Logs")
+        Console.SetLogLevel(int(self.ConfigValues.GetValue("logs","ConsoleLogLevel",LOG_LEVEL_DEBUG)))
+        Console.SetFileLogging(bool(int(self.ConfigValues.GetValue("logs","ConsoleFileLogs","0"))))
         self.Port = int(self.ConfigValues.GetValue("server","Port","6878"))
         self.Salt = self.ConfigValues.GetValue("server","ForcedSalt",str(random.randint(1,0xFFFFFFFF-1)))
         self.Name = self.ConfigValues.GetValue("server","Name","An opticraft server")
         self.Motd = self.ConfigValues.GetValue("server","Motd","Powered by opticraft!")
         self.MaxClients = int(self.ConfigValues.GetValue("server","Max",120))
         self.Public = self.ConfigValues.GetValue("server","Public","True")
+        self.DumpStats = int(self.ConfigValues.GetValue("server","DumpStats","0"))
+        self.LanMode = bool(int(self.ConfigValues.GetValue("server","LanMode","0")))
         self.WorldTimeout = int(self.ConfigValues.GetValue("worlds","IdleTimeout","300"))
         self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server","PeriodicAnnounceFrequency","0"))
+        self.LogCommands = bool(int(self.ConfigValues.GetValue("logs","CommandLogs","1")))
+        self.LogChat = bool(int(self.ConfigValues.GetValue("logs","CommandLogs","1")))
         self.RankedPlayers = dict()
         self.LoadRanks()
         self.HeartBeatControl = HeartBeatController(self)
@@ -48,7 +62,6 @@ class ServerController(object):
         self.Running = False
         self.ActiveWorlds = list() #A list of worlds currently running.
         self.IdleWorlds = list() #Worlds which we know exist as .save data, but aren't loaded.
-        self.CommandHandle = CommandHandler(self)
         self.BannedUsers = dict() #Dictionary of Username:expiry (in time)
         self.BannedIPs = dict() #dictionary of IP:expiry (in time)
         self.PeriodicNotices = list() #A list of strings of message we will periodicly announce
@@ -57,6 +70,15 @@ class ServerController(object):
         self.LastAnnounce = 0
         self.NumPlayers = 0
         self.PeakPlayers = 0
+        self.CommandHandle = CommandHandler(self)
+        if self.LogChat:
+            try:
+                self.ChatLogHandle = open("Logs/chat.log","a")
+                self.PMLogHandle = open("Logs/pm.log","a")
+            except IOError:
+                self.ChatLogHandle = self.PMLogHandle = None
+        else:
+            self.ChatLogHandle = self.PMLogHandle = None
         #Load up banned usernames.
         if os.path.isfile("banned.txt"):
             try:
@@ -77,15 +99,6 @@ class ServerController(object):
                 fHandle.close()
             except:
                 Console.Error("ServerControl", "Failed to load banned-ip.txt!")
-        #Check to see we have required directory's
-        if os.path.exists("Worlds") == False:
-            os.mkdir("Worlds")
-        if os.path.exists("Backups") == False:
-            os.mkdir("Backups")
-        if os.path.exists("Zones") == False:
-            os.mkdir("Zones")
-        if os.path.exists("Logs") == False:
-            os.mkdir("Logs")
         self.Zones = list()
         self.LoadZones()
         Worlds = os.listdir("Worlds")

@@ -3,11 +3,13 @@
 #Constants.
 LOG_LEVEL_MINIMUM = -1
 LOG_LEVEL_WARNING = 0
-LOG_LEVEL_DEBUG = 2
+LOG_LEVEL_DEBUG = 1
 import platform
 import time
+from threading import Lock
 from sys import stdout
 if platform.system() == 'Windows':
+    #Windows colour stuff...
     ENABLE_COLOUR = True
     import ctypes
     STD_OUTPUT_HANDLE= -11
@@ -27,6 +29,7 @@ if platform.system() == 'Windows':
     TBLUE = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY
 
 elif platform.system() == 'Linux':
+    #Unix ANSI Colour codes
     ENABLE_COLOUR = True
     TRED    = "\033[22;31m"
     TGREEN  = "\033[22;32m"
@@ -35,6 +38,7 @@ elif platform.system() == 'Linux':
     TWHITE  = "\033[0m"
     TBLUE   = "\033[1;34m"
 else:
+    #Unsure if this platform supports ANSI colour codes, so lets assume not.
     ENABLE_COLOUR = False
 
 class OConsole(object):
@@ -42,69 +46,91 @@ class OConsole(object):
     def __init__(self):
         self.LogLevel = LOG_LEVEL_WARNING
         self.Platform = platform.system()
+        self.FileLogging = False
+        self.Lock = Lock()
+        self.LogHandle = None
         if self.Platform == 'Windows':
             self.std_out_handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
 
     def SetLogLevel(self,Level):
         self.LogLevel = Level
+    def SetFileLogging(self,Value):
+        if self.FileLogging == True and Value == False:
+            self.LogHandle.close()
+        elif self.FileLogging == False and Value == True:
+            self.LogHandle = open("Logs/console.log","a")
+        self.FileLogging = Value
+    def Write(self,Value,IsColour=False):
+        stdout.write(Value)
+        if self.FileLogging and IsColour == False:
+            self.LogHandle.write(Value)
+
     def _Colour(self,Colour):
         if ENABLE_COLOUR:
             if self.Platform == 'Windows':
                 ctypes.windll.kernel32.SetConsoleTextAttribute(self.std_out_handle,Colour)
             else:
-                stdout.write(Colour)
+                self.Write(Colour,True)
 
     def _Time(self,Colour):
         self._Colour(Colour)
-        stdout.write("(")
+        self.Write("(")
         self._Colour(TWHITE)
-        stdout.write(time.strftime("%H:%M:%S",time.localtime()))
+        self.Write(time.strftime("%H:%M:%S",time.localtime()))
         self._Colour(Colour)
-        stdout.write(") ")
+        self.Write(") ")
 
     def _From(self,From,Colour):
         self._Colour(Colour)
-        stdout.write("(")
+        self.Write("(")
         self._Colour(TWHITE)
-        stdout.write(From)
+        self.Write(From)
         self._Colour(Colour)
-        stdout.write(") ")
+        self.Write(") ")
         self._Colour(TNORMAL)
 
     def Out(self,From,Message):
+        self.Lock.acquire()
         self._Time(TGREEN)
         self._From(From,TGREEN)
-        stdout.write(Message)
-        stdout.write("\n")
+        self.Write(Message)
+        self.Write("\n")
         stdout.flush()
+        self.Lock.release()
 
     def Error(self,From,Message):
+        self.Lock.acquire()
         self._Time(TRED)
         self._From(From,TRED)
         self._Colour(TRED)
-        stdout.write(Message)
+        self.Write(Message)
         self._Colour(TNORMAL)
-        stdout.write("\n")
+        self.Write("\n")
         stdout.flush()
+        self.Lock.release()
 
     def Warning(self,From,Message):
-        if self.LogLevel < LOG_LEVEL_MINIMUM:
+        if self.LogLevel < LOG_LEVEL_WARNING:
             return
+        self.Lock.acquire()
         self._Time(TYELLOW)
         self._From(From,TYELLOW)
         self._Colour(TYELLOW)
-        stdout.write(Message)
+        self.Write(Message)
         self._Colour(TNORMAL)
-        stdout.write("\n")
+        self.Write("\n")
         stdout.flush()
+        self.Lock.release()
         
     def Debug(self,From,Message):
         if self.LogLevel < LOG_LEVEL_DEBUG:
             return
+        self.Lock.acquire()
         self._Time(TBLUE)
         self._From(From,TBLUE)
-        stdout.write(Message)
-        stdout.write("\n")
+        self.Write(Message)
+        self.Write("\n")
         stdout.flush()
+        self.Lock.release()
 
 Console = OConsole()
