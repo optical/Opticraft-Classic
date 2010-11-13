@@ -307,7 +307,7 @@ class World(object):
             #Display block information
             try:
                 BlockInfo = self.GetBlockLogEntry(x,y,z)
-            except OperationalError:
+            except dbapi.OperationalError:
                 pPlayer.SendMessage("&4Database is busy, try again in a few moments.")
                 return False
             
