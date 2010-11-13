@@ -305,7 +305,12 @@ class World(object):
 
         if pPlayer.GetAboutCmd() == True:
             #Display block information
-            BlockInfo = self.GetBlockLogEntry(x,y,z)
+            try:
+                BlockInfo = self.GetBlockLogEntry(x,y,z)
+            except OperationalError:
+                pPlayer.SendMessage("&4Database is busy, try again in a few moments.")
+                return False
+            
             if BlockInfo == None:
                 pPlayer.SendMessage("&aNo information available for this block (No changes made)")
             else:
