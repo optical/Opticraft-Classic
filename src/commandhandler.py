@@ -32,7 +32,8 @@ class CommandObject(object):
             return
         else:
             self.Run(pPlayer,Tokens,Message)
-            if self.CmdHandler.LogFile != None:
+            if self.CmdHandler.LogFile != None and RankToLevel[self.Permissions] >= RankToLevel['o']:
+                #Log all operator+ commands
                 self.CmdHandler.LogCommand(pPlayer, self.Name, Tokens)
 
     def Run(self,pPlayer,Args,Message):
@@ -822,8 +823,7 @@ class CommandHandler(object):
     def AddCommand(self,Command,CmdObj,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias=False):
         self.CommandTable[Command.lower()] = CmdObj(self,Permissions,HelpMsg,ErrorMsg,MinArgs,Command,Alias)
 
-    def LogCommand(self,Username,Command,Args):
+    def LogCommand(self,pPlayer,Command,Args):
         TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
-        OutStr = "%s User %s (%s) used command %s with args %s\n" %(TimeFormat,pPlayer.GetName(),pPlayer.GetIP(), Command, ' '.join(Args))
+        OutStr = "%s User %s (%s) used command %s with args: %s\n" %(TimeFormat,pPlayer.GetName(),pPlayer.GetIP(), Command, ' '.join(Args))
         self.LogFile.write(OutStr)
-        self.LogFile.flush()

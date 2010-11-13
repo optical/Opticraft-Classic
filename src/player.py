@@ -310,7 +310,7 @@ class Player(object):
             self.ServerControl.SendPacketToAll(Packet2)
             if self.ServerControl.LogChat:
                 TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
-                self.ServerControl.ChatLogHandle.write("%s <%s>: %s" %(TimeFormat,self.GetName(), Message))
+                self.ServerControl.ChatLogHandle.write("%s <%s>: %s\n" %(TimeFormat,self.GetName(), Message))
 
     def HandlePrivateMessage(self,Message):
         if len(Message) == 0:
@@ -328,7 +328,7 @@ class Player(object):
             return
         if self.ServerControl.LogChat:
             TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
-            self.ServerControl.PMLogHandle.write("%s <%s> to <%s>: %s" %(TimeFormat,self.GetName(),Reciever.GetName(), Contents))
+            self.ServerControl.PMLogHandle.write("%s <%s> to <%s>: %s\n" %(TimeFormat,self.GetName(),Reciever.GetName(), Contents))
             
         Reciever.SendMessage('&bfrom %s&b: %s' %(self.GetColouredName(),Contents))
         self.SendMessage('&bto %s&b: %s' %(Reciever.GetColouredName(), Contents))

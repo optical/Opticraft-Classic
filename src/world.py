@@ -369,7 +369,7 @@ class World(object):
         if val == BLOCK_STEP and z > 0:
             BlockBelow = self._CalculateOffset(x, y, z-1)
             if ord(self.Blocks[BlockBelow]) == BLOCK_STEP:
-                self.SetBlock(pPlayer, x, y, z-1, BLOCK_DOUBLESTEP)
+                self.SetBlock(None, x, y, z-1, BLOCK_DOUBLESTEP)
                 return False
         ArrayValue = self._CalculateOffset(x,y,z)
         if self.LogBlocks == True:
