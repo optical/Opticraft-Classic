@@ -365,6 +365,12 @@ class World(object):
         if RankToLevel[pPlayer.GetRank()] < 6 and val in DisabledBlocks:
             pPlayer.SendMessage("&4That block is disabled!")
             return False
+        #Temporary code to make "steps" function normally.
+        if val == BLOCK_STEP and z > 0:
+            BlockBelow = self._CalculateOffset(x, y, z-1)
+            if ord(self.Blocks[BlockBelow]) == BLOCK_STEP:
+                self.SetBlock(pPlayer, x, y, z-1, BLOCK_DOUBLESTEP)
+                return False
         ArrayValue = self._CalculateOffset(x,y,z)
         if self.LogBlocks == True:
             self.BlockHistory[ArrayValue] = BlockLog(pPlayer.GetName().lower(),int(time.time()),self.Blocks[ArrayValue])
