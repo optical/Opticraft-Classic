@@ -172,16 +172,19 @@ class World(object):
 
 
     def Load(self):
-        '''First draft of map format:
-        0-2 = X
-        2-4 = Y
-        4-6 = Z
-        6-8 = SpawnX
-        8-10 = SpawnY
-        10-12 = SpawnZ
-        12-14 = SpawnOrientation
-        14-16 = SpawnPitch
-        16+ = zlibbed array data'''
+        '''The map file is a file of the following format:
+        int32 CompressedSize
+        array* Blockstore of length Blocksize
+        int16 X
+        int16 Y
+        int16 Z
+        int16 SpawnX
+        int16 SpawnY
+        int16 SpawnZ
+        int16 SpawnOrientation
+        int16 SpawnPitch
+        byte MinRank
+        '''
         start = time.time()
         try:
             fHandle = open("Worlds/" +self.Name + '.save','rb')
@@ -205,7 +208,7 @@ class World(object):
             if len(self.Blocks) != self.X*self.Y*self.Z:
                 raise Exception()
         except:
-            Console.Warning("World","Failed to load map '%s'. The save file is out of date or corrupt." %self.Name + 'save')
+            Console.Warning("World","Failed to load map '%s'.save The save file is out of date or corrupt." %self.Name)
             return False
     
     def Save(self, Verbose = True):

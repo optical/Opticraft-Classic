@@ -8,6 +8,7 @@ import time
 import sqlite3 as dbapi
 import shutil
 from world import World
+from console import *
 class CommandObject(object):
     '''Child class for all commands'''
     def __init__(self,CmdHandler,Permissions,HelpMsg,ErrorMsg,MinArgs,Name,Alias = False):
@@ -587,7 +588,7 @@ class RemoveRankCmd(CommandObject):
             pPlayer.SendMessage("&4You do not have permission to remove that users rank")
             return
         pPlayer.ServerControl.SetRank(Username,'g')
-        pPlayer.SendMessage("Removed %s's rank" %Username)
+        pPlayer.SendMessage("&aRemoved %s's rank" %Username)
 
 class ZCreateCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
@@ -648,7 +649,7 @@ class CreateWorldCmd(CommandObject):
         pWorld = World(pPlayer.ServerControl,Name,True,X,Y,Z)
         pPlayer.ServerControl.ActiveWorlds.append(pWorld)
         pWorld.SetIdleTimeout(pPlayer.ServerControl.WorldTimeout)
-        pPlayer.SendMessage("Successfully created the world!")
+        pPlayer.SendMessage("&aSuccessfully created the world!")
 
 class SetDefaultWorldCmd(CommandObject):
     '''Handler for the /setdefaultworld command'''
