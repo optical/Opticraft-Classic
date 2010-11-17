@@ -33,9 +33,7 @@ class HeartBeatController(Thread):
         while self.Running:
             now = time.time()
             if self.LastFetch + self.FetchInterval < now:
-                start = time.time()
                 Result = self.FetchUrl()
-                Console.Out("Heartbeat","Took %f seconds to try beat" %(time.time()-start))
                 if Result:
                     #Sleep for FetchInterval seconds minus the time it took to perform the heartbeat.
                     self.LastFetch = time.time()
@@ -45,9 +43,12 @@ class HeartBeatController(Thread):
                         
     def FetchUrl(self):
         if self.DumpStats:
-            fHandle = open("stats.txt","w")
-            fHandle.write("%d\n%d\n%d\n%s\n%s\n%s" %(self.Port,self.Clients,self.MaxClients,self.Name,self.Public,self.Salt))
-            fHandle.close()
+            try:
+                fHandle = open("stats.txt","w")
+                fHandle.write("%d\n%d\n%d\n%s\n%s\n%s" %(self.Port,self.Clients,self.MaxClients,self.Name,self.Public,self.Salt))
+                fHandle.close()
+            except IOError:
+                pass
         url = "http://www.minecraft.net/heartbeat.jsp"
         data = {
         "port": self.Port,

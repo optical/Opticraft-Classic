@@ -7,7 +7,8 @@ try:
     import cProfile as Profile
 except ImportError:
     import Profile
-
+import os
+import os.path
 def Main():
     ServerControl = ServerController()
     try:
@@ -21,6 +22,8 @@ def Main():
         traceback.print_exc(file=fHandle)
         fHandle.close()
         ServerControl.Shutdown(True)
+        if os.path.isfile("opticraft.pid"):
+            os.remove("opticraft.pid")
 
 if __name__ == "__main__":
     Profile.run('Main()', 'profiler-%s.out' %time.strftime("%d-%m-%Y_%H-%M-%S", time.gmtime()))

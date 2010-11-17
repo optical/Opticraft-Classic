@@ -2,6 +2,8 @@
 from servercontroller import ServerController
 import traceback
 import time
+import os
+import os.path
 from console import *
 
 def Main():
@@ -17,6 +19,8 @@ def Main():
         traceback.print_exc(file=fHandle)
         fHandle.close()
         ServerControl.Shutdown(True)
+        if os.path.isfile("opticraft.pid"):
+            os.remove("opticraft.pid")
         return
 if __name__ == "__main__":
     Main()

@@ -21,7 +21,9 @@ class ServerController(object):
         Console.Out("Startup","Opticraft is starting up.")
         self.StartTime = int(time.time())
         self.ConfigValues = ConfigReader()
-        self.ConfigValues.read("opticraft.cfg")
+        self.RankStore = ConfigReader()
+        self.ConfigValues.read("opticraft.ini")
+        self.RankStore.read("ranks.ini")
         self.Host = self.ConfigValues.GetValue("server","ListenInterface",'0.0.0.0')
         if self.Host == '0.0.0.0':
             self.Host = ''
@@ -37,7 +39,25 @@ class ServerController(object):
         Console.SetLogLevel(int(self.ConfigValues.GetValue("logs","ConsoleLogLevel",LOG_LEVEL_DEBUG)))
         Console.SetFileLogging(bool(int(self.ConfigValues.GetValue("logs","ConsoleFileLogs","0"))))
         self.Port = int(self.ConfigValues.GetValue("server","Port","6878"))
-        self.Salt = self.ConfigValues.GetValue("server","ForcedSalt",str(random.randint(1,0xFFFFFFFF-1)))
+        self.Salt = str(random.randint(1,0xFFFFFFFF-1))
+        #Check to see if we have a salt saved to disk.
+        if os.path.exists("opticraft.salt"):
+            #Load this salt instead.
+            try:
+                saltHandle = open("opticraft.salt","r")
+                self.Salt = saltHandle.readline().strip()
+                saltHandle.close()
+            except IOError:
+                Console.Warning("Startup","Failed to load salt from opticraft.salt")
+        else:
+            #Save this salt to disk.
+            try:
+                saltHandle = open("opticraft.salt","w")
+                saltHandle.write(self.Salt)
+                saltHandle.close()
+            except IOError:
+                Console.Warning("Startup","Failed to save salt to opticraft.salt")
+
         self.Name = self.ConfigValues.GetValue("server","Name","An opticraft server")
         self.Motd = self.ConfigValues.GetValue("server","Motd","Powered by opticraft!")
         self.MaxClients = int(self.ConfigValues.GetValue("server","Max",120))
@@ -114,6 +134,14 @@ class ServerController(object):
             self.IdleWorlds.append(WorldName)
         self.ActiveWorlds.append(World(self,self.ConfigValues.GetValue("worlds","DefaultName","Main")))
         self.ActiveWorlds[0].SetIdleTimeout(0) #0 - never becomes idle
+        #write out pid to opticraft.pid
+        try:
+            pidHandle = open("opticraft.pid","w")
+            pidHandle.write(str(os.getpid()))
+            pidHandle.close()
+        except IOError:
+            Console.Warning("Startup","Failed to write process id to opticraft.pid")
+
         self.LastKeepAlive = -1
 
     def LoadWorld(self,Name):
@@ -156,14 +184,14 @@ class ServerController(object):
         pWorld.SetIdleTimeout(0)
         self.ConfigValues.set("worlds","DefaultName",pWorld.Name)
         try:
-            fHandle = open("opticraft.cfg","w")
+            fHandle = open("opticraft.ini","w")
             self.ConfigValues.write(fHandle)
             fHandle.close()
         except:
             pass
     def LoadRanks(self):
         try:
-            Items = self.ConfigValues.items("ranks")
+            Items = self.RankStore.items("ranks")
         except:
             return
         for Username,Rank in Items:
@@ -224,7 +252,7 @@ class ServerController(object):
             else:
                 return
         try:
-            fHandle = open("opticraft.cfg","w")
+            fHandle = open("ranks.ini","w")
             self.ConfigValues.write(fHandle)
             fHandle.close()
         except:
