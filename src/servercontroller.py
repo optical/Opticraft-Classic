@@ -236,7 +236,7 @@ class ServerController(object):
     def SetRank(self,Username,Rank):
         if Rank != 'g':
             self.RankedPlayers[Username.lower()] = Rank.lower()
-            self.ConfigValues.set("ranks",Username,Rank)
+            self.RankStore.set("ranks",Username,Rank)
             pPlayer = self.PlayerNames.get(Username,None)
             if pPlayer != None:
                 pPlayer.SetRank(Rank)
@@ -244,7 +244,7 @@ class ServerController(object):
         else:
             if Username.lower() in self.RankedPlayers:
                 del self.RankedPlayers[Username.lower()]
-                self.ConfigValues.remove_option("ranks",Username)
+                self.RankStore.remove_option("ranks",Username)
                 pPlayer = self.PlayerNames.get(Username.lower(),None)
                 if pPlayer != None:
                     pPlayer.SetRank('g')
