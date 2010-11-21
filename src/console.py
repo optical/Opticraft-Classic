@@ -28,7 +28,7 @@ if platform.system() == 'Windows':
     TWHITE = TNORMAL | FOREGROUND_INTENSITY
     TBLUE = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY
 
-elif platform.system() == 'Linux':
+elif platform.system() == 'Linux' or platform.system() == 'Darwin':
     #Unix ANSI Colour codes
     ENABLE_COLOUR = True
     TRED    = "\033[22;31m"
@@ -40,6 +40,12 @@ elif platform.system() == 'Linux':
 else:
     #Unsure if this platform supports ANSI colour codes, so lets assume not.
     ENABLE_COLOUR = False
+    TRED = 0
+    TGREEN =0
+    TYELLOW = 0
+    TNORMAL = 0
+    TWHITE = 0
+    TBLUE = 0
 
 class OConsole(object):
     '''Class for Console in opticraft'''

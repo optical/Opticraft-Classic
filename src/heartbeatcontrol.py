@@ -66,7 +66,7 @@ class HeartBeatController(Thread):
                 url = Handle.read().strip()
                 self.FirstHeartbeat = False
                 if self.LanMode == True:
-                    url = "htttp://www.minecraft.net/play.jsp?server=127.0.0.1&port=%d" %self.Port
+                    url = "http://www.minecraft.net/play.jsp?ip=127.0.0.1&port=%d" %self.Port
                 Console.Out("Heartbeat","Your url is: %s" %url)
                 Console.Out("Heartbeat","This has been saved to url.txt")
                 fHandle = open("url.txt","w")
