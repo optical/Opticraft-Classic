@@ -254,7 +254,7 @@ class ServerController(object):
                 return
         try:
             fHandle = open("ranks.ini","w")
-            self.ConfigValues.write(fHandle)
+            self.RankStore.write(fHandle)
             fHandle.close()
         except:
             return
