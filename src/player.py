@@ -46,14 +46,16 @@ class Player(object):
         else:
             #Send Queue exceeded (Default = 4MB of buffered data)
             if self.OutBuffer.tell() > self.ServerControl.SendBufferLimit:
-                self.Disconnect("Send Queue exceeded") #This message will probably not go through, but will be logged
+                Console.Debug("Player", "Disconnecting player as their send queue buffer contains %d bytes" %self.OutBuffer.tell())
+                self.Disconnect()
 
 
-    def Disconnect(self,Message):
+    def Disconnect(self,Message =''):
         Console.Debug("Player","Disconnecting player %s for \"%s\"" %(self.Name,Message))
-        Packet = OptiCraftPacket(SMSG_DISCONNECT)
-        Packet.WriteString(Message[:64])
-        self.SendPacket(Packet)
+        if Message != '':
+            Packet = OptiCraftPacket(SMSG_DISCONNECT)
+            Packet.WriteString(Message[:64])
+            self.SendPacket(Packet)
         self.ServerControl.SockManager.CloseSocket(self.PlayerSocket)
         self.ServerControl.RemovePlayer(self)
 

@@ -115,6 +115,10 @@ class SocketManager(object):
             if len(data) > 0:
                 pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
                 pPlayer.PushRecvData(data)
+            else:
+                #a recv call which returns nothing usually means a dead socket
+                self._RemoveSocket(Socket)
+                continue
 
         ToRemove = []
         for Socket in wlist:
