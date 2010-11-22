@@ -132,6 +132,7 @@ class sInfoCmd(CommandObject):
         pPlayer.SendMessage("&aThere are currently %d users online, with a peak of %d since last restart." %(pPlayer.ServerControl.NumPlayers,pPlayer.ServerControl.PeakPlayers))
         pPlayer.SendMessage("&aThere are %d worlds, %d of which are active and %d idle." %(len(WorldData[0]) + len(WorldData[1]),len(WorldData[0]),len(WorldData[1])))
         pPlayer.SendMessage("&aCurrent uptime: %s." %pPlayer.ServerControl.GetUptimeStr())
+
 class RanksCmd(CommandObject):
     '''Handler for the /ranks command'''
     def Run(self,pPlayer,Args,Message):
@@ -141,47 +142,22 @@ class RanksCmd(CommandObject):
         for Rank,Junk in Items:
             pPlayer.SendMessage("&e %s%s&e: %s" %(RankToColour[Rank],RankToName[Rank],RankToDescription[Rank]))
 
-#######################
-#RECRUIT COMMANDS HERE#
-#######################
-class WaterCmd(CommandObject):
-    '''Command handler for /water command. Replaces all block placed with water'''
-    def Run(self,pPlayer,Args,Message):
-        if pPlayer.GetBlockOverride() == BLOCK_STILLWATER:
-            pPlayer.SendMessage("&aYou are no longer placing water")
-            pPlayer.SetBlockOverride(-1)
-            return
-        else:
-            pPlayer.SetBlockOverride(BLOCK_STILLWATER)
-            pPlayer.SendMessage("&aEvery block you create will now be water. Type /water to disable.")
-
-class LavaCmd(CommandObject):
-    '''Command handler for /lava command. Replaces all block placed with lava'''
-    def Run(self,pPlayer,Args,Message):
-        if pPlayer.GetBlockOverride() == BLOCK_STILLLAVA:
-            pPlayer.SendMessage("&aYou are no longer placing lava")
-            pPlayer.SetBlockOverride(-1)
-            return
-        else:
-            pPlayer.SetBlockOverride(BLOCK_STILLLAVA)
-            pPlayer.SendMessage("&aEvery block you create will now be lava. Type /lava to disable.")
-
-########################
-#BUILDER COMMANDS HERE #
-########################
-class AppearCmd(CommandObject):
-    '''Appear command handler. Teleports user to specified players location'''
+class PlayerInfoCmd(CommandObject):
+    '''Handler for the /whois command. Returns info on a player'''
     def Run(self,pPlayer,Args,Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
-        if Target != None:
-            if pPlayer.GetWorld() != Target.GetWorld():
-                pPlayer.SendMessage("&4That player is not on your world. Cannot teleport to them!")
-                return
-            pPlayer.Teleport(Target.GetX(),Target.GetY(),Target.GetZ(),Target.GetOrientation(),Target.GetPitch())
-        else:
+        if Target == None:
             pPlayer.SendMessage("&4That player is not online!")
-
+            return
+        pPlayer.SendMessage("&a%s has been online for&e %s" %(Target.GetName(), ElapsedTime(int(time.time()) -Target.GetLoginTime())))
+        if pPlayer.HasPermission('o'):
+            pPlayer.SendMessage("&aTheir ip is:&e %s" %Target.GetIP())
+        pPlayer.SendMessage("&aThey are on world&e \"%s\"" %Target.GetWorld().Name)
+        if Target.GetRank() != '':
+            pPlayer.SendMessage("&aTheir rank is&e %s" %RankToName[Target.GetRank()])
+        else:
+            pPlayer.SendMessage("&aAnd they do not have any rank")
 class ZoneInfoCmd(CommandObject):
     '''Zone info command handler. Returns information on a zone'''
     def Run(self,pPlayer,Args,Message):
@@ -229,7 +205,7 @@ class ZoneTestCmd(CommandObject):
                 pPlayer.SendMessage("&aIt appears you are in zone \"%s\"" %pZone.Name)
                 return
         pPlayer.SendMessage("&aIt does not seem like you are in any zone.")
-        
+
 class AddZoneBuilderCmd(CommandObject):
     '''Add zone builder handler. This adds a builder to a zone'''
     def Run(self,pPlayer,Args,Message):
@@ -312,6 +288,46 @@ class zChangeOwnerCmd(CommandObject):
         if pPlayer.ServerControl.GetPlayerFromName(Username) != None:
             pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been set as the owner of zone&f \"%s\"" %pZone.Name)
 
+#######################
+#RECRUIT COMMANDS HERE#
+#######################
+class WaterCmd(CommandObject):
+    '''Command handler for /water command. Replaces all block placed with water'''
+    def Run(self,pPlayer,Args,Message):
+        if pPlayer.GetBlockOverride() == BLOCK_STILLWATER:
+            pPlayer.SendMessage("&aYou are no longer placing water")
+            pPlayer.SetBlockOverride(-1)
+            return
+        else:
+            pPlayer.SetBlockOverride(BLOCK_STILLWATER)
+            pPlayer.SendMessage("&aEvery block you create will now be water. Type /water to disable.")
+
+class LavaCmd(CommandObject):
+    '''Command handler for /lava command. Replaces all block placed with lava'''
+    def Run(self,pPlayer,Args,Message):
+        if pPlayer.GetBlockOverride() == BLOCK_STILLLAVA:
+            pPlayer.SendMessage("&aYou are no longer placing lava")
+            pPlayer.SetBlockOverride(-1)
+            return
+        else:
+            pPlayer.SetBlockOverride(BLOCK_STILLLAVA)
+            pPlayer.SendMessage("&aEvery block you create will now be lava. Type /lava to disable.")
+
+########################
+#BUILDER COMMANDS HERE #
+########################
+class AppearCmd(CommandObject):
+    '''Appear command handler. Teleports user to specified players location'''
+    def Run(self,pPlayer,Args,Message):
+        Username = Args[0]
+        Target = pPlayer.ServerControl.GetPlayerFromName(Username)
+        if Target != None:
+            if pPlayer.GetWorld() != Target.GetWorld():
+                pPlayer.SendMessage("&4That player is not on your world. Cannot teleport to them!")
+                return
+            pPlayer.Teleport(Target.GetX(),Target.GetY(),Target.GetZ(),Target.GetOrientation(),Target.GetPitch())
+        else:
+            pPlayer.SendMessage("&4That player is not online!")
 #########################
 #OPERATOR COMMANDS HERE #
 #########################
@@ -402,7 +418,7 @@ class DestroyTowerCmd(CommandObject):
         else:
             pPlayer.SetTowerCmd(True)
             pPlayer.SendMessage("&aClick on the top-most block of the shitty tower to begin destruction")
-class PromoteTrustedCmd(CommandObject):
+class PromoteRecruitCmd(CommandObject):
     '''Promotes a user to the trusted rank'''
     def Run(self,pPlayer,Args,Message):
         Username = Args[0]
@@ -413,7 +429,7 @@ class PromoteTrustedCmd(CommandObject):
         pPlayer.ServerControl.SetRank(Username,"t")
         pPlayer.SendMessage("&aSuccessfully set %s's rank to recruit" %(Username))
 
-class DemoteTrustedCmd(CommandObject):
+class DemoteRecruitCmd(CommandObject):
     '''Demotes a user from the trusted rank'''
     def Run(self,pPlayer,Args,Message):
         Username = Args[0]
@@ -423,43 +439,6 @@ class DemoteTrustedCmd(CommandObject):
             return
         pPlayer.ServerControl.SetRank(Username,"g")
         pPlayer.SendMessage("&aSuccessfully removed %s's rank." %(Username))
-class MakeSpectatorCmd(CommandObject):
-    '''Handler for the /makespectator command. Makes a user a spectator'''
-    def Run(self,pPlayer,Args,Message):
-        Username = Args[0]
-        CurRank = pPlayer.ServerControl.GetRank(Username)
-        if CurRank != '':
-            pPlayer.SendMessage("&4That user cannot be made a spectator")
-            return
-        pPlayer.ServerControl.SetRank(Username,"s")
-        pPlayer.SendMessage("&aSuccessfully set %s's rank to spectator" %(Username))
-class PromoteSpectatorCmd(CommandObject):
-    '''Handler for the /promotespectator command. Gives the user the ability to build again'''
-    def Run(self,pPlayer,Args,Message):
-        Username = Args[0]
-        CurRank = pPlayer.ServerControl.GetRank(Username)
-        if CurRank != 's':
-            pPlayer.SendMessage("&4That user is not currently a spectator")
-            return
-        pPlayer.ServerControl.SetRank(Username,"s")
-        pPlayer.SendMessage("&aSuccessfully removed %s's spectator restriction" %(Username))
-class PlayerInfoCmd(CommandObject):
-    '''Handler for the /playerinfo command. Returns info on a player'''
-    def Run(self,pPlayer,Args,Message):
-        Username = Args[0]
-        Target = pPlayer.ServerControl.GetPlayerFromName(Username)
-        if Target == None:
-            pPlayer.SendMessage("&4That player is not online!")
-            return
-        pPlayer.SendMessage("&a%s has been online for&e %s" %(Target.GetName(), ElapsedTime(int(time.time()) -Target.GetLoginTime())))
-        pPlayer.SendMessage("&aTheir ip is:&e %s" %Target.GetIP())
-        pPlayer.SendMessage("They are on world&e \"%s\"" %Target.GetWorld().Name)
-        if Target.GetRank() != '':
-            pPlayer.SendMessage("&aTheir rank is&e %s" %RankToName[Target.GetRank()])
-        else:
-            pPlayer.SendMessage("&aAnd they do not have any rank")
-        
-
 ######################
 #ADMIN COMMANDS HERE #
 ######################
@@ -551,14 +530,22 @@ class WorldSetRankCmd(CommandObject):
         else:
             pWorld.MinRank = Rank
             pPlayer.SendMessage("&aSuccessfully set %s to be %s only" %(pWorld.Name,RankToName[Rank]))
-class FlushBlockLogCmd(CommandObject):
-    '''Flushes the worlds blocklog to disk'''
+class TempOpCmd(CommandObject):
+    '''Handle for the /addrank command - gives a username a rank. Can only be used by admins'''
     def Run(self,pPlayer,Args,Message):
-        pPlayer.GetWorld().FlushBlockLog()
-        pPlayer.SendMessage("&aWorld %s's Blocklog has been flushed to disk." %pPlayer.GetWorld().Name)
-######################
-#OWNER COMMANDS HERE #
-######################
+        Username = Args[0]
+        Target = pPlayer.ServerControl.GetRank(Username)
+        if Target == None:
+            pPlayer.SendMessage("&4Tahat player is not online!")
+            return
+        TargetRank = pPlayer.ServerControl.GetRank(Username)
+        if RankToLevel[TargetRank] > RankToLevel['o']:
+            pPlayer.SendMessage("&4You may not set that players rank!")
+            return
+        Target.SetRank('o')
+        Target.SendMessage("&aYou have been granted temporary operator privlidges by %s" %pPlayer.GetName())
+        pPlayer.SendMessage("&a%s is now a temporary operator" %Username)
+
 class AddRankCmd(CommandObject):
     '''Handle for the /addrank command - gives a username a rank. Can only be used by admins'''
     def Run(self,pPlayer,Args,Message):
@@ -589,7 +576,15 @@ class RemoveRankCmd(CommandObject):
             return
         pPlayer.ServerControl.SetRank(Username,'g')
         pPlayer.SendMessage("&aRemoved %s's rank" %Username)
+######################
+#OWNER COMMANDS HERE #
+######################
 
+class FlushBlockLogCmd(CommandObject):
+    '''Flushes the worlds blocklog to disk'''
+    def Run(self,pPlayer,Args,Message):
+        pPlayer.GetWorld().FlushBlockLog()
+        pPlayer.SendMessage("&aWorld %s's Blocklog has been flushed to disk." %pPlayer.GetWorld().Name)
 class ZCreateCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
         Name = Args[0]
@@ -754,6 +749,16 @@ class CommandHandler(object):
         self.AddCommand("paint", PaintCmd, 'g', 'When you destroy a block it will be replaced by what you are currently holding', '', 0)
         self.AddCommand("sinfo", sInfoCmd, 'g', 'Displays information about the server', '', 0)
         self.AddCommand("ranks", RanksCmd, 'g', 'Displays information on all the ranks', '', 0)
+        self.AddCommand("whois", PlayerInfoCmd, 'g', 'Returns information on a player', 'Incorrect syntax! Usage: /whois <username>',1)
+        #Zone commands
+        self.AddCommand("zinfo", ZoneInfoCmd, 'g', 'Returns information on a zone.', 'Incorrect syntax! Usage: /zinfo <zone>', 1)
+        self.AddCommand("zlist", ZoneListCmd, 'g', 'Lists all zones on the map', '', 0)
+        self.AddCommand("ztest", ZoneTestCmd, 'g', 'Checks to see if you are in a zone.', '', 0)
+        self.AddCommand("zaddbuilder", AddZoneBuilderCmd, 'g', 'Adds a builder to a zone', 'Incorrect syntax! Usage: /zaddbuilder <zone> <username>', 2)
+        self.AddCommand("zdelbuilder", DelZoneBuilderCmd, 'g', 'Deletes a builder from a zone', 'Incorrect syntax! Usage: /zdelbuilder <zone> <username>', 2)
+        self.AddCommand("zsetrank", zSetMinRankCmd, 'g', 'Changes the minimum non zone-builder rank required to build on this zone', 'Incorrect syntax! Usage: /zsetrank <zone> <rank>', 2)
+        self.AddCommand("zsetowner", zChangeOwnerCmd, 'g', 'Changes the owner of a zone', 'Incorrect syntax! Usage: /zsetowner <zone> <username>', 2)
+
         #######################
         #RECRUIT COMMANDS HERE#
         #######################
@@ -764,30 +769,18 @@ class CommandHandler(object):
         ########################
         self.AddCommand("appear", AppearCmd, 'b', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1)
         self.AddCommand("tp", AppearCmd, 'b', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1, Alias=True)
-        #Zone commands
-        self.AddCommand("zinfo", ZoneInfoCmd, 'b', 'Returns information on a zone.', 'Incorrect syntax! Usage: /zinfo <zone>', 1)
-        self.AddCommand("zlist", ZoneListCmd, 'b', 'Lists all zones on the map', '', 0)
-        self.AddCommand("ztest", ZoneTestCmd, 'b', 'Checks to see if you are in a zone.', '', 0)
-        self.AddCommand("zaddbuilder", AddZoneBuilderCmd, 'b', 'Adds a builder to a zone', 'Incorrect syntax! Usage: /zaddbuilder <zone> <username>', 2)
-        self.AddCommand("zdelbuilder", DelZoneBuilderCmd, 'b', 'Deletes a builder from a zone', 'Incorrect syntax! Usage: /zdelbuilder <zone> <username>', 2)
-        self.AddCommand("zsetrank", zSetMinRankCmd, 'b', 'Changes the minimum non zone-builder rank required to build on this zone', 'Incorrect syntax! Usage: /zsetrank <zone> <rank>', 2)
-        self.AddCommand("zsetowner", zChangeOwnerCmd, 'b', 'Changes the owner of a zone', 'Incorrect syntax! Usage: /zsetowner <zone> <username>', 2)
         #########################
         #OPERATOR COMMANDS HERE #
         #########################
         self.AddCommand("ban", BanCmd, 'o', 'Bans a player from the server', 'Incorrect syntax! Usage: /ban <username>', 1)
         self.AddCommand("unban", UnbanCmd, 'o', 'Unbans a player from the server', 'Incorrect syntax! Usage: /unban <username>', 1)
         self.AddCommand("kick", KickCmd, 'o', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)
-        self.AddCommand("whois", PlayerInfoCmd, 'o', 'Returns information on a player', 'Incorrect syntax! Usage: /playerinfo <username>',1)
         self.AddCommand("playerinfo", PlayerInfoCmd, 'o', 'Returns information on a player', 'Incorrect syntax! Usage: /playerinfo <username>',1,Alias=True)
         self.AddCommand("summon", SummonCmd, 'o', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
         self.AddCommand("undoactions", UndoActionsCmd, 'o', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>',2)
-        self.AddCommand("promote", PromoteTrustedCmd, 'o', 'Promotes a player to the recruit rank', 'Incorrect syntax! Usage: /promote <username>', 1)
-        self.AddCommand("demote", DemoteTrustedCmd, 'o', 'Demotes a player from the recruit rank', 'Incorrect syntax! Usage: /demote <username>', 1)
-        self.AddCommand("makespectator",MakeSpectatorCmd, 'o', 'Demotes a player to a spectator which cannot build','Incorrect syntax! Usage: /makespectator <username>',1)
-        self.AddCommand("promotespectator",PromoteSpectatorCmd, 'o', 'Gives the player the ability to build again','Incorrect syntax! Usage: /promotespectator <username>',1)
+        self.AddCommand("promote", PromoteRecruitCmd, 'o', 'Promotes a player to the recruit rank', 'Incorrect syntax! Usage: /promote <username>', 1)
+        self.AddCommand("demote", DemoteRecruitCmd, 'o', 'Demotes a player from the recruit rank', 'Incorrect syntax! Usage: /demote <username>', 1)
         self.AddCommand("destroytower",DestroyTowerCmd,'o', 'Destroys a vertical tower of shit','',0,Alias=True) #Hidden command
-        self.AddCommand("flushblocklog",FlushBlockLogCmd,'o', 'Flushes the worlds blocklog to disk','',0)
         ######################
         #ADMIN COMMANDS HERE #
         ######################
@@ -796,17 +789,20 @@ class CommandHandler(object):
         self.AddCommand("save", SaveCmd, 'a', 'Saves all actively running worlds', '', 0)
         self.AddCommand("backup", BackupCmd, 'a', 'Backs up all actively running worlds', '', 0)
         self.AddCommand("setspawn", SetSpawnCmd, 'a', 'Changes the worlds default spawn location to where you are standing', '', 0)
+        self.AddCommand("tempop", TempOpCmd, 'a', 'Grants a user operator privledges until they log off', 'Incorrect syntax! Usage: /tempop <username>', 2)
         self.AddCommand("addrank", AddRankCmd, 'a', 'Promotes a player to a rank such a admin, operator, or builder', 'Incorrect syntax. Usage: /addrank <username> <t/a</o/b>', 2)
         self.AddCommand("removerank", RemoveRankCmd, 'a', 'Removes a players rank', 'Incorrect syntax. Usage: /removerank <username>', 1)
         self.AddCommand("worldsetrank", WorldSetRankCmd, 'a', 'Sets the minimum rank to build on a world', 'Incorrect syntax. Usage: /worldsetrank <world> <t/b/o/a>', 2)
         self.AddCommand("zCreate", ZCreateCmd, 'a', 'Creates a restricted zone', 'Incorrect syntax. Usage: /zCreate <name> <owner> <height>', 3)
         self.AddCommand("zDelete", ZDeleteCmd, 'a', 'Deletes a restricted zone', 'Incorrect syntax. Usage: /zDelete <name>', 1)
+        self.AddCommand("createworld", CreateWorldCmd, 'a', 'Creates a new world.', 'Incorrect syntax. Usage: /createworld <name> <x> <y> <z>', 4)
+        self.AddCommand("setdefaultworld", SetDefaultWorldCmd, 'a', 'Sets the world you specify to be the default one', 'Incorrect syntax. Usage: /setdefaultworld <name>', 1)
+        self.AddCommand("RenameWorld", RenameWorldCmd, 'a', 'Renames a world', 'Incorrect syntax! Usage: /renameworld <oldname> <newname>', 2)
         ######################
         #OWNER COMMANDS HERE #
         ######################
-        self.AddCommand("createworld", CreateWorldCmd, 'z', 'Creates a new world.', 'Incorrect syntax. Usage: /createworld <name> <x> <y> <z>', 4)
-        self.AddCommand("setdefaultworld", SetDefaultWorldCmd, 'z', 'Sets the world you specify to be the default one', 'Incorrect syntax. Usage: /setdefaultworld <name>', 1)
-        self.AddCommand("RenameWorld", RenameWorldCmd, 'z', 'Renames a world', 'Incorrect syntax! Usage: /renameworld <oldname> <newname>', 2)
+        self.AddCommand("flushblocklog",FlushBlockLogCmd,'z', 'Flushes the worlds blocklog to disk','',0)
+
     def HandleCommand(self,pPlayer,Message):
         '''Called when a player types a slash command'''
         if Message == '':

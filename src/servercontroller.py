@@ -64,6 +64,7 @@ class ServerController(object):
         self.Public = self.ConfigValues.GetValue("server","Public","True")
         self.DumpStats = int(self.ConfigValues.GetValue("server","DumpStats","0"))
         self.LanMode = bool(int(self.ConfigValues.GetValue("server","LanMode","0")))
+        self.SendBufferLimit = int(self.ConfigValues.GetValue("server","SendBufferLimit","4194304")) #4MB 
         self.WorldTimeout = int(self.ConfigValues.GetValue("worlds","IdleTimeout","300"))
         self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server","PeriodicAnnounceFrequency","0"))
         self.LogCommands = bool(int(self.ConfigValues.GetValue("logs","CommandLogs","1")))

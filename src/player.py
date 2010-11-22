@@ -43,8 +43,14 @@ class Player(object):
         if self.IsWriteFlagged == False:
             self.ServerControl.SockManager.AddWriteablePlayer(self)
             self.IsWriteFlagged = True
+        else:
+            #Send Queue exceeded (Default = 4MB of buffered data)
+            if self.OutBuffer.tell() > self.ServerControl.SendBufferLimit:
+                self.Disconnect("Send Queue exceeded") #This message will probably not go through, but will be logged
+
 
     def Disconnect(self,Message):
+        Console.Debug("Player","Disconnecting player %s for \"%s\"" %self.Name,Message)
         Packet = OptiCraftPacket(SMSG_DISCONNECT)
         Packet.WriteString(Message[:64])
         self.SendPacket(Packet)
