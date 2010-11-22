@@ -50,7 +50,7 @@ class Player(object):
 
 
     def Disconnect(self,Message):
-        Console.Debug("Player","Disconnecting player %s for \"%s\"" %self.Name,Message)
+        Console.Debug("Player","Disconnecting player %s for \"%s\"" %(self.Name,Message))
         Packet = OptiCraftPacket(SMSG_DISCONNECT)
         Packet.WriteString(Message[:64])
         self.SendPacket(Packet)
@@ -207,6 +207,11 @@ class Player(object):
     def FinishCreatingZone(self):
         self.zData = dict()
         self.CreatingZone = False
+
+    def SetLastPM(self,Username):
+        self.LastPmUsername = Username
+    def GetLastPM(self):
+        return self.LastPmUsername
     
     #Opcode handlers go below this line
     def HandleIdentify(self,Packet):
@@ -302,21 +307,21 @@ class Player(object):
         if self.World == None:
             return
         Packet.GetByte() #junk
-        Message = Packet.GetString()
-        if Message[0] == "/":
-            self.ServerControl.CommandHandle.HandleCommand(self,Message[1:])
-        elif Message[0] == "@":
-            self.HandlePrivateMessage(Message[1:])
+        Contents = Packet.GetString()
+        if Contents[0] == "/":
+            self.ServerControl.CommandHandle.HandleCommand(self,Contents[1:])
+        elif Contents[0] == "@":
+            self.HandlePrivateMessage(Contents[1:])
         else:
             Packet2 = OptiCraftPacket(SMSG_MESSAGE)
             Packet2.WriteByte(self.GetId())
-            Message = '%s:&f %s' %(self.GetColouredName(),Message)
+            Message = '%s:&f %s' %(self.GetColouredName(),Contents)
             Message = Message[:64]
             Packet2.WriteString(Message)
             self.ServerControl.SendPacketToAll(Packet2)
             if self.ServerControl.LogChat:
                 TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
-                self.ServerControl.ChatLogHandle.write("%s <%s>: %s\n" %(TimeFormat,self.GetName(), Message[1:]))
+                self.ServerControl.ChatLogHandle.write("%s <%s>: %s\n" %(TimeFormat,self.GetName(),Contents))
 
     def HandlePrivateMessage(self,Message):
         if len(Message) == 0:
@@ -337,6 +342,7 @@ class Player(object):
             self.ServerControl.PMLogHandle.write("%s <%s> to <%s>: %s\n" %(TimeFormat,self.GetName(),Reciever.GetName(), Contents))
             
         Reciever.SendMessage('&bfrom %s&b: %s' %(self.GetColouredName(),Contents))
+        Reciever.SetLastPM(self.Name)
         self.SendMessage('&bto %s&b: %s' %(Reciever.GetColouredName(), Contents))
 
     def __init__(self,PlayerSocket,SockAddress,ServerControl):
@@ -356,6 +362,7 @@ class Player(object):
         self.CreatingZone = False
         self.ZoneData = dict()
         self.LoginTime = int(time.time())
+        self.LastPmUsername = ''
         #This is used for commands such as /lava, /water, and /grass
         self.BlockOverride = -1
 

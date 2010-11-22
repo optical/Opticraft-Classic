@@ -158,6 +158,14 @@ class PlayerInfoCmd(CommandObject):
             pPlayer.SendMessage("&aTheir rank is&e %s" %RankToName[Target.GetRank()])
         else:
             pPlayer.SendMessage("&aAnd they do not have any rank")
+class ReplyCmd(CommandObject):
+    '''Handler for the /reply command. Shortcut command to reply to a PM'''
+    def Run(self,pPlayer,Args,Message):
+        if pPlayer.GetLastPM() == '':
+            pPlayer.SendMessage("&4No one recently sent you a PM!")
+            return
+        pPlayer.HandlePrivateMessage("%s %s" %(pPlayer.GetLastPM(),' '.join(Args)))
+
 class ZoneInfoCmd(CommandObject):
     '''Zone info command handler. Returns information on a zone'''
     def Run(self,pPlayer,Args,Message):
@@ -361,6 +369,9 @@ class KickCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
         Username = Args[0]
         ReasonTokens = Args[1:]
+        if RankToLevel[pPlayer.ServerControl.GetRank(Username)] >= RankToLevel[pPlayer.GetRank()]:
+            pPlayer.SendMessage("&4You may not kick someone with the same rank or higher then yours")
+            return
         Reason = ''
         for Token in ReasonTokens:
             Reason += Token + ' '
@@ -534,7 +545,7 @@ class TempOpCmd(CommandObject):
     '''Handle for the /addrank command - gives a username a rank. Can only be used by admins'''
     def Run(self,pPlayer,Args,Message):
         Username = Args[0]
-        Target = pPlayer.ServerControl.GetRank(Username)
+        Target = pPlayer.ServerControl.GetPlayerFromName(Username)
         if Target == None:
             pPlayer.SendMessage("&4Tahat player is not online!")
             return
@@ -750,7 +761,8 @@ class CommandHandler(object):
         self.AddCommand("sinfo", sInfoCmd, 'g', 'Displays information about the server', '', 0)
         self.AddCommand("ranks", RanksCmd, 'g', 'Displays information on all the ranks', '', 0)
         self.AddCommand("whois", PlayerInfoCmd, 'g', 'Returns information on a player', 'Incorrect syntax! Usage: /whois <username>',1)
-        #Zone commands
+        self.AddCommand("r", ReplyCmd, 'g', 'Replys to the last person who sent you a PM', 'Incorrect syntax! Usage: /reply <Message>',1)
+#Zone commands
         self.AddCommand("zinfo", ZoneInfoCmd, 'g', 'Returns information on a zone.', 'Incorrect syntax! Usage: /zinfo <zone>', 1)
         self.AddCommand("zlist", ZoneListCmd, 'g', 'Lists all zones on the map', '', 0)
         self.AddCommand("ztest", ZoneTestCmd, 'g', 'Checks to see if you are in a zone.', '', 0)
@@ -789,7 +801,7 @@ class CommandHandler(object):
         self.AddCommand("save", SaveCmd, 'a', 'Saves all actively running worlds', '', 0)
         self.AddCommand("backup", BackupCmd, 'a', 'Backs up all actively running worlds', '', 0)
         self.AddCommand("setspawn", SetSpawnCmd, 'a', 'Changes the worlds default spawn location to where you are standing', '', 0)
-        self.AddCommand("tempop", TempOpCmd, 'a', 'Grants a user operator privledges until they log off', 'Incorrect syntax! Usage: /tempop <username>', 2)
+        self.AddCommand("tempop", TempOpCmd, 'a', 'Grants a user operator privledges until they log off', 'Incorrect syntax! Usage: /tempop <username>', 1)
         self.AddCommand("addrank", AddRankCmd, 'a', 'Promotes a player to a rank such a admin, operator, or builder', 'Incorrect syntax. Usage: /addrank <username> <t/a</o/b>', 2)
         self.AddCommand("removerank", RemoveRankCmd, 'a', 'Removes a players rank', 'Incorrect syntax. Usage: /removerank <username>', 1)
         self.AddCommand("worldsetrank", WorldSetRankCmd, 'a', 'Sets the minimum rank to build on a world', 'Incorrect syntax. Usage: /worldsetrank <world> <t/b/o/a>', 2)
