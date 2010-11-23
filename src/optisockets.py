@@ -103,12 +103,14 @@ class SocketManager(object):
         #Finished that. Now to see what our sockets are up to...
         if len(self.PlayerSockets) == 0:
             return #calling select() on windows with 3 empty lists results in an exception.
-        rlist, wlist,xlist = select(self.PlayerSockets,self.WriteList,[],0.100) #100ms timeout
+        rlist, wlist, xlist = select(self.PlayerSockets,self.WriteList,[],0.100) #100ms timeout
         for Socket in rlist:
             try:
                 data = Socket.recv(4096)
             except socket.error, (error_no, error_msg):
                 if error_no != errno.EWOULDBLOCK:
+                    if Socket in wlist:
+                        wlist.remove(Socket)
                     self._RemoveSocket(Socket)
                 continue
 
@@ -117,6 +119,8 @@ class SocketManager(object):
                 pPlayer.PushRecvData(data)
             else:
                 #a recv call which returns nothing usually means a dead socket
+                if Socket in wlist:
+                    wlist.remove(Socket)
                 self._RemoveSocket(Socket)
                 continue
 
@@ -125,7 +129,7 @@ class SocketManager(object):
             pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
             #pop data and send.
             ToSend = pPlayer.GetOutBuffer().getvalue()
-            #Let us try send some data :XX
+            #Let us try send some data
             try:
                 result = Socket.send(ToSend)
             except socket.error, (error_no, error_msg):
