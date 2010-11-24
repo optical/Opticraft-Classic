@@ -4,6 +4,7 @@ import os
 import os.path
 import signal
 import platform
+import asyncore
 from heartbeatcontrol import HeartBeatController
 from opticraftpacket import OptiCraftPacket
 from optisockets import SocketManager
@@ -13,6 +14,7 @@ from zones import Zone
 from world import World
 from constants import *
 from console import *
+from ircrelay import RelayBot
 class SigkillException(Exception):
     pass
 #This is used for writing to the command line (Console, stdout)
@@ -69,6 +71,15 @@ class ServerController(object):
         self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server","PeriodicAnnounceFrequency","0"))
         self.LogCommands = bool(int(self.ConfigValues.GetValue("logs","CommandLogs","1")))
         self.LogChat = bool(int(self.ConfigValues.GetValue("logs","CommandLogs","1")))
+        self.EnableIRC = bool(int(self.ConfigValues.GetValue("irc","EnableIRC","0")))
+        self.IRCServer = self.ConfigValues.GetValue("irc","Server","irc.esper.net")
+        self.IRCPort = int(self.ConfigValues.GetValue("irc","Port","6667"))
+        self.IRCChannel = self.ConfigValues.GetValue("irc","Channel","#a")
+        self.IRCNick = self.ConfigValues.GetValue("irc","Nickname0","Optibot")
+        self.IRCGameToIRC =   bool(int(self.ConfigValues.GetValue("irc","GameChatRelay","0")))
+        self.IRCIRCToGame =  bool(int(self.ConfigValues.GetValue("irc","IrcChatRelay","0")))
+        if self.EnableIRC:
+            self.IRCInterface = RelayBot(self.IRCNick,"Opticraft","Opticraft",self)
         self.RankedPlayers = dict()
         self.LoadRanks()
         self.HeartBeatControl = HeartBeatController(self)
@@ -265,6 +276,9 @@ class ServerController(object):
         self.Running = True
         #Start the heartbeatcontrol thread.
         self.HeartBeatControl.start()
+        if self.EnableIRC:
+            self.IRCInterface.Connect()
+
         if platform.system() == 'linux':
             signal.signal(signal.SIGTERM,self.HandleKill)
         Console.Out("Startup","Startup procedure completed in %.0fms" %((time.time() -self.StartTime)*1000))
@@ -304,6 +318,10 @@ class ServerController(object):
                     Message = self.PeriodicNotices[random.randint(0,len(self.PeriodicNotices)-1)]
                     self.SendMessageToAll(Message)
                     self.LastAnnounce = now
+
+            #Run the IRC Bot if enabled
+            if self.EnableIRC:
+                asyncore.loop(count=1,timeout=0.005)
             SleepTime = 0.02 - (time.time() - now)
             if 0 < SleepTime:
                 time.sleep(0.02)
@@ -432,6 +450,8 @@ class ServerController(object):
             self.AuthPlayers.remove(pPlayer)
         else:
             self.SendNotice("%s has left the server" %pPlayer.GetName())
+            if self.EnableIRC:
+                self.IRCInterface.HandleLogout(pPlayer.GetName())
             
         if pPlayer.GetName().lower() in self.PlayerNames:
             del self.PlayerNames[pPlayer.GetName().lower()]
@@ -454,6 +474,18 @@ class ServerController(object):
         Packet.WriteByte(0)
         Packet.WriteString(Message[:64])
         self.SendPacketToAll(Packet)
+    def SendChatMessage(self,From,Message):
+        Words = Message.split()
+        OutStr = '%s:&f' %From
+        for Word in Words:
+            if len(Word) >= 60:
+                continue #Prevent crazy bugs due to this crapp string system
+
+            if len(OutStr) + len(Words) > 63:
+                self.SendMessageToAll(OutStr)
+                OutStr = ">"
+            OutStr = '%s %s' %(OutStr,Word)
+        self.SendMessageToAll(OutStr)
 
     def SendPacketToAll(self,Packet):
         for pPlayer in self.PlayerSet:

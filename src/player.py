@@ -251,9 +251,8 @@ class Player(object):
             self.SendPacket(OutPacket)
             self.Rank = self.ServerControl.GetRank(self.Name)
             self.ServerControl.SendNotice('%s connected to the server' %self.Name)
-            self.SendMessage("&4NOTICE:&a We now have multi-worlds running.")
-            self.SendMessage("&4NOTICE:&a To see all worlds use /worlds")
-            self.SendMessage("&4NOTICE:&a To join a world use /j <world>")
+            if self.ServerControl.EnableIRC:
+                self.ServerControl.IRCInterface.HandleLogin(self.GetName())
 
             return
         else:
@@ -315,15 +314,12 @@ class Player(object):
         elif Contents[0] == "@":
             self.HandlePrivateMessage(Contents[1:])
         else:
-            Packet2 = OptiCraftPacket(SMSG_MESSAGE)
-            Packet2.WriteByte(self.GetId())
-            Message = '%s:&f %s' %(self.GetColouredName(),Contents)
-            Message = Message[:64]
-            Packet2.WriteString(Message)
-            self.ServerControl.SendPacketToAll(Packet2)
+            self.ServerControl.SendChatMessage(self.GetColouredName(),Contents)
             if self.ServerControl.LogChat:
                 TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
                 self.ServerControl.ChatLogHandle.write("%s <%s>: %s\n" %(TimeFormat,self.GetName(),Contents))
+            if self.ServerControl.EnableIRC:
+                self.ServerControl.IRCInterface.HandleIngameMessage(self.Name,Contents)
 
     def HandlePrivateMessage(self,Message):
         if len(Message) == 0:
