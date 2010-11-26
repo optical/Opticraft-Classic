@@ -229,9 +229,10 @@ class Player(object):
             self.Disconnect("Your client is incompatible with this server")
             return
 
-        if self.Name.lower() in self.ServerControl.PlayerNames:
+        if self.ServerControl.GetPlayerFromName(self.Name) != None:
             Console.Debug("Player","%s tried to connect but is already online." %self.Name)
-            self.Disconnect("Duplicates are not allowed!")
+            self.Disconnect("Disconnecting your duplicate login. Please reconnect.")
+            self.ServerControl.GetPlayerFromName(self.Name).Disconnect("Disonnecting for second login")
             return
         if self.ServerControl.IsBanned(self) == True:
             Console.Debug("Player","Banned player %s tried to connect." %self.Name)

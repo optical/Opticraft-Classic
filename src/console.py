@@ -60,6 +60,9 @@ class OConsole(object):
 
     def SetLogLevel(self,Level):
         self.LogLevel = Level
+    def SetColour(self,Value):
+        global ENABLE_COLOUR
+        ENABLE_COLOUR = bool(Value)
     def SetFileLogging(self,Value):
         if self.FileLogging == True and Value == False:
             self.LogHandle.close()

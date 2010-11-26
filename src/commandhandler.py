@@ -457,18 +457,18 @@ class SaveCmd(CommandObject):
     '''Handle for the /save command - saves all running worlds'''
     def Run(self,pPlayer,Args,Message):
         pPlayer.ServerControl.SaveAllWorlds()
-        pPlayer.SendMessage("Saved all worlds successfully")
+        pPlayer.SendMessage("&aSaved all worlds successfully")
 class BackupCmd(CommandObject):
     '''Handle for the /backup command - backs up all running worlds'''
     def Run(self,pPlayer,Args,Message):
         pPlayer.ServerControl.BackupAllWorlds()
-        pPlayer.SendMessage("Backed up all worlds successfully")
+        pPlayer.SendMessage("&aBacked up all worlds successfully")
 
 class SetSpawnCmd(CommandObject):
     '''Handle for the /setspawn command - moves the default spawnpoint to the location you are at'''
     def Run(self,pPlayer,Args,Message):
         pPlayer.GetWorld().SetSpawn(pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ(), pPlayer.GetOrientation(),0)
-        pPlayer.SendMessage("This worlds spawnpoint has been moved")
+        pPlayer.SendMessage("&aThis worlds spawnpoint has been moved")
 
 class AddIPBanCmd(CommandObject):
     '''Handler for the /ipban command. Bans an IP Address from the server'''
@@ -542,7 +542,7 @@ class WorldSetRankCmd(CommandObject):
             pWorld.MinRank = Rank
             pPlayer.SendMessage("&aSuccessfully set %s to be %s only" %(pWorld.Name,RankToName[Rank]))
 class TempOpCmd(CommandObject):
-    '''Handle for the /addrank command - gives a username a rank. Can only be used by admins'''
+    '''Handle for the /tempop command - gives a username temporary operator status'''
     def Run(self,pPlayer,Args,Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
@@ -571,7 +571,7 @@ class AddRankCmd(CommandObject):
             pPlayer.SendMessage("&4You do not have permission to add this rank")
             return
         Target = pPlayer.ServerControl.GetRank(Username)
-        if RankToLevel[Target] > RankToLevel[Rank]:
+        if RankToLevel[Target] > RankToLevel[Rank] and Target != 'g':
             pPlayer.SendMessage("&4You may not set that players rank!")
             return
         pPlayer.ServerControl.SetRank(Username,Rank)
@@ -797,6 +797,7 @@ class CommandHandler(object):
         #ADMIN COMMANDS HERE #
         ######################
         self.AddCommand("addipban", AddIPBanCmd, 'a', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username>', 1)
+        self.AddCommand("ipban", AddIPBanCmd, 'a', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username>', 1,Alias=True)
         self.AddCommand("delipban", DelIPBanCmd, 'a', 'Removes an IP ban', 'Incorrect syntax! Usage: /delipban <ip/username>', 1)
         self.AddCommand("save", SaveCmd, 'a', 'Saves all actively running worlds', '', 0)
         self.AddCommand("backup", BackupCmd, 'a', 'Backs up all actively running worlds', '', 0)
