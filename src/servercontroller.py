@@ -20,7 +20,6 @@ class SigkillException(Exception):
 #This is used for writing to the command line (Console, stdout)
 class ServerController(object):
     def __init__(self):
-        Console.Out("Startup","Opticraft is starting up.")
         self.StartTime = int(time.time())
         self.ConfigValues = ConfigReader()
         self.RankStore = ConfigReader()
@@ -40,6 +39,8 @@ class ServerController(object):
             os.mkdir("Logs")
         Console.SetLogLevel(int(self.ConfigValues.GetValue("logs","ConsoleLogLevel",LOG_LEVEL_DEBUG)))
         Console.SetFileLogging(bool(int(self.ConfigValues.GetValue("logs","ConsoleFileLogs","0"))))
+        Console.SetColour(int(self.ConfigValues.GetValue("server","ConsoleColour","1")))
+        Console.Out("Startup","Opticraft is starting up.")
         self.Port = int(self.ConfigValues.GetValue("server","Port","6878"))
         self.Salt = str(random.randint(1,0xFFFFFFFF-1))
         #Check to see if we have a salt saved to disk.
@@ -249,7 +250,7 @@ class ServerController(object):
         if Rank != 'g':
             self.RankedPlayers[Username.lower()] = Rank.lower()
             self.RankStore.set("ranks",Username,Rank)
-            pPlayer = self.PlayerNames.get(Username,None)
+            pPlayer = self.GetPlayerFromName(Username)
             if pPlayer != None:
                 pPlayer.SetRank(Rank)
                 pPlayer.SendMessage("Your rank has been changed to %s!" %RankToName[Rank])
@@ -257,7 +258,7 @@ class ServerController(object):
             if Username.lower() in self.RankedPlayers:
                 del self.RankedPlayers[Username.lower()]
                 self.RankStore.remove_option("ranks",Username)
-                pPlayer = self.PlayerNames.get(Username.lower(),None)
+                pPlayer = self.GetPlayerFromName()
                 if pPlayer != None:
                     pPlayer.SetRank('g')
                     pPlayer.SendMessage("You no longer have a rank.")
@@ -386,7 +387,7 @@ class ServerController(object):
     def AddBan(self,Username,Expiry):
         self.BannedUsers[Username.lower()] = Expiry
         self.FlushBans()
-        pPlayer = self.PlayerNames.get(Username.lower(),None)
+        pPlayer = self.GetPlayerFromName(Username)
         if pPlayer != None:
             pPlayer.Disconnect("You are banned from this server")
             return True
@@ -415,7 +416,7 @@ class ServerController(object):
             return False
 
     def Kick(self,Operator,Username,Reason):
-        pPlayer = self.PlayerNames.get(Username.lower(),None)
+        pPlayer = self.GetPlayerFromName(Username)
         if pPlayer != None:
             self.SendNotice("%s was kicked by %s. Reason: %s" %(Username,Operator.GetName(),Reason))
             pPlayer.Disconnect("You were kicked by %s. Reason: %s" %(Operator.GetName(),Reason))
@@ -452,8 +453,8 @@ class ServerController(object):
             self.SendNotice("%s has left the server" %pPlayer.GetName())
             if self.EnableIRC:
                 self.IRCInterface.HandleLogout(pPlayer.GetName())
-            
-        if pPlayer.GetName().lower() in self.PlayerNames:
+        #debug line.
+        if self.GetPlayerFromName(pPlayer.GetName()) != None:
             del self.PlayerNames[pPlayer.GetName().lower()]
 
         if pPlayer.GetWorld() != None:
