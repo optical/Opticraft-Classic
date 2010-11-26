@@ -165,8 +165,13 @@ class PlayerListCmd(CommandObject):
         pPlayer.SendMessage("&aThe following players are online:")
         OutStr = ''
         for oPlayer in pPlayer.ServerControl.PlayerSet:
-            OutStr = '%s %s%s' %(OutStr,RankToColour[oPlayer.GetRank()],oPlayer.GetName())
-        pPlayer.SendMessage(OutStr)
+            if len(oPlayer.GetName()) + 2 + len(OutStr) < 63:
+                OutStr = '%s %s%s' %(OutStr,RankToColour[oPlayer.GetRank()],oPlayer.GetName())
+            else:
+                pPlayer.SendMessage(OutStr)
+                OutStr = ''
+        if OutStr != '':
+            pPlayer.SendMessage(OutStr)
 
 
 
@@ -364,7 +369,7 @@ class BanCmd(CommandObject):
         Result = pPlayer.ServerControl.AddBan(Username, 0) #TODO: Parse input so we can enter expiry!
         if Result:
             pPlayer.ServerControl.SendNotice("%s was just banned by %s" %(Username,pPlayer.GetName()))
-        pPlayer.SendMessage("Successfully banned %s" %(Username))
+        pPlayer.SendMessage("&aSuccessfully banned %s" %(Username))
 
 class UnbanCmd(CommandObject):
     '''Unban command handler. Removes a ban for a username'''
@@ -372,7 +377,7 @@ class UnbanCmd(CommandObject):
         Username = Args[0]
         Result = pPlayer.ServerControl.Unban(Username)
         if Result:
-            pPlayer.SendMessage("Successfully banned %s" %(Username))
+            pPlayer.SendMessage("&aSuccessfully unbanned %s" %(Username))
         else:
             pPlayer.SendMessage("&4That user was not banned!")
 
@@ -393,7 +398,7 @@ class KickCmd(CommandObject):
 
         Result = pPlayer.ServerControl.Kick(pPlayer,Username,Reason)
         if Result:
-            pPlayer.SendMessage("Successfully kicked %s" %(Username))
+            pPlayer.SendMessage("&aSuccessfully kicked %s" %(Username))
         else:
             pPlayer.SendMessage("&4That user is not online!")
 
@@ -407,7 +412,7 @@ class SummonCmd(CommandObject):
                 pPlayer.SendMessage("&4That player is not on your world. Cannot teleport to them!")
                 return
             Target.Teleport(pPlayer.GetX(),pPlayer.GetY(),pPlayer.GetZ(),pPlayer.GetOrientation(),pPlayer.GetPitch())
-            pPlayer.SendMessage("Successfully summoned %s" %Target.GetName())
+            pPlayer.SendMessage("&aSuccessfully summoned %s" %Target.GetName())
         else:
             pPlayer.SendMessage("&4That player is not online!")
 class UndoActionsCmd(CommandObject):
