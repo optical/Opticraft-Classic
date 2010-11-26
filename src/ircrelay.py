@@ -1,4 +1,5 @@
 import asyncore
+from console import Console
 from ircclient import IRCClient
 
 class RelayBot(IRCClient):
@@ -23,8 +24,10 @@ class RelayBot(IRCClient):
                 Message = Message.replace('&','')
                 self.ServerControl.SendChatMessage('&3[IRC] &f%s' %Username,Message)
     def Connect(self):
+        Console.Out("IRC","Connecting to irc server %s on port %d" %(self.Host,self.Port))
         self.connect((self.Host,self.Port))
     def OnConnection(self,Data):
+        Console.Out("IRC","Attmpting to join channel %s" %self.Channel)
         self.Write("JOIN %s" %self.Channel)
     def HandleIngameMessage(self,From,Message):
         if self.GameToIrc:

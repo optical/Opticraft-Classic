@@ -158,6 +158,18 @@ class PlayerInfoCmd(CommandObject):
             pPlayer.SendMessage("&aTheir rank is&e %s" %RankToName[Target.GetRank()])
         else:
             pPlayer.SendMessage("&aAnd they do not have any rank")
+
+class PlayerListCmd(CommandObject):
+    '''Handler for the /players command. Lists all online players'''
+    def Run(self,pPlayer,Args,Message):
+        pPlayer.SendMessage("&aThe following players are online:")
+        OutStr = ''
+        for oPlayer in pPlayer.ServerControl.PlayerSet:
+            OutStr = '%s %s%s' %(OutStr,RankToColour[oPlayer.GetRank()],oPlayer.GetName())
+        pPlayer.SendMessage(OutStr)
+
+
+
 class ReplyCmd(CommandObject):
     '''Handler for the /reply command. Shortcut command to reply to a PM'''
     def Run(self,pPlayer,Args,Message):
@@ -761,6 +773,7 @@ class CommandHandler(object):
         self.AddCommand("sinfo", sInfoCmd, 'g', 'Displays information about the server', '', 0)
         self.AddCommand("ranks", RanksCmd, 'g', 'Displays information on all the ranks', '', 0)
         self.AddCommand("whois", PlayerInfoCmd, 'g', 'Returns information on a player', 'Incorrect syntax! Usage: /whois <username>',1)
+        self.AddCommand("players", PlayerListCmd, 'g', 'Lists all online players', '',0)
         self.AddCommand("r", ReplyCmd, 'g', 'Replys to the last person who sent you a PM', 'Incorrect syntax! Usage: /reply <Message>',1)
 #Zone commands
         self.AddCommand("zinfo", ZoneInfoCmd, 'g', 'Returns information on a zone.', 'Incorrect syntax! Usage: /zinfo <zone>', 1)

@@ -76,7 +76,7 @@ class ServerController(object):
         self.IRCServer = self.ConfigValues.GetValue("irc","Server","irc.esper.net")
         self.IRCPort = int(self.ConfigValues.GetValue("irc","Port","6667"))
         self.IRCChannel = self.ConfigValues.GetValue("irc","Channel","#a")
-        self.IRCNick = self.ConfigValues.GetValue("irc","Nickname0","Optibot")
+        self.IRCNick = self.ConfigValues.GetValue("irc","Nickname","Optibot")
         self.IRCGameToIRC =   bool(int(self.ConfigValues.GetValue("irc","GameChatRelay","0")))
         self.IRCIRCToGame =  bool(int(self.ConfigValues.GetValue("irc","IrcChatRelay","0")))
         if self.EnableIRC:
@@ -480,7 +480,7 @@ class ServerController(object):
         OutStr = '%s:&f' %From
         for Word in Words:
             if len(Word) >= 60:
-                continue #Prevent crazy bugs due to this crapp string system
+                return #Prevent crazy bugs due to this crappy string system
 
             if len(OutStr) + len(Words) > 63:
                 self.SendMessageToAll(OutStr)
