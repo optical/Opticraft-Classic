@@ -62,13 +62,15 @@ class AsynchronousIOThread(threading.Thread):
                 #Username (Who used the command
                 #Username of blocks to undo,
                 #Timestamp of oldest block allowed
-                self._UndoActionsTask(Task[1], Task[2], Task[3], Task[4])
+                self._UndoActionsTask(Task[1], Task[2], Task[3])
             elif Task[0] == "EXECUTE":
                 #Task[1] is a string such as "REPLACE INTO BlockLogs VALUES(?,?,?,?)"
                 #Task[2] is a tupe of values to subsitute into the string safely
                 #See: http://docs.python.org/library/sqlite3.html
                 self.DBConnection.execute(Task[1],Task[2])
                 self.DBConnection.commit()
+            elif Task[0] == "SHUTDOWN":
+                self.Running = False
             elif Task[0] == "CONNECT":
                 #Connect/Reconnect to the DB.
                 self._ConnectTask()
@@ -92,11 +94,12 @@ class AsynchronousIOThread(threading.Thread):
         self.DBConnection.commit()
         Console.Debug("IOThread","Flushing took %.3f seconds!" %(time.time()-start))
         
-    def _UndoActionsTask(self,Username,ReverseName,NumChanged,Time):
+    def _UndoActionsTask(self,Username,ReverseName,Time):
         now = time.time()
         SQLResult = self.DBConnection.execute("SELECT Offset,OldValue from Blocklogs where Username = ? and Time > ?", (ReverseName,now-Time))
         Row = SQLResult.fetchone()
         BlockChangeList = [Username,ReverseName,0]
+        NumChanged = 0
         while Row != None:
             BlockChangeList.append(BlockChange(Row[0],Row[1]))
             NumChanged += 1
@@ -107,7 +110,7 @@ class AsynchronousIOThread(threading.Thread):
         self.DBConnection.commit()
         Console.Debug("IOThread","%s reversed %s's actions. %d changed in %f seconds" %(Username,ReverseName,NumChanged,time.time()-now))
     def Shutdown(self,Crash):
-        self.Running = False
+        self.Tasks.put(["SHUTDOWN"])
 
 class World(object):
     def __init__(self,ServerControl,Name,NewMap=False,NewX=-1,NewY=-1,NewZ=-1):
@@ -398,22 +401,9 @@ class World(object):
         
     def UndoActions(self,Username,ReversePlayer,Time):
         Username = Username.lower()
-        ToRemove = []
-        NumChanged = 0
-        now = time.time()
-        #Reverse stuff in the hashmap
-        for key in self.BlockHistory:
-            BlockInfo = self.BlockHistory[key]
-            if BlockInfo.Username == ReversePlayer and BlockInfo.Time > now-Time:
-                x,y,z = self._CalculateCoords(key)
-                self.SetBlock(None, x,y,z, ord(BlockInfo.Value))
-                NumChanged += 1
-                ToRemove.append(key)
-        
-        while len(ToRemove) > 0:
-            del self.BlockHistory[ToRemove.pop()]
+        self.FlushBlockLog()
         #Reverse stuff in SQL DB
-        self.IOThread.Tasks.put(["UNDO_ACTIONS",Username,ReversePlayer,NumChanged,Time])
+        self.IOThread.Tasks.put(["UNDO_ACTIONS",Username,ReversePlayer,Time])
 
     def AddBlockChanges(self,BlockChangeList):
         self.AsyncBlockChanges.put(BlockChangeList)
@@ -534,6 +524,7 @@ class World(object):
         self.Save(False)
         self.Backup(False)
         if self.LogBlocks:
+            self.FlushBlockLog()
             self.IOThread.Shutdown(Crash)
 
 
