@@ -165,6 +165,8 @@ class PlayerListCmd(CommandObject):
         pPlayer.SendMessage("&aThe following players are online:")
         OutStr = ''
         for oPlayer in pPlayer.ServerControl.PlayerSet:
+            if oPlayer.IsAuthenticated() == False:
+                continue
             if len(oPlayer.GetName()) + 2 + len(OutStr) < 63:
                 OutStr = '%s %s%s' %(OutStr,RankToColour[oPlayer.GetRank()],oPlayer.GetName())
             else:
