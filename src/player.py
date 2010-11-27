@@ -178,6 +178,8 @@ class Player(object):
         self.TowerCmd = Value
     def GetLastAction(self):
         return self.LastAction
+    def IsAuthenticated(self):
+        return self.IsIdentified
 
 
     def GetWriteFlagged(self):
@@ -364,7 +366,7 @@ class Player(object):
         self.PaintCmd = False
         self.TowerCmd = False
         self.IsWriteFlagged = False
-        self.Rank = ''
+        self.Rank = 'g'
         self.CreatingZone = False
         self.ZoneData = dict()
         self.LoginTime = int(self.ServerControl.Now)
