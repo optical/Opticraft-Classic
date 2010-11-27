@@ -150,7 +150,7 @@ class PlayerInfoCmd(CommandObject):
         if Target == None:
             pPlayer.SendMessage("&4That player is not online!")
             return
-        pPlayer.SendMessage("&a%s has been online for&e %s" %(Target.GetName(), ElapsedTime(int(time.time()) -Target.GetLoginTime())))
+        pPlayer.SendMessage("&a%s has been online for&e %s" %(Target.GetName(), ElapsedTime(int(pPlayer.ServerControl.Now) -Target.GetLoginTime())))
         if pPlayer.HasPermission('o'):
             pPlayer.SendMessage("&aTheir ip is:&e %s" %Target.GetIP())
         pPlayer.SendMessage("&aThey are on world&e \"%s\"" %Target.GetWorld().Name)

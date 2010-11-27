@@ -175,6 +175,8 @@ class Player(object):
         return self.TowerCmd
     def SetTowerCmd(self,Value):
         self.TowerCmd = Value
+    def GetLastAction(self):
+        return self.LastAction
 
 
     def GetWriteFlagged(self):
@@ -283,6 +285,7 @@ class Player(object):
 
     def HandleBlockChange(self,Packet):
         if self.World is not None:
+            self.LastAction = self.ServerControl.Now
             x = Packet.GetInt16()
             z = Packet.GetInt16()
             y = Packet.GetInt16()
@@ -308,6 +311,7 @@ class Player(object):
     def HandleChatMessage(self,Packet):
         if self.World == None:
             return
+        self.LastAction = self.ServerControl.Now
         Packet.GetByte() #junk
         Contents = Packet.GetString()
         if Contents[0] == "/":
@@ -360,7 +364,8 @@ class Player(object):
         self.Rank = ''
         self.CreatingZone = False
         self.ZoneData = dict()
-        self.LoginTime = int(time.time())
+        self.LoginTime = int(self.ServerControl.Now)
+        self.LastAction = self.LoginTime
         self.LastPmUsername = ''
         #This is used for commands such as /lava, /water, and /grass
         self.BlockOverride = -1

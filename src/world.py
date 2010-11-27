@@ -125,9 +125,9 @@ class World(object):
         self.DefaultX = int(self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeX","256"))
         self.DefaultY = int(self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeY","256"))
         self.DefaultZ = int(self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeZ","96"))
-        self.LastSave = time.time() + random.randrange(0,30)
+        self.LastSave = self.ServerControl.Now + random.randrange(0,30)
         self.SaveInterval = int(self.ServerControl.ConfigValues.GetValue("worlds","SaveTime","300"))
-        self.LastBackup = time.time() + random.randrange(0,30)
+        self.LastBackup = self.ServerControl.Now + random.randrange(0,30)
         self.BackupInterval = int(self.ServerControl.ConfigValues.GetValue("worlds","BackupTime","3600"))
         self.CompressionLevel = int(self.ServerControl.ConfigValues.GetValue("worlds","CompressionLevel",1))
         self.LogBlocks = int(self.ServerControl.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
@@ -473,10 +473,9 @@ class World(object):
         
 
     def Run(self):
-        now = time.time()
         if self.IdleTimeout != 0 and len(self.Players) == 0:
             if self.IdleStart != 0:
-                if self.IdleStart + self.IdleTimeout < now:
+                if self.IdleStart + self.IdleTimeout < self.ServerControl.Now:
                     self.ServerControl.UnloadWorld(self) #Unload.
                     self.Save(False)
                     if self.LogBlocks:
@@ -484,13 +483,13 @@ class World(object):
                         self.IOThread.Shutdown(False)
                     return
             else:
-                self.IdleStart = now
+                self.IdleStart = self.ServerControl.Now
         elif self.IdleStart != 0:
             self.IdleStart = 0
 
-        if self.LastSave + self.SaveInterval < now:
+        if self.LastSave + self.SaveInterval < self.ServerControl.Now:
             self.Save()
-        if self.LastBackup + self.BackupInterval < now:
+        if self.LastBackup + self.BackupInterval < self.ServerControl.Now:
             self.Backup()
         if len(self.BlockHistory) >= self.LogFlushThreshold:
             #Write the BlockLog to disk (SQL)

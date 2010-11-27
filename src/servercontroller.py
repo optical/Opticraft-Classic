@@ -67,7 +67,10 @@ class ServerController(object):
         self.Public = self.ConfigValues.GetValue("server","Public","True")
         self.DumpStats = int(self.ConfigValues.GetValue("server","DumpStats","0"))
         self.LanMode = bool(int(self.ConfigValues.GetValue("server","LanMode","0")))
-        self.SendBufferLimit = int(self.ConfigValues.GetValue("server","SendBufferLimit","4194304")) #4MB 
+        self.SendBufferLimit = int(self.ConfigValues.GetValue("server","SendBufferLimit","4194304")) #4MB
+        self.IdlePlayerLimit = int(self.ConfigValues.GetValue("server","IdleLimit","3600"))
+        self.LastIdleCheck = time.time()
+        self.IdleCheckPeriod = 60
         self.WorldTimeout = int(self.ConfigValues.GetValue("worlds","IdleTimeout","300"))
         self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server","PeriodicAnnounceFrequency","0"))
         self.LogCommands = bool(int(self.ConfigValues.GetValue("logs","CommandLogs","1")))
@@ -103,6 +106,7 @@ class ServerController(object):
         self.LastAnnounce = 0
         self.NumPlayers = 0
         self.PeakPlayers = 0
+        self.Now = time.time()
         self.CommandHandle = CommandHandler(self)
         if self.LogChat:
             try:
@@ -284,7 +288,7 @@ class ServerController(object):
             signal.signal(signal.SIGTERM,self.HandleKill)
         Console.Out("Startup","Startup procedure completed in %.0fms" %((time.time() -self.StartTime)*1000))
         while self.Running == True:
-            now = time.time()
+            self.Now = time.time()
             self.SockManager.Run()
             ToRemove = list()
             for pPlayer in self.AuthPlayers:
@@ -307,23 +311,28 @@ class ServerController(object):
                 pPlayer = self.PlayersPendingRemoval.pop()
                 self._RemovePlayer(pPlayer)
                 
-            if self.LastKeepAlive + 1 < now:
-                self.LastKeepAlive = now
+            if self.LastKeepAlive + 1 < self.Now:
+                self.LastKeepAlive = self.Now
                 Packet = OptiCraftPacket(SMSG_KEEPALIVE)
                 #Send a SMSG_KEEPALIVE packet to all our clients across all worlds.
                 for pPlayer in self.PlayerSet:
                     pPlayer.SendPacket(Packet)
 
             if self.PeriodicAnnounceFrequency:
-                if self.LastAnnounce + self.PeriodicAnnounceFrequency < now:
+                if self.LastAnnounce + self.PeriodicAnnounceFrequency < self.Now:
                     Message = self.PeriodicNotices[random.randint(0,len(self.PeriodicNotices)-1)]
                     self.SendMessageToAll(Message)
-                    self.LastAnnounce = now
+                    self.LastAnnounce = self.Now
 
             #Run the IRC Bot if enabled
             if self.EnableIRC:
                 asyncore.loop(count=1,timeout=0.005)
-            SleepTime = 0.02 - (time.time() - now)
+            #Remove idle players
+            if self.IdlePlayerLimit != 0:
+                if self.LastIdleCheck + self.IdleCheckPeriod < self.Now:
+                    self.RemoveIdlePlayers()
+                    self.LastIdleCheck = self.Now
+            SleepTime = 0.02 - (time.time() - self.Now)
             if 0 < SleepTime:
                 time.sleep(0.02)
     def Shutdown(self,Crash):
@@ -339,7 +348,7 @@ class ServerController(object):
     def GetMotd(self):
         return self.Motd
     def GetUptimeStr(self):
-        return ElapsedTime((int(time.time())) - int(self.StartTime))
+        return ElapsedTime((int(self.Now)) - int(self.StartTime))
 
     def GetPlayerFromName(self,Username):
         '''Returns a player pointer if the user is logged else.
@@ -350,7 +359,7 @@ class ServerController(object):
         '''Checks if a player is banned. Also erases any expired bans!'''
         if self.BannedUsers.has_key(pPlayer.GetName().lower()):
             ExpiryTime = self.BannedUsers[pPlayer.GetName().lower()]
-            if ExpiryTime == 0 or ExpiryTime > time.time():
+            if ExpiryTime == 0 or ExpiryTime > self.Now:
                 return True
             else:
                 del self.BannedUsers[pPlayer.GetName().lower()]
@@ -358,7 +367,7 @@ class ServerController(object):
                 return False
         elif self.BannedIPs.has_key(pPlayer.GetIP()):
             ExpiryTime = self.BannedIPs[pPlayer.GetIP()]
-            if ExpiryTime == 0 or ExpiryTime > time.time():
+            if ExpiryTime == 0 or ExpiryTime > self.Now:
                 return True
             else:
                 del self.BannedIPs[pPlayer.GetIP()]
@@ -422,6 +431,12 @@ class ServerController(object):
             pPlayer.Disconnect("You were kicked by %s. Reason: %s" %(Operator.GetName(),Reason))
             return True
         return False
+    def RemoveIdlePlayers(self):
+        for pPlayer in self.PlayerSet:
+            if pPlayer.GetLastAction() + self.IdlePlayerLimit < self.Now:
+                if RankToLevel['g'] >= pPlayer.GetRank():
+                    pPlayer.Disconnect("You were kicked for being idle")
+                    self.SendMessageToAll("%s&e has been kicked for being idle" %pPlayer.GetColouredName())
 
     def AttemptAddPlayer(self,pPlayer):
         if len(self.PlayerIDs) == 0:
@@ -451,11 +466,11 @@ class ServerController(object):
             self.AuthPlayers.remove(pPlayer)
         else:
             self.SendNotice("%s has left the server" %pPlayer.GetName())
+            if self.GetPlayerFromName(pPlayer.GetName()) != None:
+                del self.PlayerNames[pPlayer.GetName().lower()]
             if self.EnableIRC:
                 self.IRCInterface.HandleLogout(pPlayer.GetName())
-        #debug line.
-        if self.GetPlayerFromName(pPlayer.GetName()) != None:
-            del self.PlayerNames[pPlayer.GetName().lower()]
+
 
         if pPlayer.GetWorld() != None:
             pPlayer.GetWorld().RemovePlayer(pPlayer)
