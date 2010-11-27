@@ -434,7 +434,7 @@ class ServerController(object):
     def RemoveIdlePlayers(self):
         for pPlayer in self.PlayerSet:
             if pPlayer.GetLastAction() + self.IdlePlayerLimit < self.Now:
-                if RankToLevel['g'] >= pPlayer.GetRank():
+                if RankToLevel['g'] >= RankToLevel[pPlayer.GetRank()]:
                     pPlayer.Disconnect("You were kicked for being idle")
                     self.SendMessageToAll("%s&e has been kicked for being idle" %pPlayer.GetColouredName())
 
