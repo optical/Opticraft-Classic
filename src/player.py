@@ -92,7 +92,7 @@ class Player(object):
     def GetName(self):
         return self.Name
     def GetColouredName(self):
-        return '%s%s' %(RankToColour[self.Rank],self.Name)
+        return self.ColouredName
     def GetSocket(self):
         return self.PlayerSocket
     def GetIP(self):
@@ -157,6 +157,7 @@ class Player(object):
         return self.Rank
     def SetRank(self,Rank):
         self.Rank = Rank
+        self.ColouredName = '%s%s' %(RankToColour[self.Rank],self.Name)
     def HasPermission(self,Permission):
         return RankToLevel[self.Rank] >= RankToLevel[Permission]
     def SetBlockOverride(self,Block):
@@ -253,6 +254,7 @@ class Player(object):
             OutPacket.WriteByte(0)
             self.SendPacket(OutPacket)
             self.Rank = self.ServerControl.GetRank(self.Name)
+            self.ColouredName = '%s%s' %(RankToColour[self.Rank],self.Name)
             self.ServerControl.SendNotice('%s connected to the server' %self.Name)
             if self.ServerControl.EnableIRC:
                 self.ServerControl.IRCInterface.HandleLogin(self.GetName())
@@ -324,7 +326,7 @@ class Player(object):
                 TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
                 self.ServerControl.ChatLogHandle.write("%s <%s>: %s\n" %(TimeFormat,self.GetName(),Contents))
             if self.ServerControl.EnableIRC:
-                self.ServerControl.IRCInterface.HandleIngameMessage(self.Name,Contents)
+                self.ServerControl.IRCInterface.HandleIngameMessage(self.GetColouredName(),Contents)
 
     def HandlePrivateMessage(self,Message):
         if len(Message) == 0:
@@ -352,6 +354,7 @@ class Player(object):
         self.PlayerSocket = PlayerSocket
         self.PlayerIP = SockAddress
         self.Name = ''
+        self.ColouredName = ''
         self.IsIdentified = False
         self.Id = -1
         self.ServerControl = ServerControl
