@@ -11,6 +11,7 @@ def Main():
     try:
         ServerControl.Run()
     except:
+        derp=1/0
         Console.Error("Shutdown","Server is shutting down.")
         fHandle = open("CrashLog.txt","a")
         fHandle.write("="*30 + "\n")
