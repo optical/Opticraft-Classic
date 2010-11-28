@@ -164,7 +164,8 @@ class PlayerListCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
         pPlayer.SendMessage("&aThe following players are online:")
         OutStr = ''
-        for oPlayer in pPlayer.ServerControl.PlayerSet:
+        PlayerList = sorted(pPlayer.ServerControl.PlayerSet,key=str.lower)
+        for oPlayer in PlayerList:
             if oPlayer.IsAuthenticated() == False:
                 continue
             #1 = space
