@@ -6,6 +6,7 @@ from console import *
 class HeartBeatController(Thread):
     def __init__(self,ServerControl):
         Thread.__init__(self)
+        self.daemon = True
         self.LastFetch = 0
         self.FetchInterval = 30
         self.MaxClients = ServerControl.MaxClients

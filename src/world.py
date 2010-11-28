@@ -32,6 +32,7 @@ class AsynchronousIOThread(threading.Thread):
     ...waits for the disk'''
     def __init__(self,pWorld):
         threading.Thread.__init__(self)
+        self.daemon = True
         self.Lock = threading.Lock()
         self.WorldName = pWorld.Name
         self.World = pWorld
