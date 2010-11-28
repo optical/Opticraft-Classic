@@ -53,7 +53,7 @@ class RelayBot(IRCClient):
         self.ColourMap["&4"] = '%s4' %RelayBot.COLOUR_CODE #Dark red
         self.ColourMap["&5"] = '%s6' %RelayBot.COLOUR_CODE #Purple
         self.ColourMap["&6"] = '%s8' %RelayBot.COLOUR_CODE #gold
-        self.ColourMap["&7"] = '%s15' %RelayBot.COLOUR_CODE #Grey
+        self.ColourMap["&7"] = '%s14' %RelayBot.COLOUR_CODE #Grey
         self.ColourMap["&8"] = '%s14' %RelayBot.COLOUR_CODE #Dark Grey
         self.ColourMap["&9"] = '%s12' %RelayBot.COLOUR_CODE #blue
         self.ColourMap["&a"] = '%s3' %RelayBot.COLOUR_CODE #Green
