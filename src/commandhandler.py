@@ -167,11 +167,12 @@ class PlayerListCmd(CommandObject):
         for oPlayer in pPlayer.ServerControl.PlayerSet:
             if oPlayer.IsAuthenticated() == False:
                 continue
-            if len(oPlayer.GetName()) + 2 + len(OutStr) < 63:
-                OutStr = '%s %s%s' %(OutStr,RankToColour[oPlayer.GetRank()],oPlayer.GetName())
+            #1 = space
+            if len(oPlayer.GetColouredName()) + 1 + len(OutStr) < 63:
+                OutStr = '%s %s' %(OutStr,oPlayer.GetColouredName())
             else:
                 pPlayer.SendMessage(OutStr)
-                OutStr = ''
+                OutStr = '%s' %(oPlayer.GetColouredName())
         if OutStr != '':
             pPlayer.SendMessage(OutStr)
 
@@ -606,15 +607,6 @@ class RemoveRankCmd(CommandObject):
             return
         pPlayer.ServerControl.SetRank(Username,'g')
         pPlayer.SendMessage("&aRemoved %s's rank" %Username)
-######################
-#OWNER COMMANDS HERE #
-######################
-
-class FlushBlockLogCmd(CommandObject):
-    '''Flushes the worlds blocklog to disk'''
-    def Run(self,pPlayer,Args,Message):
-        pPlayer.GetWorld().FlushBlockLog()
-        pPlayer.SendMessage("&aWorld %s's Blocklog has been flushed to disk." %pPlayer.GetWorld().Name)
 class ZCreateCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
         Name = Args[0]
@@ -744,12 +736,65 @@ class RenameWorldCmd(CommandObject):
                         pPlayer.ServerControl.ConfigValues.write(fHandle)
                         fHandle.close()
                     break
+        #Rename Backups
+        if os.path.exists("Backups/%s" %OldName):
+            shutil.move("Backups/%s" %OldName, "Backups/%s" %NewName)
 
         #Finally, change zones.
         for pZone in pPlayer.ServerControl.GetZones():
             if pZone.Map.lower() == OldName:
                 pZone.SetMap(NewName)
         pPlayer.SendMessage("&aSuccessfully renamed map %s to %s" %(OldName,NewName))
+
+######################
+#OWNER COMMANDS HERE #
+######################
+
+class FlushBlockLogCmd(CommandObject):
+    '''Flushes the worlds blocklog to disk'''
+    def Run(self,pPlayer,Args,Message):
+        pPlayer.GetWorld().FlushBlockLog()
+        pPlayer.SendMessage("&aWorld %s's Blocklog has been flushed to disk." %pPlayer.GetWorld().Name)
+class DeleteWorldCmd(CommandObject):
+    '''Deletes a world from the server'''
+    def Run(self,pPlayer,Args,Message):
+        WorldName = Args[0].lower()
+        if pPlayer.ServerControl.WorldExists(WorldName) == False:
+            pPlayer.SendMessage("&4That world does not exist!")
+            return
+        #Is it an idle world? (Easy)
+        ActiveWorlds,IdleWorlds = pPlayer.ServerControl.GetWorlds()
+        if ActiveWorlds[0].Name.lower() == WorldName:
+            pPlayer.SendMessage("&4You cannot delete the default world!")
+            return
+
+        for pWorld in ActiveWorlds:
+            if pWorld.Name.lower() == WorldName:
+                pWorld.Unload()
+        #Get the lists again, they may of changed at this stage of the process
+        #(If the world was active, it will now be in the idle list due to being unloaded)
+        ActiveWorlds,IdleWorlds = pPlayer.ServerControl.GetWorlds()
+        #The world should now be in an unloading/unloaded state.
+        for IdleWorldName in IdleWorlds:
+            if IdleWorldName.lower() == WorldName:
+                #erasing time
+                WorldName = IdleWorldName
+                os.remove("Worlds/%s.save" %WorldName)
+                ZoneList = pPlayer.ServerControl.GetZones()[:] #Copy so we can erase from the list during iteration
+                for pZone in ZoneList:
+                    if pZone.Map == WorldName:
+                        pPlayer.ServerControl.DeleteZone(pZone)
+                        pZone.Delete()
+                if pPlayer.ServerControl.EnableBlockLogs:
+                    #This can fail due to multi-threaded context, unfortunately.
+                    #Design flaw.
+                    try:
+                        os.remove("Worlds/BlockLogs/%s.db" %WorldName)
+                    except:
+                        pass
+                pPlayer.ServerControl.IdleWorlds.remove(WorldName)
+                pPlayer.SendMessage("&aSuccessfully deleted world %s" %WorldName)
+                return #Done...
 
 
 class CommandHandler(object):
@@ -835,7 +880,7 @@ class CommandHandler(object):
         #OWNER COMMANDS HERE #
         ######################
         self.AddCommand("flushblocklog",FlushBlockLogCmd,'z', 'Flushes the worlds blocklog to disk','',0)
-
+        self.AddCommand("removeworld",DeleteWorldCmd,'z', 'Deletes a world from the server','Incorrect syntax! Usage: /removeworld <worldname>',1)
     def HandleCommand(self,pPlayer,Message):
         '''Called when a player types a slash command'''
         if Message == '':

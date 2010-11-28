@@ -71,6 +71,8 @@ class AsynchronousIOThread(threading.Thread):
                 self.DBConnection.commit()
             elif Task[0] == "SHUTDOWN":
                 self.Running = False
+                self.World = None
+                self.DBConnection.close()
             elif Task[0] == "CONNECT":
                 #Connect/Reconnect to the DB.
                 self._ConnectTask()
@@ -141,6 +143,7 @@ class World(object):
         self.IdleStart = 0 #Not idle.
         self.DBConnection = None
         self.DBCursor = None
+        self.Unloaded = False
         if self.LogBlocks != 0:
             if os.path.exists("Worlds/BlockLogs") == False:
                 os.mkdir("Worlds/BlockLogs")
@@ -461,16 +464,26 @@ class World(object):
             self.Blocks.fromstring((self.X*self.Y)*Block)
         self.Save(False)
         
+    def Unload(self):
+        #Remove players..
+        for pPlayer in self.Players:
+            #Super lazy mode =|
+            pPlayer.Disconnect("The world you were on was deleted. Please reconnect")
+            pPlayer.SetWorld(None)
+        self.ServerControl.UnloadWorld(self)
+        self.Save(False)
+        self.Unloaded = True
+        if self.LogBlocks:
+            self.FlushBlockLog()
+            self.IOThread.Shutdown(False)
 
     def Run(self):
+        if self.Unloaded == True:
+            return
         if self.IdleTimeout != 0 and len(self.Players) == 0:
             if self.IdleStart != 0:
                 if self.IdleStart + self.IdleTimeout < self.ServerControl.Now:
-                    self.ServerControl.UnloadWorld(self) #Unload.
-                    self.Save(False)
-                    if self.LogBlocks:
-                        self.FlushBlockLog()
-                        self.IOThread.Shutdown(False)
+                    self.Unload()
                     return
             else:
                 self.IdleStart = self.ServerControl.Now

@@ -71,6 +71,7 @@ class ServerController(object):
         self.IdlePlayerLimit = int(self.ConfigValues.GetValue("server","IdleLimit","3600"))
         self.LastIdleCheck = time.time()
         self.IdleCheckPeriod = 60
+        self.EnableBlockLogs = int(self.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
         self.WorldTimeout = int(self.ConfigValues.GetValue("worlds","IdleTimeout","300"))
         self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server","PeriodicAnnounceFrequency","0"))
         self.LogCommands = bool(int(self.ConfigValues.GetValue("logs","CommandLogs","1")))
@@ -197,6 +198,7 @@ class ServerController(object):
         return False
     def SetDefaultWorld(self,pWorld):
         self.ActiveWorlds.remove(pWorld)
+        self.ActiveWorlds[0].SetIdleTimeout(self.WorldTimeout)
         self.ActiveWorlds.insert(0,pWorld)
         pWorld.SetIdleTimeout(0)
         self.ConfigValues.set("worlds","DefaultName",pWorld.Name)
