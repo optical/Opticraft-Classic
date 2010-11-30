@@ -99,7 +99,12 @@ class IRCClient(asynchat.async_chat):
     def handle_close(self):
         if self.Host != '' and self.ReconnectAttempts < self.MaxReconnectAttempts:
             self.ReconnectAttempts += 1
-            self.connect((self.Host,self.Port))
+            try:
+                self.connect((self.Host,self.Port))
+            except:
+                pass
+            else:
+                self.ReconnectAttempts = 0
         else:
             self.close()
 
