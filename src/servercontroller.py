@@ -284,7 +284,10 @@ class ServerController(object):
         #Start the heartbeatcontrol thread.
         self.HeartBeatControl.start()
         if self.EnableIRC:
-            self.IRCInterface.Connect()
+            try:
+                self.IRCInterface.Connect()
+            except:
+                pass
 
         if platform.system() == 'linux':
             signal.signal(signal.SIGTERM,self.HandleKill)

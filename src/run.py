@@ -12,12 +12,15 @@ def Main():
         ServerControl.Run()
     except:
         Console.Error("Shutdown","Server is shutting down.")
-        fHandle = open("CrashLog.txt","a")
-        fHandle.write("="*30 + "\n")
-        fHandle.write("Crash date: %s\n" %time.strftime("%c", time.gmtime()))
-        fHandle.write("="*30 + "\n")
-        traceback.print_exc(file=fHandle)
-        fHandle.close()
+        try:
+            fHandle = open("CrashLog.txt","a")
+            fHandle.write("="*30 + "\n")
+            fHandle.write("Crash date: %s\n" %time.strftime("%c", time.gmtime()))
+            fHandle.write("="*30 + "\n")
+            traceback.print_exc(file=fHandle)
+            fHandle.close()
+        except IOError:
+            traceback.print_exc()
         ServerControl.Shutdown(True)
         if os.path.isfile("opticraft.pid"):
             os.remove("opticraft.pid")
