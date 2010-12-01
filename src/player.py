@@ -59,19 +59,19 @@ class Player(object):
         self.ServerControl.SockManager.CloseSocket(self.PlayerSocket)
         self.ServerControl.RemovePlayer(self)
 
-    def SendMessage(self,Message):
+    def SendMessage(self,Message,ColourNewLines=True):
         if len(Message) > 63:
-            self._SlowSendMessage(Message)
+            self._SlowSendMessage(Message,ColourNewLines)
         else:
             Packet = OptiCraftPacket(SMSG_MESSAGE)
             Packet.WriteByte(0)
             Packet.WriteString(Message[:64])
             self.SendPacket(Packet)
 
-    def _SlowSendMessage(self,Message):
+    def _SlowSendMessage(self,Message,ColourNewLines=True):
         '''Sends a multiline message'''
         Tokens = Message.split()
-        if Tokens[0][0] == "&":
+        if Tokens[0][0] == "&" and ColourNewLines:
             ColourTag = Tokens[0][0] + Tokens[0][1]
         else:
             ColourTag = ''
