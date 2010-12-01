@@ -94,6 +94,10 @@ class ServerController(object):
         self.AuthPlayers = set() #Players without a world (Logging in)
         self.PlayersPendingRemoval = set() #Players to remove from our set at the end of a cycle.
         self.PlayerIDs = range(self.MaxClients)
+        self.LastCpuCheck = 0
+        self.InitialCpuTimes = os.times()
+        self.LastCpuTimes = 0
+        self.CurrentCpuTimes = 0
         reversed(self.PlayerIDs)
         self.SocketToPlayer = dict()
         self.Running = False
@@ -247,7 +251,19 @@ class ServerController(object):
             return
         for Item in Items:
             self.PeriodicNotices.append(Item[1])
-        
+
+    def GetCurrentCpuUsage(self):
+        '''Returns the last 60 seconds of cpu usage in a tuple of (Total,user,system)'''
+        if self.LastCpuTimes == 0:
+            return(0.0,0.0,0.0)
+        User = (self.CurrentCpuTimes[0]-self.LastCpuTimes[0])/60.0 *100.0
+        System = (self.CurrentCpuTimes[1]-self.LastCpuTimes[1])/60.0 *100.0
+        return (User+System,User,System)
+    def GetTotalCpuUsage(self):
+        '''Returns the average cpu usage since startup in a tuple of (Total,user,system)'''
+        User = (os.times()[0]-self.InitialCpuTimes[0])/(self.Now - self.StartTime) *100.0
+        System = (os.times()[1]-self.InitialCpuTimes[1])/(self.Now - self.StartTime) *100.0
+        return (User+System,User,System)
 
     def GetRank(self,Username):
         return self.RankedPlayers.get(Username.lower(),'g')
@@ -322,6 +338,10 @@ class ServerController(object):
                 #Send a SMSG_KEEPALIVE packet to all our clients across all worlds.
                 for pPlayer in self.PlayerSet:
                     pPlayer.SendPacket(Packet)
+            if self.LastCpuCheck + 60 < self.Now:
+                self.LastCpuTimes = self.CurrentCpuTimes
+                self.CurrentCpuTimes = os.times()
+                self.LastCpuCheck = self.Now
 
             if self.PeriodicAnnounceFrequency:
                 if self.LastAnnounce + self.PeriodicAnnounceFrequency < self.Now:
