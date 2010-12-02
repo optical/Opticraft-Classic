@@ -11,8 +11,6 @@ class ListenSocket(object):
         #This allows the server to restart instantly instead of waiting around
         self.Socket.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEADDR, 1 )
         self.port = Port
-        #Temporary hack - REWRITE ME
-        self.NewPlayers = list()
         #Bind our socket to an interface
         try:
             self.Socket.bind((Host,Port))
@@ -71,6 +69,7 @@ class SocketManager(object):
                     except:
                         pass
                     PlayerSock.close()
+                    PlayerSock.shutdown(socket.SHUT_RDWR)
                 except:
                     pass
 
@@ -166,6 +165,11 @@ class SocketManager(object):
             self.PlayerSockets.remove(Socket)
             pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
             self.ServerControl.RemovePlayer(pPlayer)
-            if pPlayer.GetWriteFlagged() == True:
+            try:
+                Socket.close()
+                Socket.shutdown(socket.SHUT_RDWR)
+            except socket.error:
+                pass
+            if Socket in self.WriteList:
                 self.WriteList.remove(pPlayer.GetSocket())
                 pPlayer.SetWriteFlagged(False)
