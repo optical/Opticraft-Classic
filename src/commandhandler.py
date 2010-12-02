@@ -134,6 +134,9 @@ class sInfoCmd(CommandObject):
         pPlayer.SendMessage("&aCpu usage in the last minute:&f %.1f%% (us: %.1f%% sys: %.1f%%)" %pPlayer.ServerControl.GetCurrentCpuUsage(),False)
         pPlayer.SendMessage("&aCpu usage overall:&f %.1f%% (us: %.1f%% sys: %.1f%%)" %pPlayer.ServerControl.GetTotalCpuUsage(),False)
         pPlayer.SendMessage("&aCurrent uptime:&f %s." %pPlayer.ServerControl.GetUptimeStr(),False)
+        if pPlayer.HasPermission('z'):
+                pPlayer.SendMessage("PlayerSockets len: %d. WriteList len: %d" %(len(pPlayer.ServerControl.SockManager.PlayerSockets),len(pPlayer.ServerControl.SockManager.WriteList)))
+                pPlayer.SendMessage("Closing sockets len: %d" %(len(pPlayer.ServerControl.SockManager.ClosingSockets)))
 
 class RanksCmd(CommandObject):
     '''Handler for the /ranks command'''
