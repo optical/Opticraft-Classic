@@ -165,11 +165,11 @@ class SocketManager(object):
             self.PlayerSockets.remove(Socket)
             pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
             self.ServerControl.RemovePlayer(pPlayer)
+            if Socket in self.WriteList:
+                self.WriteList.remove(Socket)
+                pPlayer.SetWriteFlagged(False)
             try:
                 Socket.close()
                 Socket.shutdown(socket.SHUT_RDWR)
             except socket.error:
                 pass
-            if Socket in self.WriteList:
-                self.WriteList.remove(pPlayer.GetSocket())
-                pPlayer.SetWriteFlagged(False)
