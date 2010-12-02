@@ -305,7 +305,7 @@ class ServerController(object):
             except:
                 pass
 
-        if platform.system() == 'linux':
+        if platform.system() == 'Linux':
             signal.signal(signal.SIGTERM,self.HandleKill)
         Console.Out("Startup","Startup procedure completed in %.0fms" %((time.time() -self.StartTime)*1000))
         while self.Running == True:
@@ -316,21 +316,18 @@ class ServerController(object):
                 pPlayer.ProcessPackets()
                 if pPlayer.IsIdentified == True:
                     ToRemove.append(pPlayer)
-
             #Remove Authenitcating players from our duty
             while len(ToRemove) > 0:
                 pPlayer = ToRemove.pop()
                 self.AuthPlayers.remove(pPlayer)
                 #Put the player into our default world
                 self.ActiveWorlds[0].AddPlayer(pPlayer)
-
-            for pWorld in self.ActiveWorlds:
-                pWorld.Run()
-
             #Remove any players which need to be deleted.
             while len(self.PlayersPendingRemoval) > 0:
                 pPlayer = self.PlayersPendingRemoval.pop()
                 self._RemovePlayer(pPlayer)
+            for pWorld in self.ActiveWorlds:
+                pWorld.Run()
                 
             if self.LastKeepAlive + 1 < self.Now:
                 self.LastKeepAlive = self.Now
