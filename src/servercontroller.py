@@ -280,7 +280,7 @@ class ServerController(object):
             if Username.lower() in self.RankedPlayers:
                 del self.RankedPlayers[Username.lower()]
                 self.RankStore.remove_option("ranks",Username)
-                pPlayer = self.GetPlayerFromName(Username)
+                pPlayer = self.GetPlayerFromName()
                 if pPlayer != None:
                     pPlayer.SetRank('g')
                     pPlayer.SendMessage("You no longer have a rank.")
@@ -500,7 +500,6 @@ class ServerController(object):
         if pPlayer.GetWorld() != None:
             pPlayer.GetWorld().RemovePlayer(pPlayer)
         pPlayer.SetWorld(None)
-        pPlayer.PlayerSocket = None
         self.HeartBeatControl.DecreaseClients()
         self.NumPlayers -= 1
 
