@@ -500,6 +500,7 @@ class ServerController(object):
         if pPlayer.GetWorld() != None:
             pPlayer.GetWorld().RemovePlayer(pPlayer)
         pPlayer.SetWorld(None)
+        pPlayer.PlayerSocket = None
         self.HeartBeatControl.DecreaseClients()
         self.NumPlayers -= 1
 
