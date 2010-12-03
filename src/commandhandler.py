@@ -673,7 +673,48 @@ class CreateWorldCmd(CommandObject):
         pPlayer.ServerControl.ActiveWorlds.append(pWorld)
         pWorld.SetIdleTimeout(pPlayer.ServerControl.WorldTimeout)
         pPlayer.SendMessage("&aSuccessfully created the world!")
-
+class LoadWorldCmd(CommandObject):
+    '''Handler for the /worldload command'''
+    def Run(self,pPlayer,Args,Message):
+        WorldName = Args[0]
+        if os.path.isfile("Worlds/%s.save" %WorldName) == False:
+            pPlayer.SendMessage("&4That world doesn't exist. Check that you spelt it correctly")
+            return
+        if pPlayer.ServerControl.WorldExists(WorldName):
+            pPlayer.SendMessage("&4That world is already loaded!")
+            return
+        pPlayer.ServerControl.AddWorld(WorldName)
+        pPlayer.SendMessage("&aSuccessfully loaded world \"&f%s&a\"!" %WorldName)
+class LoadTemplateCmd(CommandObject):
+    '''Handler for the /loadtemplate command'''
+    def Run(self,pPlayer,Args,Message):
+        TemplateName = Args[0]
+        WorldName = Args[1]
+        if os.path.isfile("Templates/%s.save" %TemplateName) == False:
+            pPlayer.SendMessage("&4That template doesn't exist. Check that you spelt it correctly")
+            return
+        if pPlayer.ServerControl.WorldExists(WorldName):
+            pPlayer.SendMessage("&4A world with that name already exists!")
+            return
+        shutil.copy("Templates/%s.save" %TemplateName,"Worlds/%s.save" %WorldName)
+        pPlayer.ServerControl.AddWorld(WorldName)
+        pPlayer.SendMessage("&aSuccessfully loaded template \"&f%s&a\"!" %TemplateName)
+class ShowTemplatesCmd(CommandObject):
+    '''Handler for the /showtemplates command'''
+    def Run(self,pPlayer,Args,Message):
+        OutStr = ''
+        for File in os.listdir("Templates"):
+            if len(File) < 5:
+                continue
+            if File[-5:] != ".save":
+                continue
+            TemplateName = File[:-5]
+            OutStr = '%s%s ' %(OutStr,TemplateName)
+        if OutStr != '':
+            pPlayer.SendMessage("&aThe following templates exist:")
+            pPlayer.SendMessage("&a%s" %OutStr)
+        else:
+            pPlayer.SendMessage("&aThere are no templates!")
 class SetDefaultWorldCmd(CommandObject):
     '''Handler for the /setdefaultworld command'''
     def Run(self,pPlayer,Args,Message):
@@ -884,6 +925,9 @@ class CommandHandler(object):
         self.AddCommand("createworld", CreateWorldCmd, 'a', 'Creates a new world.', 'Incorrect syntax. Usage: /createworld <name> <x> <y> <z>', 4)
         self.AddCommand("setdefaultworld", SetDefaultWorldCmd, 'a', 'Sets the world you specify to be the default one', 'Incorrect syntax. Usage: /setdefaultworld <name>', 1)
         self.AddCommand("RenameWorld", RenameWorldCmd, 'a', 'Renames a world', 'Incorrect syntax! Usage: /renameworld <oldname> <newname>', 2)
+        self.AddCommand("LoadWorld", LoadWorldCmd, 'a', 'Loads a world which has been added to the Worlds folder', 'Incorrect syntax! Usage: /loadworld <name>', 1)
+        self.AddCommand("LoadTemplate", LoadTemplateCmd, 'a', 'Loads a template world from the Templates directory', 'Incorrect syntax! Usage: /loadtemplate <templatename> <worldname>', 2)
+        self.AddCommand("ShowTemplates", ShowTemplatesCmd, 'a', 'Lists all the available world templates', '', 0)
         ######################
         #OWNER COMMANDS HERE #
         ######################

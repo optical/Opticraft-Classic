@@ -37,6 +37,8 @@ class ServerController(object):
             os.mkdir("Zones")
         if os.path.exists("Logs") == False:
             os.mkdir("Logs")
+        if os.path.exists("Templates") == False:
+            os.mkdir("Templates")
         Console.SetLogLevel(int(self.ConfigValues.GetValue("logs","ConsoleLogLevel",LOG_LEVEL_DEBUG)))
         Console.SetFileLogging(bool(int(self.ConfigValues.GetValue("logs","ConsoleFileLogs","0"))))
         Console.SetColour(int(self.ConfigValues.GetValue("server","ConsoleColour","1")))
@@ -232,6 +234,8 @@ class ServerController(object):
             self.Zones.append(pZone)
     def AddZone(self,pZone):
         self.Zones.append(pZone)
+    def AddWorld(self,WorldName):
+        self.IdleWorlds.append(WorldName)
     def InsertZones(self,pWorld):
         '''Gives the world all its zones to worry about'''
         for pZone in self.Zones:
