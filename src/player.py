@@ -45,12 +45,15 @@ class Player(object):
             self.IsWriteFlagged = True
         else:
             #Send Queue exceeded (Default = 4MB of buffered data)
-            if self.OutBuffer.tell() > self.ServerControl.SendBufferLimit:
+            if self.OutBuffer.tell() > self.ServerControl.SendBufferLimit and self.IsDisconnecting == False:
                 Console.Debug("Player", "Disconnecting player as their send queue buffer contains %d bytes" %self.OutBuffer.tell())
                 self.Disconnect()
 
 
     def Disconnect(self,Message =''):
+        if self.IsDisconnecting == True:
+            return
+        self.IsDisconnecting = True
         Console.Debug("Player","Disconnecting player %s for \"%s\"" %(self.Name,Message))
         if Message != '':
             Packet = OptiCraftPacket(SMSG_DISCONNECT)
@@ -372,6 +375,7 @@ class Player(object):
         self.LoginTime = int(self.ServerControl.Now)
         self.LastAction = self.LoginTime
         self.LastPmUsername = ''
+        self.IsDisconnecting = False
         #This is used for commands such as /lava, /water, and /grass
         self.BlockOverride = -1
 
