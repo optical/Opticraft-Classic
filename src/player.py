@@ -115,7 +115,7 @@ class Player(object):
         OutPacket = OptiCraftPacket(SMSG_INITIAL)
         OutPacket.WriteByte(7)
         OutPacket.WriteString(self.ServerControl.GetName())
-        OutPacket.WriteString("&aChanging map to:&e %s" %Name)
+        OutPacket.WriteString("&aChanging map to: &e%s" %Name)
         OutPacket.WriteByte(0)
         self.SendPacket(OutPacket)
         ActiveWorlds, IdleWorlds = self.ServerControl.GetWorlds()

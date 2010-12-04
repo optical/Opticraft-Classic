@@ -462,7 +462,7 @@ class ServerController(object):
             if pPlayer.GetLastAction() + self.IdlePlayerLimit < self.Now:
                 if RankToLevel['g'] >= RankToLevel[pPlayer.GetRank()]:
                     pPlayer.Disconnect("You were kicked for being idle")
-                    self.SendMessageToAll("%s&e has been kicked for being idle" %pPlayer.GetColouredName())
+                    self.SendMessageToAll("%s has been kicked for being idle" %pPlayer.GetName())
 
     def AttemptAddPlayer(self,pPlayer):
         if len(self.PlayerIDs) == 0:

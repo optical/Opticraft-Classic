@@ -129,11 +129,11 @@ class sInfoCmd(CommandObject):
             System = "%s-%s" %(DistData[0],DistData[1])
         WorldData = pPlayer.ServerControl.GetWorlds()
         pPlayer.SendMessage("&aThis server is running a development build of Opticraft on %s." %System,False)
-        pPlayer.SendMessage("&aThere are currently&f %d &ausers online, with a peak of&f %d &asince last restart." %(pPlayer.ServerControl.NumPlayers,pPlayer.ServerControl.PeakPlayers),False)
-        pPlayer.SendMessage("&aThere are&f %d &aworlds,&f %d &aof which are active and&f %d &aidle." %(len(WorldData[0]) + len(WorldData[1]),len(WorldData[0]),len(WorldData[1])),False)
-        pPlayer.SendMessage("&aCpu usage in the last minute:&f %.1f%% (us: %.1f%% sys: %.1f%%)" %pPlayer.ServerControl.GetCurrentCpuUsage(),False)
-        pPlayer.SendMessage("&aCpu usage overall:&f %.1f%% (us: %.1f%% sys: %.1f%%)" %pPlayer.ServerControl.GetTotalCpuUsage(),False)
-        pPlayer.SendMessage("&aCurrent uptime:&f %s." %pPlayer.ServerControl.GetUptimeStr(),False)
+        pPlayer.SendMessage("&aThere are currently &f%d &ausers online, with a peak of &f%d &asince last restart." %(pPlayer.ServerControl.NumPlayers,pPlayer.ServerControl.PeakPlayers),False)
+        pPlayer.SendMessage("&aThere are &f%d &aworlds, &f%d &aof which are active and &f%d &aidle." %(len(WorldData[0]) + len(WorldData[1]),len(WorldData[0]),len(WorldData[1])),False)
+        pPlayer.SendMessage("&aCpu usage in the last minute: &f%.1f%% (us: %.1f%% sys: %.1f%%)" %pPlayer.ServerControl.GetCurrentCpuUsage(),False)
+        pPlayer.SendMessage("&aCpu usage overall &f%.1f%% (us: %.1f%% sys: %.1f%%)" %pPlayer.ServerControl.GetTotalCpuUsage(),False)
+        pPlayer.SendMessage("&aCurrent uptime: &f%s." %pPlayer.ServerControl.GetUptimeStr(),False)
         if pPlayer.HasPermission('z'):
                 pPlayer.SendMessage("PlayerSockets len: %d. WriteList len: %d" %(len(pPlayer.ServerControl.SockManager.PlayerSockets),len(pPlayer.ServerControl.SockManager.WriteList)))
                 pPlayer.SendMessage("Closing sockets len: %d" %(len(pPlayer.ServerControl.SockManager.ClosingSockets)))
@@ -145,7 +145,7 @@ class RanksCmd(CommandObject):
         Items = RankToLevel.items()
         Items.sort(cmp= lambda x,y: cmp(x[1],y[1]))
         for Rank,Junk in Items:
-            pPlayer.SendMessage("&e %s%s&e: %s" %(RankToColour[Rank],RankToName[Rank],RankToDescription[Rank]))
+            pPlayer.SendMessage(" &e%s%s&e: %s" %(RankToColour[Rank],RankToName[Rank],RankToDescription[Rank]))
 
 class PlayerInfoCmd(CommandObject):
     '''Handler for the /whois command. Returns info on a player'''
@@ -155,12 +155,12 @@ class PlayerInfoCmd(CommandObject):
         if Target == None:
             pPlayer.SendMessage("&4That player is not online!")
             return
-        pPlayer.SendMessage("&a%s has been online for&e %s" %(Target.GetName(), ElapsedTime(int(pPlayer.ServerControl.Now) -Target.GetLoginTime())))
+        pPlayer.SendMessage("&a%s has been online for &e%s" %(Target.GetName(), ElapsedTime(int(pPlayer.ServerControl.Now) -Target.GetLoginTime())))
         if pPlayer.HasPermission('o'):
-            pPlayer.SendMessage("&aTheir ip is:&e %s" %Target.GetIP())
-        pPlayer.SendMessage("&aThey are on world&e \"%s\"" %Target.GetWorld().Name)
+            pPlayer.SendMessage("&aTheir ip is: &e%s" %Target.GetIP())
+        pPlayer.SendMessage("&aThey are on world &e\"%s\"" %Target.GetWorld().Name)
         if Target.GetRank() != '':
-            pPlayer.SendMessage("&aTheir rank is&e %s" %RankToName[Target.GetRank()])
+            pPlayer.SendMessage("&aTheir rank is &e%s" %RankToName[Target.GetRank()])
         else:
             pPlayer.SendMessage("&aAnd they do not have any rank")
 
@@ -200,8 +200,8 @@ class ZoneInfoCmd(CommandObject):
         if pZone == None:
             pPlayer.SendMessage("&4No such zone exists on this map")
             return
-        pPlayer.SendMessage("&aOwner:&e %s" %pZone.Owner)
-        pPlayer.SendMessage("&aMinimum rank:&e %s" %RankToName[pZone.MinRank])
+        pPlayer.SendMessage("&aOwner: &e%s" %pZone.Owner)
+        pPlayer.SendMessage("&aMinimum rank: &e%s" %RankToName[pZone.MinRank])
         pPlayer.SendMessage("&a---Builders---")
         Num = 0
         for Builder in pZone.Builders:
@@ -260,7 +260,7 @@ class AddZoneBuilderCmd(CommandObject):
         pZone.AddBuilder(Username)
         pPlayer.SendMessage("&aSuccessfully added %s as a builder for zone \"%s\"" %(Username,pZone.Name))
         if pPlayer.ServerControl.GetPlayerFromName(Username) != None:
-            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been added as a builder to zone&f %s" %pZone.Name)
+            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been added as a builder to zone &f%s" %pZone.Name)
 class DelZoneBuilderCmd(CommandObject):
     '''Del zone builder handler. This deletes a builder from a zone'''
     def Run(self,pPlayer,Args,Message):
@@ -279,9 +279,9 @@ class DelZoneBuilderCmd(CommandObject):
             pPlayer.SendMessage("&4That user is not a builder for this zone!")
             return
         pZone.DelBuilder(Username)
-        pPlayer.SendMessage("&aSuccessfully removed %s as a builder for zone&f \"%s\"" %(Username,pZone.Name))
+        pPlayer.SendMessage("&aSuccessfully removed %s as a builder for zone &f\"%s\"" %(Username,pZone.Name))
         if pPlayer.ServerControl.GetPlayerFromName(Username) != None:
-            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been removed as a builder from zone&f \"%s\"" %pZone.Name)
+            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been removed as a builder from zone &f\"%s\"" %pZone.Name)
 
 class zSetMinRankCmd(CommandObject):
     '''Handler for the zSetMinRank command. Changes the minimum rank to build in a zone'''
@@ -318,9 +318,9 @@ class zChangeOwnerCmd(CommandObject):
                 return
         Username = Username.lower()
         pZone.ChangeOwner(Username)
-        pPlayer.SendMessage("&aSuccessfully changed the owner of zone&f \"%s\"&a to &f%s" %(pZone.Name,Username))
+        pPlayer.SendMessage("&aSuccessfully changed the owner of zone &f\"%s\" &ato &f%s" %(pZone.Name,Username))
         if pPlayer.ServerControl.GetPlayerFromName(Username) != None:
-            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been set as the owner of zone&f \"%s\"" %pZone.Name)
+            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been set as the owner of zone &f\"%s\"" %pZone.Name)
 
 #######################
 #RECRUIT COMMANDS HERE#
@@ -645,7 +645,7 @@ class ZDeleteCmd(CommandObject):
             return
         pPlayer.GetWorld().DeleteZone(pZone)
         pPlayer.ServerControl.DeleteZone(pZone)
-        pPlayer.SendMessage("&aSuccessfully deleted zone&f \"%s\"" %pZone.Name)
+        pPlayer.SendMessage("&aSuccessfully deleted zone &f\"%s\"" %pZone.Name)
         pZone.Delete()
 class CreateWorldCmd(CommandObject):
     '''Handles the world cretion command'''
@@ -725,7 +725,7 @@ class SetDefaultWorldCmd(CommandObject):
             pPlayer.SendMessage("&4Try joining the world and trying again.")
             return
         pPlayer.ServerControl.SetDefaultWorld(pWorld)
-        pPlayer.SendMessage("&aDefault world changed to&f \"%s\"" %pWorld.Name)
+        pPlayer.SendMessage("&aDefault world changed to &f\"%s\"" %pWorld.Name)
 
 class RenameWorldCmd(CommandObject):
     '''Handler for the /renameworld command'''
@@ -864,6 +864,7 @@ class CommandHandler(object):
         self.AddCommand("commands", CmdListCmd, 'g', 'Lists all commands available to you', '', 0,Alias=True)
         self.AddCommand("help", HelpCmd, 'g', 'Gives help on a specific command. Usage: /help <cmd>', 'Incorrect syntax! Usage: /help <cmd>', 1)
         self.AddCommand("worlds", WorldsCmd, 'g', 'Lists all available worlds', '', 0)
+        self.AddCommand("maps", WorldsCmd, 'g', 'Lists all available worlds', '', 0,Alias=True)
         self.AddCommand("join", JoinWorldCmd, 'g', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1)
         self.AddCommand("j", JoinWorldCmd, 'g', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
         self.AddCommand("wap", JoinWorldCmd, 'g', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
