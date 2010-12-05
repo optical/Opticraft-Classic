@@ -34,20 +34,16 @@ class Player(object):
     def PushRecvData(self,Data):
         '''Called by the Socketmanager. Gives us raw data to be processed'''
         self.SockBuffer.write(Data)
+
     def GetOutBuffer(self):
         return self.OutBuffer
-
     def SendPacket(self,Packet):
         '''Lets the socketmanager know that we have data to send'''
         self.OutBuffer.write(Packet.GetOutData())
-        if self.IsWriteFlagged == False:
-            self.ServerControl.SockManager.AddWriteablePlayer(self)
-            self.IsWriteFlagged = True
-        else:
             #Send Queue exceeded (Default = 4MB of buffered data)
-            if self.OutBuffer.tell() > self.ServerControl.SendBufferLimit and self.IsDisconnecting == False:
-                Console.Debug("Player", "Disconnecting player as their send queue buffer contains %d bytes" %self.OutBuffer.tell())
-                self.Disconnect()
+        if self.OutBuffer.tell() > self.ServerControl.SendBufferLimit and self.IsDisconnecting == False:
+            Console.Debug("Player", "Disconnecting player as their send queue buffer contains %d bytes" %self.OutBuffer.tell())
+            self.Disconnect()
 
 
     def Disconnect(self,Message =''):
@@ -183,12 +179,6 @@ class Player(object):
         return self.LastAction
     def IsAuthenticated(self):
         return self.IsIdentified
-
-
-    def GetWriteFlagged(self):
-        return self.IsWriteFlagged
-    def SetWriteFlagged(self,Value):
-        self.IsWriteFlagged = Value
 
     def Teleport(self,x,y,z,o,p):
         '''Teleports the player to X Y Z. These coordinates have the fractal bit at position 5'''
@@ -368,7 +358,6 @@ class Player(object):
         self.AboutCmd = False
         self.PaintCmd = False
         self.TowerCmd = False
-        self.IsWriteFlagged = False
         self.Rank = 'g'
         self.CreatingZone = False
         self.ZoneData = dict()
