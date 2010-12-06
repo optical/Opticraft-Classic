@@ -361,9 +361,9 @@ class ServerController(object):
                 if self.LastIdleCheck + self.IdleCheckPeriod < self.Now:
                     self.RemoveIdlePlayers()
                     self.LastIdleCheck = self.Now
-            SleepTime = 0.02 - (time.time() - self.Now)
+            SleepTime = 0.05 - (time.time() - self.Now)
             if 0 < SleepTime:
-                time.sleep(0.02)
+                time.sleep(SleepTime)
     def Shutdown(self,Crash):
         '''Starts shutting down the server. If crash is true it only saves what is needed'''
         self.HeartBeatControl.Running = False
