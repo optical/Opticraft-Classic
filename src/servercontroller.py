@@ -11,7 +11,7 @@ from optisockets import SocketManager
 from commandhandler import CommandHandler
 from configreader import ConfigReader
 from zones import Zone
-from world import World
+from world import World, WorldLoadFailedException
 from constants import *
 from console import *
 from ircrelay import RelayBot
@@ -170,7 +170,10 @@ class ServerController(object):
 
     def LoadWorld(self,Name):
         '''Name will be a valid world name (case sensitive)'''
-        pWorld = World(self,Name)
+        try:
+            pWorld = World(self,Name)
+        except WorldLoadFailedException:
+            return False
         self.ActiveWorlds.append(pWorld)
         self.IdleWorlds.remove(Name)
         pWorld.SetIdleTimeout(self.WorldTimeout)
@@ -315,21 +318,21 @@ class ServerController(object):
         while self.Running == True:
             self.Now = time.time()
             self.SockManager.Run()
+            #Remove any players which need to be deleted.
+            while len(self.PlayersPendingRemoval) > 0:
+                pPlayer = self.PlayersPendingRemoval.pop()
+                self._RemovePlayer(pPlayer)
             ToRemove = list()
             for pPlayer in self.AuthPlayers:
                 pPlayer.ProcessPackets()
-                if pPlayer.IsIdentified == True:
+                if pPlayer.IsAuthenticated():
                     ToRemove.append(pPlayer)
             #Remove Authenitcating players from our duty
             while len(ToRemove) > 0:
                 pPlayer = ToRemove.pop()
                 self.AuthPlayers.remove(pPlayer)
-                #Put the player into our default world
+                #Put the player into our default world if they are identified
                 self.ActiveWorlds[0].AddPlayer(pPlayer)
-            #Remove any players which need to be deleted.
-            while len(self.PlayersPendingRemoval) > 0:
-                pPlayer = self.PlayersPendingRemoval.pop()
-                self._RemovePlayer(pPlayer)
             for pWorld in self.ActiveWorlds:
                 pWorld.Run()
                 

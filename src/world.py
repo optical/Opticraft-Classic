@@ -114,7 +114,8 @@ class AsynchronousIOThread(threading.Thread):
         Console.Debug("IOThread","%s reversed %s's actions. %d changed in %f seconds" %(Username,ReverseName,NumChanged,time.time()-now))
     def Shutdown(self,Crash):
         self.Tasks.put(["SHUTDOWN"])
-
+class WorldLoadFailedException(Exception):
+    pass
 class World(object):
     def __init__(self,ServerControl,Name,NewMap=False,NewX=-1,NewY=-1,NewZ=-1):
         self.Blocks = array("c")
@@ -152,7 +153,10 @@ class World(object):
             self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" %self.Name)
             self.DBConnection.text_factory = str
             self.DBCursor = self.DBConnection.cursor()
-            Result = self.DBCursor.execute("SELECT * FROM sqlite_master where name='Blocklogs' and type='table'")
+            try:
+                Result = self.DBCursor.execute("SELECT * FROM sqlite_master where name='Blocklogs' and type='table'")
+            except dbapi.OperationalError:
+                raise WorldLoadFailedException
             if Result.fetchone() == None:
                 #Create the table
                 self.DBCursor.execute("CREATE TABLE Blocklogs (Offset INTEGER UNIQUE,Username TEXT,Time INTEGER,OldValue INTEGER)")
