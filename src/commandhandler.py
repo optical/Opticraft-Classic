@@ -35,11 +35,15 @@ class CommandObject(object):
             self.Run(pPlayer,Tokens,Message)
             if self.CmdHandler.LogFile != None and RankToLevel[self.Permissions] >= RankToLevel['o']:
                 #Log all operator+ commands
-                self.CmdHandler.LogCommand(pPlayer, self.Name, Tokens)
-
+                self.LogCommand(pPlayer, self.Name, Tokens)
+    def LogCommand(self,pPlayer,Command, Args):
+        TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
+        OutStr = "%s User %s (%s) used command %s with args: %s\n" %(TimeFormat,pPlayer.GetName(),pPlayer.GetIP(), Command, ' '.join(Args))
+        self.CmdHandler.LogFile.write(OutStr)
     def Run(self,pPlayer,Args,Message):
         '''Subclasses will perform their work here'''
         pass
+
 ######################
 #PUBLIC COMMANDS HERE#
 ######################
@@ -441,6 +445,12 @@ class UndoActionsCmd(CommandObject):
         Result = pPlayer.GetWorld().UndoActions(pPlayer.GetName(),ReversePlayer,Time)
 
         pPlayer.SendMessage("&a%s actions are being reversed. This may take a few moments" %ReversePlayer)
+
+    def LogCommand(self,pPlayer,Command, Args):
+        '''Override the default log handler'''
+        TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
+        OutStr = "%s User %s (%s) used command %s on world %s with args: %s\n" %(TimeFormat,pPlayer.GetName(),pPlayer.GetIP(),Command, pPlayer.GetWorld().Name, ' '.join(Args))
+        self.CmdHandler.LogFile.write(OutStr)
 
 class DestroyTowerCmd(CommandObject):
     '''Handler for the /destroy tower command. This destroy a tower of blocks'''
@@ -947,8 +957,3 @@ class CommandHandler(object):
 
     def AddCommand(self,Command,CmdObj,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias=False):
         self.CommandTable[Command.lower()] = CmdObj(self,Permissions,HelpMsg,ErrorMsg,MinArgs,Command,Alias)
-
-    def LogCommand(self,pPlayer,Command,Args):
-        TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
-        OutStr = "%s User %s (%s) used command %s with args: %s\n" %(TimeFormat,pPlayer.GetName(),pPlayer.GetIP(), Command, ' '.join(Args))
-        self.LogFile.write(OutStr)
