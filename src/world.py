@@ -651,7 +651,7 @@ class World(object):
         Packet.WriteString(Message)
         self.SendPacketToAll(Packet)
         
-    def SendPacketToAll(self,Packet,Client = None, SendToSelf = False):
+    def SendPacketToAll(self,Packet,Client = None):
         for pPlayer in self.Players:
-            if pPlayer != Client or SendToSelf:
+            if pPlayer != Client:
                 pPlayer.SendPacket(Packet)
