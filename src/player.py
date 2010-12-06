@@ -11,7 +11,7 @@ class Player(object):
         while ProcessingPackets:
             RawBuffer = self.SockBuffer.getvalue()
             if len(RawBuffer) == 0:
-                return
+                break
             OpCode = ord(RawBuffer[0])
             if PacketSizes.has_key(OpCode) == False:
                 self.Disconnect("Unhandled packet!") #Unimplemented packet type.
@@ -30,7 +30,11 @@ class Player(object):
                     self.OpcodeHandler[OpCode](Packet)
             else:
                 ProcessingPackets = False
-
+        #Check to see if we have got too much data in our out buffer.
+        #Send Queue exceeded (Default = 4MB of buffered data)
+        if self.OutBuffer.tell() > 1 and self.IsDisconnecting == False:
+            Console.Debug("Player", "Disconnecting player as their send queue buffer contains %d bytes" %self.OutBuffer.tell())
+            self.Disconnect()
     def PushRecvData(self,Data):
         '''Called by the Socketmanager. Gives us raw data to be processed'''
         self.SockBuffer.write(Data)
@@ -38,12 +42,8 @@ class Player(object):
     def GetOutBuffer(self):
         return self.OutBuffer
     def SendPacket(self,Packet):
-        '''Lets the socketmanager know that we have data to send'''
-        self.OutBuffer.write(Packet.GetOutData())
-            #Send Queue exceeded (Default = 4MB of buffered data)
-        if self.OutBuffer.tell() > self.ServerControl.SendBufferLimit and self.IsDisconnecting == False:
-            Console.Debug("Player", "Disconnecting player as their send queue buffer contains %d bytes" %self.OutBuffer.tell())
-            self.Disconnect()
+        '''Appends data to the end of our buffer'''
+        self.OutBuffer.write(Packet.data.getvalue())
 
     def IsDisconnecting(self):
         return self.Disconnecting
