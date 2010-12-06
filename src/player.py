@@ -45,11 +45,12 @@ class Player(object):
             Console.Debug("Player", "Disconnecting player as their send queue buffer contains %d bytes" %self.OutBuffer.tell())
             self.Disconnect()
 
-
+    def IsDisconnecting(self):
+        return self.Disconnecting
     def Disconnect(self,Message =''):
-        if self.IsDisconnecting == True:
+        if self.Disconnecting == True:
             return
-        self.IsDisconnecting = True
+        self.Disconnecting = True
         Console.Debug("Player","Disconnecting player %s for \"%s\"" %(self.Name,Message))
         if Message != '':
             Packet = OptiCraftPacket(SMSG_DISCONNECT)
@@ -106,26 +107,32 @@ class Player(object):
         #else - Boot up new world and then leave/join
         #Leave our world first.
         Name = Name.lower()
-        self.World.RemovePlayer(self,True)
-        #Send packet telling client were changing the world.
-        OutPacket = OptiCraftPacket(SMSG_INITIAL)
-        OutPacket.WriteByte(7)
-        OutPacket.WriteString(self.ServerControl.GetName())
-        OutPacket.WriteString("&aChanging map to: &e%s" %Name)
-        OutPacket.WriteByte(0)
-        self.SendPacket(OutPacket)
         ActiveWorlds, IdleWorlds = self.ServerControl.GetWorlds()
+        NewWorld = None
         for pWorld in ActiveWorlds:
             if pWorld.Name.lower() == Name:
-                pWorld.AddPlayer(self)
-                return
-        #Its idle...
-        for WorldName in IdleWorlds:
-            if Name == WorldName.lower():
-                Name = WorldName
-                break
-        pWorld = self.ServerControl.LoadWorld(Name)
-        pWorld.AddPlayer(self)
+                NewWorld = pWorld
+        if NewWorld == None:
+            #Its idle...
+            for WorldName in IdleWorlds:
+                if Name == WorldName.lower():
+                    Name = WorldName
+                    break
+            NewWorld = self.ServerControl.LoadWorld(Name)
+        if NewWorld != None and NewWorld != False:
+            self.World.RemovePlayer(self,True)
+            #Send packet telling client were changing the world.
+            OutPacket = OptiCraftPacket(SMSG_INITIAL)
+            OutPacket.WriteByte(7)
+            OutPacket.WriteString(self.ServerControl.GetName())
+            OutPacket.WriteString("&aChanging map to: &e%s" %Name)
+            OutPacket.WriteByte(0)
+            self.SendPacket(OutPacket)
+            NewWorld.AddPlayer(self)
+        else:
+            #World couldn't be loaded (Probably because the block-log is still in use)
+            #This is a very very rare condition which can occur on slow computers with high load (100+ users etc)
+            self.SendMessage("&4Could not change your world. Try again in a minute")
 
 
     def IsLoadingWorld(self):
@@ -364,7 +371,7 @@ class Player(object):
         self.LoginTime = int(self.ServerControl.Now)
         self.LastAction = self.LoginTime
         self.LastPmUsername = ''
-        self.IsDisconnecting = False
+        self.Disconnecting = False
         #This is used for commands such as /lava, /water, and /grass
         self.BlockOverride = -1
 
