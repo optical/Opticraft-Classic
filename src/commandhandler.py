@@ -117,12 +117,12 @@ class WorldsCmd(CommandObject):
     '''Handler for the /worlds command. Lists all available worlds.'''
     def Run(self,pPlayer,Args,Message):
         ActiveWorlds, IdleWorlds = pPlayer.ServerControl.GetWorlds()
-        OutString = str('&a')
+        OutString = str()
         pPlayer.SendMessage("&aThe following worlds are available:")
         for pWorld in ActiveWorlds:
-            OutString += pWorld.Name + ' '
+            OutString = '%s%s%s ' %(OutString,RankToColour[pWorld.MinRank],pWorld.Name)
         for WorldName in IdleWorlds:
-            OutString += WorldName + ' '
+            OutString = OutString = '%s%s%s ' %(OutString,RankToColour[pPlayer.ServerControl.GetWorldRank(WorldName)],WorldName)
         pPlayer.SendMessage(OutString)
 class sInfoCmd(CommandObject):
     '''Handler for the /sinfo command. Returns server information'''
@@ -573,6 +573,7 @@ class WorldSetRankCmd(CommandObject):
             return
         else:
             pWorld.MinRank = Rank
+            pPlayer.ServerControl.SetWorldRank(pWorld.Name, Rank)
             pPlayer.SendMessage("&aSuccessfully set %s to be %s only" %(pWorld.Name,RankToName[Rank]))
 class TempOpCmd(CommandObject):
     '''Handle for the /tempop command - gives a username temporary operator status'''
@@ -678,6 +679,7 @@ class CreateWorldCmd(CommandObject):
             return
         pWorld = World(pPlayer.ServerControl,Name,True,X,Y,Z)
         pPlayer.ServerControl.ActiveWorlds.append(pWorld)
+        pPlayer.ServerControl.SetWorldRank(pWorld.Name, pWorld.MinRank)
         pWorld.SetIdleTimeout(pPlayer.ServerControl.WorldTimeout)
         pPlayer.SendMessage("&aSuccessfully created the world!")
 class LoadWorldCmd(CommandObject):
@@ -794,6 +796,9 @@ class RenameWorldCmd(CommandObject):
         if os.path.exists("Backups/%s" %OldName):
             shutil.move("Backups/%s" %OldName, "Backups/%s" %NewName)
 
+        #Update the rank-cache
+        pPlayer.ServerControl.SetWorldRank(NewName, pPlayer.ServerControl.GetWorldRank(OldName))
+        del pPlayer.ServerControl.WorldRankCache[OldName.lower()]
         #Finally, change zones.
         for pZone in pPlayer.ServerControl.GetZones():
             if pZone.Map.lower() == OldName:
@@ -847,6 +852,7 @@ class DeleteWorldCmd(CommandObject):
                     except:
                         pass
                 pPlayer.ServerControl.IdleWorlds.remove(WorldName)
+                del pPlayer.ServerControl.WorldRankCache[WorldName.lower()]
                 pPlayer.SendMessage("&aSuccessfully deleted world %s" %WorldName)
                 return #Done...
 

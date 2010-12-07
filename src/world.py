@@ -314,7 +314,7 @@ class World(object):
             return False #Fake block type...
         #Rank 5 and below are normal users. 6+ is a builder and can place disabled blocks
         if pPlayer.HasPermission(self.MinRank) == False:
-            pPlayer.SendMessage("&4Only %s's are allowed to build on this world!" %RankToName[self.MinRank])
+            pPlayer.SendMessage("&4You do not have the required rank to build on this world")
             return False
 
         if pPlayer.GetAboutCmd() == True:
@@ -655,3 +655,17 @@ class World(object):
         for pPlayer in self.Players:
             if pPlayer != Client:
                 pPlayer.SendPacket(Packet)
+    @staticmethod
+    def GetRankValue(Name):
+        try:
+            fHandle = open("Worlds/%s.save" %Name)
+            BlockSize = struct.unpack("i",fHandle.read(4))[0]
+            fHandle.seek(BlockSize+16,os.SEEK_CUR)
+            Value = fHandle.read(1)
+        except IOError:
+            return 'g'
+        except ValueError:
+            return 'g'
+        fHandle.close()
+        return Value
+

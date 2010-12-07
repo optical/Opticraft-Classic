@@ -105,6 +105,7 @@ class ServerController(object):
         self.Running = False
         self.ActiveWorlds = list() #A list of worlds currently running.
         self.IdleWorlds = list() #Worlds which we know exist as .save data, but aren't loaded.
+        self.WorldRankCache = dict() #Dictionary of Name:Rank values for all the worlds
         self.BannedUsers = dict() #Dictionary of Username:expiry (in time)
         self.BannedIPs = dict() #dictionary of IP:expiry (in time)
         self.PeriodicNotices = list() #A list of strings of message we will periodicly announce
@@ -152,6 +153,7 @@ class ServerController(object):
             if FileName[-5:] != ".save":
                 continue
             WorldName = FileName[:-5]
+            self.WorldRankCache[WorldName.lower()] = World.GetRankValue(WorldName)
             if WorldName == self.ConfigValues.GetValue("worlds","DefaultName","Main"):
                 #The default world is always loaded
                 continue
@@ -217,6 +219,10 @@ class ServerController(object):
             fHandle.close()
         except:
             pass
+    def GetWorldRank(self,Name):
+        return self.WorldRankCache[Name.lower()]
+    def SetWorldRank(self,Name,Rank):
+        self.WorldRankCache[Name.lower()] = Rank
     def LoadRanks(self):
         try:
             Items = self.RankStore.items("ranks")
@@ -239,6 +245,7 @@ class ServerController(object):
         self.Zones.append(pZone)
     def AddWorld(self,WorldName):
         self.IdleWorlds.append(WorldName)
+        self.SetWorldRank(WorldName, World.GetRankValue(WorldName))
     def InsertZones(self,pWorld):
         '''Gives the world all its zones to worry about'''
         for pZone in self.Zones:
