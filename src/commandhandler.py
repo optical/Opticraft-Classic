@@ -123,7 +123,7 @@ class WorldsCmd(CommandObject):
             OutString = '%s%s%s ' %(OutString,RankToColour[pWorld.MinRank],pWorld.Name)
         for WorldName in IdleWorlds:
             OutString = OutString = '%s%s%s ' %(OutString,RankToColour[pPlayer.ServerControl.GetWorldRank(WorldName)],WorldName)
-        pPlayer.SendMessage(OutString)
+        pPlayer.SendMessage(OutString,False)
 class sInfoCmd(CommandObject):
     '''Handler for the /sinfo command. Returns server information'''
     def Run(self,pPlayer,Args,Message):
