@@ -540,8 +540,9 @@ class ServerController(object):
         self.SendMessageToAll(OutStr)
 
     def SendPacketToAll(self,Packet):
+        Data = Packet.GetOutData()
         for pPlayer in self.PlayerSet:
-            pPlayer.SendPacket(Packet)
+           pPlayer.OutBuffer.write(Data)
 
     def SaveAllWorlds(self):
         '''This will need to be rewritten come multi-threaded worlds!'''

@@ -42,7 +42,8 @@ class Player(object):
     def GetOutBuffer(self):
         return self.OutBuffer
     def SendPacket(self,Packet):
-        '''Appends data to the end of our buffer'''
+        '''Appends data to the end of our buffer
+            *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO SendPacketToAll functions!'''
         self.OutBuffer.write(Packet.data.getvalue())
 
     def IsDisconnecting(self):

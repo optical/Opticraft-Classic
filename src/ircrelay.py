@@ -46,7 +46,7 @@ class RelayBot(IRCClient):
             self.SendMessage(self.Channel, '%s left the server' %Name)
 
     def PopulateColourMap(self):
-        self.ColourMap["&0"] = ' ' #Black
+        self.ColourMap["&0"] = '' #Black
         self.ColourMap["&1"] = '%s2' %RelayBot.COLOUR_CODE
         self.ColourMap["&2"] = '%s3' %RelayBot.COLOUR_CODE #Dark Blue
         self.ColourMap["&3"] = '%s10' %RelayBot.COLOUR_CODE #Dark Teal
@@ -61,4 +61,4 @@ class RelayBot(IRCClient):
         self.ColourMap["&c"] = '%s4' %RelayBot.COLOUR_CODE  #Red
         self.ColourMap["&d"] = '%s13' %RelayBot.COLOUR_CODE #Pink
         self.ColourMap["&e"] = '%s8' %RelayBot.COLOUR_CODE #Yellow
-        self.ColourMap["&f"] = ' ' #white
+        self.ColourMap["&f"] = '' #white

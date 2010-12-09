@@ -652,9 +652,12 @@ class World(object):
         self.SendPacketToAll(Packet)
         
     def SendPacketToAll(self,Packet,Client = None):
+        '''Distributes a packet to all clients on a map
+            *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
+        Data = Packet.GetOutData()
         for pPlayer in self.Players:
             if pPlayer != Client:
-                pPlayer.SendPacket(Packet)
+                pPlayer.OutBuffer.write(Data)
     @staticmethod
     def GetRankValue(Name):
         try:
