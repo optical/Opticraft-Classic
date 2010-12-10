@@ -70,7 +70,7 @@ class ServerController(object):
         Console.SetFileLogging(bool(int(self.ConfigValues.GetValue("logs","ConsoleFileLogs","0"))))
         Console.SetColour(int(self.ConfigValues.GetValue("server","ConsoleColour","1")))
         Console.Out("Startup","Opticraft is starting up.")
-        self.Port = int(self.ConfigValues.GetValue("server","Port","6878"))
+        self.Port = int(self.ConfigValues.GetValue("server","Port","25565"))
         self.Salt = str(random.randint(1,0xFFFFFFFF-1))
         #Check to see if we have a salt saved to disk.
         if os.path.exists("opticraft.salt"):
@@ -92,7 +92,7 @@ class ServerController(object):
 
         self.Name = self.ConfigValues.GetValue("server","Name","An opticraft server")
         self.Motd = self.ConfigValues.GetValue("server","Motd","Powered by opticraft!")
-        self.MaxClients = int(self.ConfigValues.GetValue("server","Max",120))
+        self.MaxClients = int(self.ConfigValues.GetValue("server","Max","32"))
         self.Public = self.ConfigValues.GetValue("server","Public","True")
         self.DumpStats = int(self.ConfigValues.GetValue("server","DumpStats","0"))
         self.LanMode = bool(int(self.ConfigValues.GetValue("server","LanMode","0")))
@@ -349,6 +349,7 @@ class ServerController(object):
         if platform.system() == 'Linux':
             signal.signal(signal.SIGTERM,self.HandleKill)
         Console.Out("Startup","Startup procedure completed in %.0fms" %((time.time() -self.StartTime)*1000))
+        Console.Out("Server","Press Ctrl-C at any time to shutdown the sever safely.")
         while self.Running == True:
             self.Now = time.time()
             self.SockManager.Run()

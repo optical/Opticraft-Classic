@@ -257,7 +257,7 @@ class Player(object):
         Version = Packet.GetByte()
         self.Name = Packet.GetString()
         HashedPass = Packet.GetString().strip("0")
-        CorrectPass = hashlib.md5("SOMESALT" + self.Name).hexdigest().strip("0")
+        CorrectPass = hashlib.md5(self.ServerControl.Salt + self.Name).hexdigest().strip("0")
         if Version != 7:
             self.Disconnect("Your client is incompatible with this server")
             return
