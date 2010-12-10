@@ -51,6 +51,8 @@ def Main():
         ServerControl.Shutdown(True)
         if os.path.isfile("opticraft.pid"):
             os.remove("opticraft.pid")
+        if ServerControl.InstantClose == 0:
+            raw_input("\nPress enter to terminate ")
         return
 if __name__ == "__main__":
     Main()

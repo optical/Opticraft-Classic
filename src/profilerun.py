@@ -54,6 +54,7 @@ def Main():
         ServerControl.Shutdown(True)
         if os.path.isfile("opticraft.pid"):
             os.remove("opticraft.pid")
-
+        if ServerControl.InstantClose == 0:
+            raw_input("\nPress enter to terminate ")
 if __name__ == "__main__":
     Profile.run('Main()', 'profiler-%s.out' %time.strftime("%d-%m-%Y_%H-%M-%S", time.gmtime()))
