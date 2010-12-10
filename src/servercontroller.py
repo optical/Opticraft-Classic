@@ -98,6 +98,7 @@ class ServerController(object):
         self.LanMode = bool(int(self.ConfigValues.GetValue("server","LanMode","0")))
         self.SendBufferLimit = int(self.ConfigValues.GetValue("server","SendBufferLimit","4194304")) #4MB
         self.IdlePlayerLimit = int(self.ConfigValues.GetValue("server","IdleLimit","3600"))
+        self.InstantClose = int(self.ConfigValues.GetValue("server","InstantClose","0"))
         self.LastIdleCheck = time.time()
         self.IdleCheckPeriod = 60
         self.EnableBlockLogs = int(self.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
