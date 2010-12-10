@@ -44,7 +44,7 @@ class HeartBeatController(Thread):
         self.DumpStats = ServerControl.DumpStats
         self.LanMode = ServerControl.LanMode
         self.Peak = 0
-        self.Clients = 9
+        self.Clients = 0
         self.ServerControl = ServerControl
         self.Running = True
         self.FirstHeartbeat = True
