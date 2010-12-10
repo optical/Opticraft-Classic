@@ -699,7 +699,14 @@ class CreateWorldCmd(CommandObject):
             if X <= 0 or Y <= 0 or Z <= 0:
                 raise Exception()
         except:
-            pPlayer.SendMessage("&4Please enter a valid X, Y, and Z coordinates!")
+            pPlayer.SendMessage("&4Please enter a valid length, width, and height coordinates!")
+            return
+        try:
+            assert(X%16==0)
+            assert(Y%16==0)
+            assert(Z%16==0)
+        except AssertionError:
+            pPlayer.SendMessage("&4Your length, width and height coorinates need to be a multiple of 16")
             return
         if pPlayer.ServerControl.WorldExists(Name):
             pPlayer.SendMessage("&4That world already exists!")
@@ -708,7 +715,8 @@ class CreateWorldCmd(CommandObject):
         pPlayer.ServerControl.ActiveWorlds.append(pWorld)
         pPlayer.ServerControl.SetWorldRank(pWorld.Name, pWorld.MinRank)
         pWorld.SetIdleTimeout(pPlayer.ServerControl.WorldTimeout)
-        pPlayer.SendMessage("&aSuccessfully created the world!")
+        pPlayer.SendMessage("&aSuccessfully created world \"&f%s&a\"" %Name)
+
 class LoadWorldCmd(CommandObject):
     '''Handler for the /worldload command'''
     def Run(self,pPlayer,Args,Message):
@@ -880,7 +888,7 @@ class DeleteWorldCmd(CommandObject):
                         pass
                 pPlayer.ServerControl.IdleWorlds.remove(WorldName)
                 del pPlayer.ServerControl.WorldRankCache[WorldName.lower()]
-                pPlayer.SendMessage("&aSuccessfully deleted world %s" %WorldName)
+                pPlayer.SendMessage("&aSuccessfully deleted world \"&f%s&a\"" %WorldName)
                 return #Done...
 
 
@@ -963,7 +971,7 @@ class CommandHandler(object):
         self.AddCommand("worldsetrank", WorldSetRankCmd, 'a', 'Sets the minimum rank to build on a world', 'Incorrect syntax. Usage: /worldsetrank <world> <t/b/o/a>', 2)
         self.AddCommand("zCreate", ZCreateCmd, 'a', 'Creates a restricted zone', 'Incorrect syntax. Usage: /zCreate <name> <owner> <height>', 3)
         self.AddCommand("zDelete", ZDeleteCmd, 'a', 'Deletes a restricted zone', 'Incorrect syntax. Usage: /zDelete <name>', 1)
-        self.AddCommand("createworld", CreateWorldCmd, 'a', 'Creates a new world.', 'Incorrect syntax. Usage: /createworld <name> <x> <y> <z>', 4)
+        self.AddCommand("createworld", CreateWorldCmd, 'a', 'Creates a new world.', 'Incorrect syntax. Usage: /createworld <name> <length> <width> <height>', 4)
         self.AddCommand("setdefaultworld", SetDefaultWorldCmd, 'a', 'Sets the world you specify to be the default one', 'Incorrect syntax. Usage: /setdefaultworld <name>', 1)
         self.AddCommand("RenameWorld", RenameWorldCmd, 'a', 'Renames a world', 'Incorrect syntax! Usage: /renameworld <oldname> <newname>', 2)
         self.AddCommand("LoadWorld", LoadWorldCmd, 'a', 'Loads a world which has been added to the Worlds folder', 'Incorrect syntax! Usage: /loadworld <name>', 1)
