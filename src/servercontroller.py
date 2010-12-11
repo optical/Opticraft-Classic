@@ -172,6 +172,17 @@ class ServerController(object):
                 fHandle.close()
             except:
                 Console.Error("ServerControl", "Failed to load banned-ip.txt!")
+
+        self.Rules = list()
+        try:
+            fHandle = open("rules.txt","r")
+            self.Rules = fHandle.readlines()
+            fHandle.close()
+            if len(self.Rules) == 0:
+                raise Exception
+        except:
+            Console.Warning("Startup","Unable to find any rules in rules.txt")
+            
         self.Zones = list()
         self.LoadZones()
         Worlds = os.listdir("Worlds")

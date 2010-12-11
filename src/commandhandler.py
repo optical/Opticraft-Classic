@@ -119,7 +119,16 @@ class HelpCmd(CommandObject):
         else:
             CmdObj = self.CmdHandler.CommandTable[Args[0].lower()]
             pPlayer.SendMessage("&a" + CmdObj.HelpMsg)
-
+class RulesCmd(CommandObject):
+    '''Lists all of the servers rules'''
+    def Run(self,pPlayer,Args,Message):
+        if len(pPlayer.ServerControl.Rules) == 0:
+            pPlayer.SendMessage("&arules.txt not found. This server has no rules!")
+            return
+        pPlayer.SendMessage("&aThe rules for this server are as follows:")
+        for line in pPlayer.ServerControl.Rules:
+            pPlayer.SendMessage(line)
+            
 class AboutCmd(CommandObject):
     '''The next block a player destroys/creates will display the blocks infromation'''
     def Run(self,pPlayer,Args,Message):
@@ -907,6 +916,7 @@ class CommandHandler(object):
         ######################
         #PUBLIC COMMANDS HERE#
         ######################
+        self.AddCommand("rules", RulesCmd, 'g', 'Displays a list of rules for this server', '', 0)
         self.AddCommand("about", AboutCmd, 'g', 'Displays history of a block when you destroy/create one', '', 0)
         self.AddCommand("cmdlist", CmdListCmd, 'g', 'Lists all commands available to you', '', 0)
         self.AddCommand("commands", CmdListCmd, 'g', 'Lists all commands available to you', '', 0,Alias=True)
