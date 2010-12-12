@@ -697,7 +697,6 @@ class World(object):
             fHandle = open("Worlds/%s.save" %Name)
             fHandle.seek(-1,os.SEEK_END)
             Value = fHandle.read(1)
-            print Name, Value
         except IOError:
             return 'g'
         except ValueError:
