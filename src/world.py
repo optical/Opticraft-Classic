@@ -695,9 +695,9 @@ class World(object):
     def GetRankValue(Name):
         try:
             fHandle = open("Worlds/%s.save" %Name)
-            BlockSize = struct.unpack("i",fHandle.read(4))[0]
-            fHandle.seek(BlockSize+16,os.SEEK_CUR)
+            fHandle.seek(-1,os.SEEK_END)
             Value = fHandle.read(1)
+            print Name, Value
         except IOError:
             return 'g'
         except ValueError:
