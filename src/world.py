@@ -432,7 +432,7 @@ class World(object):
         Packet.WriteInt16(z)
         Packet.WriteInt16(y)
         Packet.WriteByte(val)
-        self.SendPacketToAll(Packet,pPlayer)
+        self.SendPacketToAllButOne(Packet,pPlayer)
         
     def UndoActions(self,Username,ReversePlayer,Time):
         Username = Username.lower()
@@ -622,7 +622,7 @@ class World(object):
         if pPlayer.IsLoadingWorld() == False:
             Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
             Packet.WriteByte(pPlayer.GetId())
-            self.SendPacketToAll(Packet, pPlayer)
+            self.SendPacketToAllButOne(Packet, pPlayer)
             self.SendNotice("%s left the map" %pPlayer.GetName())
             if ChangingMaps:
                 self._ChangeMap(pPlayer)
@@ -652,7 +652,7 @@ class World(object):
         Packet.WriteInt16(pPlayer.GetY())
         Packet.WriteByte(pPlayer.GetOrientation())
         Packet.WriteByte(pPlayer.GetPitch())
-        self.SendPacketToAll(Packet, pPlayer)
+        self.SendPacketToAllButOne(Packet, pPlayer)
 
     def _ChangeMap(self,pPlayer):
         for nPlayer in self.Players:
@@ -678,7 +678,13 @@ class World(object):
         Packet.WriteString(Message)
         self.SendPacketToAll(Packet)
         
-    def SendPacketToAll(self,Packet,Client = None):
+    def SendPacketToAll(self,Packet):
+        '''Distributes a packet to all clients on a map
+            *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
+        Data = Packet.GetOutData()
+        for pPlayer in self.Players:
+            pPlayer.OutBuffer.write(Data)
+    def SendPacketToAllButOne(self,Packet,Client):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
         Data = Packet.GetOutData()

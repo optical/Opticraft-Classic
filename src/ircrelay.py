@@ -52,7 +52,7 @@ class RelayBot(IRCClient):
                 Username = Tokens[0].split("!")[0][1:]
                 Message = ' '.join(Tokens[3:])[1:]
                 Message = Message.replace('&','')
-                self.ServerControl.SendChatMessage('&3[IRC] &f%s' %Username,Message)
+                self.ServerControl.SendChatMessage('&3[IRC]-&f%s' %Username,Message)
     def Connect(self):
         Console.Out("IRC","Connecting to irc server %s on port %d" %(self.Host,self.Port))
         self.connect((self.Host,self.Port))

@@ -182,7 +182,7 @@ class ServerController(object):
                 raise Exception
         except:
             Console.Warning("Startup","Unable to find any rules in rules.txt")
-            
+        
         self.Zones = list()
         self.LoadZones()
         Worlds = os.listdir("Worlds")
@@ -402,7 +402,7 @@ class ServerController(object):
 
             #Run the IRC Bot if enabled
             if self.EnableIRC:
-                asyncore.loop(count=1,timeout=0.005)
+                asyncore.loop(count=1,timeout=0.001)
             #Remove idle players
             if self.IdlePlayerLimit != 0:
                 if self.LastIdleCheck + self.IdleCheckPeriod < self.Now:
@@ -581,6 +581,8 @@ class ServerController(object):
         self.SendMessageToAll(OutStr)
 
     def SendPacketToAll(self,Packet):
+        '''Distributes a packet to all clients on a map
+            *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
         Data = Packet.GetOutData()
         for pPlayer in self.PlayerSet:
            pPlayer.OutBuffer.write(Data)

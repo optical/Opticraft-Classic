@@ -182,7 +182,7 @@ class RanksCmd(CommandObject):
         Items = RankToLevel.items()
         Items.sort(cmp= lambda x,y: cmp(x[1],y[1]))
         for Rank,Junk in Items:
-            pPlayer.SendMessage(" &e%s%s&e: %s" %(RankToColour[Rank],RankToName[Rank],RankToDescription[Rank]))
+            pPlayer.SendMessage("&e %s%s&e: %s" %(RankToColour[Rank],RankToName[Rank],RankToDescription[Rank]))
 
 class PlayerInfoCmd(CommandObject):
     '''Handler for the /whois command. Returns info on a player'''
