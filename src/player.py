@@ -313,7 +313,7 @@ class Player(object):
             NewPacket.WriteInt16(y)
             NewPacket.WriteByte(o)
             NewPacket.WriteByte(p)
-            self.World.SendPacketToAll(NewPacket, self)
+            self.World.SendPacketToAll(NewPacket)
 
     def HandleBlockChange(self,Packet):
         if self.World is not None:
