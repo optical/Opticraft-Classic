@@ -285,7 +285,10 @@ class World(object):
         fHandle.write(self.MinRank)
         fHandle.close()
         shutil.copy("Worlds/%s.temp" %(self.Name),"Worlds/%s.save" %(self.Name))
-        os.remove("Worlds/%s.temp" %(self.Name))
+        try:
+            os.remove("Worlds/%s.temp" %(self.Name))
+        except:
+            pass
         if Verbose:
             Console.Out("World","Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
             self.SendNotice("Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
