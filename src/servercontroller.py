@@ -32,6 +32,9 @@ import os.path
 import signal
 import platform
 import asyncore
+import sqlite3 as dbapi
+import threading
+import Queue
 from heartbeatcontrol import HeartBeatController
 from opticraftpacket import OptiCraftPacket
 from optisockets import SocketManager
@@ -44,7 +47,76 @@ from console import *
 from ircrelay import RelayBot
 class SigkillException(Exception):
     pass
-#This is used for writing to the command line (Console, stdout)
+class PlayerDbThread(threading.Thread):
+    '''This thread performs asynchronous querys on the player databases, specifically for loading
+    and saving player data'''
+    def __init__(self,ServerControl):
+        threading.Thread.__init__(self)
+        self.ServerControl = ServerControl
+        self.Tasks = Queue.Queue()
+        self.Connection = None
+        self.Running = True
+
+    def SavePlayerData(self,pPlayer):
+        QueryString = "REPLACE INTO Players Values (?,?,?,?,?,?,?,?,?,?,?,?)"
+        try:
+            self.Connection.execute(QueryString,(pPlayer.GetName().lower(),pPlayer.GetJoinedTime(),pPlayer.GetLoginTime(),
+                                    pPlayer.GetBlocksMade(),pPlayer.GetBlocksErased(),pPlayer.GetIP(),pPlayer.GetIpLog(),
+                                    pPlayer.GetJoinNotifications(),pPlayer.GetTimePlayed(),pPlayer.GetKickCount(),
+                                    pPlayer.GetChatMessageCount(),pPlayer.GetLoginCount()))
+            self.Connection.commit()
+        except dbapi.OperationalError:
+            #Try again later
+            Console.Debug("PlayerDB","Failed to save player %s. Trying again soon" %pPlayer.GetName())
+            self.Tasks.put(["SAVE_PLAYER",pPlayer])
+
+    def Initialise(self):
+        self.Connection = dbapi.connect("Player.db")
+        self.Connection.text_factory = str
+        self.Connection.row_factory = dbapi.Row
+        Console.Out("PlayerDB","Successfully connected to Player.db")
+        Result = self.Connection.execute("SELECT * FROM sqlite_master where name='Server' and type='table'")
+        if Result.fetchone() == None:
+            #Create the DB
+            Console.Warning("PlayerDB","No data exists in Player.db. Creating Tables")
+            self.Connection.execute("CREATE TABLE Server (DatabaseVersion INTEGER)")
+            CreateQuery = "CREATE TABLE Players (Username TEXT UNIQUE,"
+            CreateQuery += "Joined INTEGER, LastLogin INTEGER, BlocksMade INTEGER,"
+            CreateQuery += "BlocksDeleted INTEGER, LastIP TEXT, IpLog TEXT, JoinNotifications INTEGER,"
+            CreateQuery += "PlayedTime INTEGER, KickCount INTEGER, ChatLines INTEGER, LoginCount INTEGER)"
+            self.Connection.execute(CreateQuery)
+            self.Connection.execute("CREATE INDEX Username ON Players (Username)")
+            self.Connection.execute("INSERT INTO Server VALUES (1)")
+            self.Connection.commit()
+        else:
+            #Check the version
+            Result = self.Connection.execute("SELECT * from Server")
+            Version = Result.fetchone()[0]
+            #todo - Think of a better way of doing SQL updates for older DB's
+            if Version < 1:
+                pass
+    def run(self):
+        self.Initialise()
+        while self.Running:
+            Task = self.Tasks.get()
+            if Task[0] == "GET_PLAYER":
+                self.LoadPlayerData(Task[1])
+            elif Task[0] == "SAVE_PLAYER":
+                self.SavePlayerData(Task[1])
+            elif Task[0] == "SHUTDOWN":
+                self.Connection.commit()
+                self.Running = False
+                self.Connection.close()
+
+
+    def LoadPlayerData(self,Username):
+        '''This function will never throw an exception, unless a plugin is incorrectly executing a query in the wrong thread'''
+        Result = self.Connection.execute("SELECT * FROM Players where Username = ?", (Username,))
+        Result = Result.fetchone()
+        self.ServerControl.LoadResults.put((Username,Result))
+
+
+
 class ServerController(object):
     def __init__(self):
         self.StartTime = int(time.time())
@@ -127,6 +199,12 @@ class ServerController(object):
         self.LastCpuCheck = 0
         self.InitialCpuTimes = os.times()
         self.LastCpuTimes = 0
+        self.LoadResults = Queue.Queue()
+        self.PlayerDBThread  = PlayerDbThread(self)
+        self.PlayerDBConnection = dbapi.connect("Player.db")
+        self.PlayerDBConnection.text_factory = str
+        self.PlayerDBConnection.row_factory = dbapi.Row
+        self.PlayerDBCursor = self.PlayerDBConnection.cursor()
         self.CurrentCpuTimes = 0
         reversed(self.PlayerIDs)
         self.SocketToPlayer = dict()
@@ -360,6 +438,7 @@ class ServerController(object):
 
         if platform.system() == 'Linux':
             signal.signal(signal.SIGTERM,self.HandleKill)
+        self.PlayerDBThread.start()
         Console.Out("Startup","Startup procedure completed in %.0fms" %((time.time() -self.StartTime)*1000))
         Console.Out("Server","Press Ctrl-C at any time to shutdown the sever safely.")
         while self.Running == True:
@@ -379,6 +458,8 @@ class ServerController(object):
                 pPlayer = ToRemove.pop()
                 self.AuthPlayers.remove(pPlayer)
                 #Put the player into our default world if they are identified
+                self.SendJoinMessage('&e%s has connected. Joined map %s%s' %(pPlayer.GetName(),
+                RankToColour[self.ActiveWorlds[0].MinRank],self.ActiveWorlds[0].Name))
                 self.ActiveWorlds[0].AddPlayer(pPlayer)
             for pWorld in self.ActiveWorlds:
                 pWorld.Run()
@@ -408,6 +489,17 @@ class ServerController(object):
                 if self.LastIdleCheck + self.IdleCheckPeriod < self.Now:
                     self.RemoveIdlePlayers()
                     self.LastIdleCheck = self.Now
+            #Check for SQL Results from the PlayerDBThread
+            while True:
+                try:
+                    Result = self.LoadResults.get_nowait()
+                except Queue.Empty:
+                    break
+                #Got a result.
+                Username = Result[0]
+                Rows = Result[1]
+                self.GetPlayerFromName(Username).LoadData(Rows)
+
             SleepTime = 0.05 - (time.time() - self.Now)
             if 0 < SleepTime:
                 time.sleep(SleepTime)
@@ -418,7 +510,10 @@ class ServerController(object):
         for pWorld in self.ActiveWorlds:
             pWorld.Shutdown(True)
         self.Running = False
-
+        ToRemove = list(self.PlayerSet)
+        for pPlayer in ToRemove:
+            self._RemovePlayer(pPlayer)
+        self.PlayerDBThread.Tasks.put(["SHUTDOWN"])
     def GetName(self):
         return self.Name
     def GetMotd(self):
@@ -474,6 +569,7 @@ class ServerController(object):
         self.FlushBans()
         pPlayer = self.GetPlayerFromName(Username)
         if pPlayer != None:
+            pPlayer.IncreaseKickCount()
             pPlayer.Disconnect("You are banned from this server")
             return True
         return False
@@ -482,6 +578,7 @@ class ServerController(object):
         self.FlushIPBans()
         for pPlayer in self.PlayerSet:
             if pPlayer.GetIP() == IP:
+                pPlayer.IncreaseKickCount()
                 pPlayer.Disconnect("You are ip-banned from this server")
                 self.SendNotice("%s has been ip-banned by %s" %(pPlayer.GetName(),Admin.GetName()))
                 
@@ -504,6 +601,7 @@ class ServerController(object):
         pPlayer = self.GetPlayerFromName(Username)
         if pPlayer != None:
             self.SendNotice("%s was kicked by %s. Reason: %s" %(Username,Operator.GetName(),Reason))
+            pPlayer.IncreaseKickCount()
             pPlayer.Disconnect("You were kicked by %s. Reason: %s" %(Operator.GetName(),Reason))
             return True
         return False
@@ -542,7 +640,7 @@ class ServerController(object):
         if pPlayer in self.AuthPlayers:
             self.AuthPlayers.remove(pPlayer)
         else:
-            self.SendNotice("%s has left the server" %pPlayer.GetName())
+            self.SendJoinMessage("&e%s has left the server" %pPlayer.GetName())
             if self.GetPlayerFromName(pPlayer.GetName()) != None:
                 del self.PlayerNames[pPlayer.GetName().lower()]
             if self.EnableIRC:
@@ -551,6 +649,10 @@ class ServerController(object):
 
         if pPlayer.GetWorld() != None:
             pPlayer.GetWorld().RemovePlayer(pPlayer)
+        if pPlayer.IsDataLoaded():
+            #Update the played time.
+            pPlayer.UpdatePlayedTime()
+            self.PlayerDBThread.Tasks.put(["SAVE_PLAYER",pPlayer])
         pPlayer.SetWorld(None)
         self.HeartBeatControl.DecreaseClients()
         self.NumPlayers -= 1
@@ -562,6 +664,13 @@ class ServerController(object):
         Packet.WriteByte(0xFF)
         Packet.WriteString(Message[:64])
         self.SendPacketToAll(Packet)
+    def SendJoinMessage(self,Message):
+        Packet = OptiCraftPacket(SMSG_MESSAGE)
+        Packet.WriteByte(0)
+        Packet.WriteString(Message[:64])
+        for pPlayer in self.PlayerSet:
+            if pPlayer.GetJoinNotifications():
+                pPlayer.SendPacket(Packet)
     def SendMessageToAll(self,Message):
         Packet = OptiCraftPacket(SMSG_MESSAGE)
         Packet.WriteByte(0)

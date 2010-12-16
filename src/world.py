@@ -77,10 +77,7 @@ class AsynchronousIOThread(threading.Thread):
 
     def run(self):
         while self.Running:
-            try:
-                Task = self.Tasks.get(True, 0.5)
-            except Queue.Empty:
-                continue
+            Task = self.Tasks.get()
             #Task is a list of 2 items, [0] is the instruction, [1] is the payload
             if Task[0] == "FLUSH":
                 #Flush blocks
@@ -114,6 +111,7 @@ class AsynchronousIOThread(threading.Thread):
             os.remove("Worlds/BlockLogs/%s.db" %self.OldName)
 
         self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" %self.WorldName)
+        self.DBConnection.text_factory = str
         self.Lock.release()
 
     def _FlushBlocksTask(self,Data):
@@ -615,7 +613,7 @@ class World(object):
         pPlayer.SetLoadingWorld(False)
         self.SendPlayerJoined(pPlayer)
         self.SendAllPlayers(pPlayer)
-        self.ServerControl.SendMessageToAll("&e%s joined map %s%s" %(pPlayer.GetName(),RankToColour[self.MinRank],self.Name))
+
 
 
     def RemovePlayer(self,pPlayer,ChangingMaps = False):
@@ -626,7 +624,6 @@ class World(object):
             Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
             Packet.WriteByte(pPlayer.GetId())
             self.SendPacketToAllButOne(Packet, pPlayer)
-            self.SendNotice("%s left the map" %pPlayer.GetName())
             if ChangingMaps:
                 self._ChangeMap(pPlayer)
                 self.TransferringPlayers.append(pPlayer)
@@ -680,7 +677,13 @@ class World(object):
         Packet.WriteByte(0xFF)
         Packet.WriteString(Message)
         self.SendPacketToAll(Packet)
-        
+    def SendJoinMessage(self,Message):
+        Packet = OptiCraftPacket(SMSG_MESSAGE)
+        Packet.WriteByte(0)
+        Packet.WriteString(Message[:64])
+        for pPlayer in self.Players:
+            if pPlayer.GetJoinNotifications():
+                pPlayer.SendPacket(Packet)
     def SendPacketToAll(self,Packet):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
