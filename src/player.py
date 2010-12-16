@@ -157,6 +157,7 @@ class Player(object):
             OutPacket.WriteByte(0)
             self.SendPacket(OutPacket)
             NewWorld.AddPlayer(self)
+            self.ServerControl.SendJoinMessage("&e%s changed map to %s%s"%(self.Name,RankToColour[NewWorld.MinRank],NewWorld.Name))
         else:
             #World couldn't be loaded (Probably because the block-log is still in use)
             #This is a very very rare condition which can occur on slow computers with high load (100+ users etc)
@@ -214,6 +215,65 @@ class Player(object):
         return self.LastAction
     def IsAuthenticated(self):
         return self.IsIdentified
+    def GetJoinNotifications(self):
+        return self.JoinNotifications
+    def SetJoinNotifications(self, Value):
+        self.JoinNotifications = int(Value)
+    def GetTimePlayed(self):
+        return self.TimePlayed
+    def GetKickCount(self):
+        return self.KickCount
+    def IncreaseKickCount(self):
+        self.KickCount += 1
+    def GetIpLog(self):
+        return self.LastIps
+    def GetBlocksErased(self):
+        return self.BlocksErased
+    def IncreaseBlocksErased(self):
+        self.BlocksErased += 1
+    def GetBlocksMade(self):
+        return self.BlocksMade
+    def IncreaseBlocksMade(self):
+        self.BlocksMade += 1
+    def GetJoinedTime(self):
+        return self.JoinTime
+    def GetChatMessageCount(self):
+        return self.ChatMessageCount
+    def IncreaseChatMessageCount(self):
+        self.ChatMessageCount += 1
+    def GetLoginCount(self):
+        return self.LoginCount
+    def IncreaseLoginCount(self):
+        self.LoginCount += 1
+    def IsDataLoaded(self):
+        return self.DataIsLoaded
+    def UpdatePlayedTime(self):
+        self.TimePlayed += int(self.ServerControl.Now) - self.LastPlayedTimeUpdate
+        self.LastPlayedTimeUpdate = int(self.ServerControl.Now)
+
+    def LoadData(self,Row):
+        self.DataIsLoaded = True
+        if Row == None:
+            #No data found, must be the first login.
+            self.LastIps = self.GetIP()
+            self.JoinTime = int(self.ServerControl.Now)
+            self.LoginCount = 1
+        else:
+            self.JoinTime = Row["Joined"]
+            self.BlocksMade = Row["BlocksMade"]
+            self.BlocksErased = Row["BlocksDeleted"]
+            self.LastIps = Row["IpLog"]
+            self.JoinNotifications = Row["JoinNotifications"]
+            self.ChatMessageCount = Row["ChatLines"]
+            self.KickCount = Row["KickCount"]
+            self.TimePlayed = Row["PlayedTime"]
+            self.LoginCount = Row["LoginCount"] + 1
+
+            #Update the IpLog
+            Tokens = self.LastIps.split(",")
+            if self.GetIP() not in Tokens:
+                self.LastIps = "%s,%s" %(self.LastIps,self.GetIP())
+
 
     def Teleport(self,x,y,z,o,p):
         '''Teleports the player to X Y Z. These coordinates have the fractal bit at position 5'''
@@ -285,9 +345,9 @@ class Player(object):
             self.SendPacket(OutPacket)
             self.Rank = self.ServerControl.GetRank(self.Name)
             self.ColouredName = '%s%s' %(RankToColour[self.Rank],self.Name)
-            self.ServerControl.SendNotice('%s connected to the server' %self.Name)
             if self.ServerControl.EnableIRC:
                 self.ServerControl.IRCInterface.HandleLogin(self.GetName())
+            self.ServerControl.PlayerDBThread.Tasks.put(["GET_PLAYER",self.Name.lower()])
 
             return
         else:
@@ -325,6 +385,7 @@ class Player(object):
             Block = Packet.GetByte()
             Result = None
             if Mode == 0:
+                self.IncreaseBlocksErased()
                 if self.GetPaintCmd() == True:
                      if self.BlockOverride != -1:
                          Block = self.BlockOverride
@@ -333,6 +394,7 @@ class Player(object):
                 else:
                     Result = self.World.AttemptSetBlock(self,x,y,z,0)
             else:
+                self.IncreaseBlocksMade()
                 if self.BlockOverride != -1:
                     Block = self.BlockOverride
                 Result = self.World.AttemptSetBlock(self,x,y,z,Block)
@@ -343,6 +405,7 @@ class Player(object):
     def HandleChatMessage(self,Packet):
         if self.World == None:
             return
+        self.IncreaseChatMessageCount()
         self.LastAction = self.ServerControl.Now
         Packet.GetByte() #junk
         Contents = Packet.GetString()
@@ -397,11 +460,23 @@ class Player(object):
         self.CreatingZone = False
         self.ZoneData = dict()
         self.LoginTime = int(self.ServerControl.Now)
+        self.LastPlayedTimeUpdate = self.LoginTime
         self.LastAction = self.LoginTime
         self.LastPmUsername = ''
         self.Disconnecting = False
+        self.DataIsLoaded = False
+        self.ChatMessageCount = 0
+        self.BlocksMade = 0
+        self.KickCount = 0 
+        self.BlocksErased = 0
+        self.LastIps = ''
+        self.JoinNotifications = 1
+        self.JoinTime = 0 #This it the time when the player logged in for the first time ever
+        self.TimePlayed = 0
+        self.LoginCount = 0
         #This is used for commands such as /lava, /water, and /grass
         self.BlockOverride = -1
+
 
         self.X,self.Y,self.Z,self.O,self.P = -1,-1,-1,-1,-1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
 

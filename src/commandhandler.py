@@ -160,6 +160,37 @@ class WorldsCmd(CommandObject):
         for WorldName in IdleWorlds:
             OutString = OutString = '%s%s%s ' %(OutString,RankToColour[pPlayer.ServerControl.GetWorldRank(WorldName)],WorldName)
         pPlayer.SendMessage(OutString,False)
+        
+class StatsCmd(CommandObject):
+    '''Handler for the /stats command. Returns information'''
+    def Run(self,pPlayer,Args,Message):
+        if len(Args) == 0:
+            Target = pPlayer
+        else:
+            Target = pPlayer.ServerControl.GetPlayerFromName(Args[0])
+            if Target == None:
+                pPlayer.SendMessage("&4That player is not online")
+                return
+
+        if Target.IsDataLoaded():
+            pPlayer.UpdatePlayedTime()
+            pPlayer.SendMessage("&a%s's join date was: &e%s" %(Target.GetName(),time.ctime(Target.GetJoinedTime())))
+            pPlayer.SendMessage("&aSince then they have logged in &e%d &atimes" %Target.GetLoginCount())
+            pPlayer.SendMessage("&aAnd have created &e%d &ablocks and deleted &e%d" %(Target.GetBlocksMade(),Target.GetBlocksErased()))
+            pPlayer.SendMessage("&aTheir played time is &e%s" %ElapsedTime(Target.GetTimePlayed()))
+            pPlayer.SendMessage("&aAnd they have spoken &e%d &alines thus far" %Target.GetChatMessageCount())
+        else:
+            pPlayer.SendMessage("&4Database is loading data. Try again soon!")
+class ToggleNotificationsCmd(CommandObject):
+    '''Handler for the /togglenotifications command. Enables/Disables join notices'''
+    def Run(self,pPlayer,Args,Message):
+        if pPlayer.GetJoinNotifications():
+            pPlayer.SetJoinNotifications(False)
+            pPlayer.SendMessage("&aJoin/Leave notifications have been disabled")
+        else:
+            pPlayer.SetJoinNotifications(True)
+            pPlayer.SendMessage("&aJoin/Leave notifications have been enabled")
+
 class sInfoCmd(CommandObject):
     '''Handler for the /sinfo command. Returns server information'''
     def Run(self,pPlayer,Args,Message):
@@ -190,16 +221,26 @@ class PlayerInfoCmd(CommandObject):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
         if Target == None:
-            pPlayer.SendMessage("&4That player is not online!")
-            return
-        pPlayer.SendMessage("&a%s has been online for &e%s" %(Target.GetName(), ElapsedTime(int(pPlayer.ServerControl.Now) -Target.GetLoginTime())))
-        if pPlayer.HasPermission('o'):
-            pPlayer.SendMessage("&aTheir ip is: &e%s" %Target.GetIP())
-        pPlayer.SendMessage("&aThey are on world &e\"%s\"" %Target.GetWorld().Name)
-        if Target.GetRank() != '':
-            pPlayer.SendMessage("&aTheir rank is &e%s" %RankToName[Target.GetRank()])
+            #Try load some data from the DB
+            try:
+                Result = pPlayer.ServerControl.PlayerDBConnection.execute("SELECT * FROM Players where Username = ?", (Username.lower(),))
+                Row = Result.fetchone()
+                if Row == None:
+                    pPlayer.SendMessage("&4That player does not exist!")
+                    return
+                pPlayer.SendMessage("&a%s is &4Offline. &aRank: &e%s" %(Username,RankToName[pPlayer.ServerControl.GetRank(Username)]))
+                pPlayer.SendMessage("&aLast login was: &e%s &aago" %(ElapsedTime(int(pPlayer.ServerControl.Now)-Row["LastLogin"])))
+                pPlayer.SendMessage("&aTheir last ip was &e%s&a. Iplog: &e%s" %(Row["LastIp"],Row["IPLog"]))
+
+            except dbapi.OperationalError:
+                pPlayer.SendMessage("&4The database is busy. Try again soon")
         else:
-            pPlayer.SendMessage("&aAnd they do not have any rank")
+            pPlayer.SendMessage("&a%s has been online for &e%s" %(Target.GetName(), ElapsedTime(int(pPlayer.ServerControl.Now) -Target.GetLoginTime())))
+            if pPlayer.HasPermission('o'):
+                pPlayer.SendMessage("&aCurrent IP: &e%s&a. Previous IP's: &e%s" %(Target.GetIP(),Target.GetIpLog()))
+            pPlayer.SendMessage("&aThey are on world &e\"%s\"" %Target.GetWorld().Name)
+            pPlayer.SendMessage("&aTheir rank is &e%s" %RankToName[Target.GetRank()])
+
 
 class PlayerListCmd(CommandObject):
     '''Handler for the /players command. Lists all online players'''
@@ -931,6 +972,8 @@ class CommandHandler(object):
         self.AddCommand("paint", PaintCmd, 'g', 'When you destroy a block it will be replaced by what you are currently holding', '', 0)
         self.AddCommand("sinfo", sInfoCmd, 'g', 'Displays information about the server', '', 0)
         self.AddCommand("info", sInfoCmd, 'g', 'Displays information about the server', '', 0,Alias = True)
+        self.AddCommand("stats", StatsCmd, 'g', 'Displays a players statistics. Usage: /stats [Username]', '', 0)
+        self.AddCommand("togglenotifications", ToggleNotificationsCmd, 'g', 'Turns join/leave messages on or off', '', 0)
         self.AddCommand("ranks", RanksCmd, 'g', 'Displays information on all the ranks', '', 0)
         self.AddCommand("whois", PlayerInfoCmd, 'g', 'Returns information on a player', 'Incorrect syntax! Usage: /whois <username>',1)
         self.AddCommand("players", PlayerListCmd, 'g', 'Lists all online players', '',0)
