@@ -335,7 +335,6 @@ class Player(object):
             return
         
         if CorrectPass == HashedPass or self.ServerControl.LanMode == True:
-            self.Name = "DaftPVF"
             Console.Out("Player", "%s connected to the server" %self.Name)
             self.ServerControl.PlayerNames[self.Name.lower()] = self
             self.IsIdentified = True
