@@ -71,8 +71,6 @@ class Player(object):
     def SendPacket(self,Packet):
         '''Appends data to the end of our buffer
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO SendPacketToAll functions!'''
-        if Packet.data.getvalue()[0] == chr(SMSG_MESSAGE):
-            print Packet.data.getvalue()
         self.OutBuffer.write(Packet.data.getvalue())
 
     def IsDisconnecting(self):
