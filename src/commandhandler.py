@@ -173,7 +173,7 @@ class StatsCmd(CommandObject):
                 return
 
         if Target.IsDataLoaded():
-            pPlayer.UpdatePlayedTime()
+            Target.UpdatePlayedTime()
             pPlayer.SendMessage("&a%s's join date was: &e%s" %(Target.GetName(),time.ctime(Target.GetJoinedTime())))
             pPlayer.SendMessage("&aSince then they have logged in &e%d &atimes" %Target.GetLoginCount())
             pPlayer.SendMessage("&aAnd have created &e%d &ablocks and deleted &e%d" %(Target.GetBlocksMade(),Target.GetBlocksErased()))
@@ -230,7 +230,8 @@ class PlayerInfoCmd(CommandObject):
                     return
                 pPlayer.SendMessage("&a%s is &4Offline. &aRank: &e%s" %(Username,RankToName[pPlayer.ServerControl.GetRank(Username)]))
                 pPlayer.SendMessage("&aLast login was: &e%s &aago" %(ElapsedTime(int(pPlayer.ServerControl.Now)-Row["LastLogin"])))
-                pPlayer.SendMessage("&aTheir last ip was &e%s&a. Iplog: &e%s" %(Row["LastIp"],Row["IPLog"]))
+                if pPlayer.HasPermission('o'):
+                    pPlayer.SendMessage("&aTheir last ip was &e%s&a. Iplog: &e%s" %(Row["LastIp"],Row["IPLog"]))
 
             except dbapi.OperationalError:
                 pPlayer.SendMessage("&4The database is busy. Try again soon")
