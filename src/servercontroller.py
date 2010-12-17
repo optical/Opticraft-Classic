@@ -498,7 +498,9 @@ class ServerController(object):
                 #Got a result.
                 Username = Result[0]
                 Rows = Result[1]
-                self.GetPlayerFromName(Username).LoadData(Rows)
+                pPlayer = self.GetPlayerFromName(Username)
+                if pPlayer != None:
+                    pPlayer.LoadData(Rows)
 
             SleepTime = 0.05 - (time.time() - self.Now)
             if 0 < SleepTime:
