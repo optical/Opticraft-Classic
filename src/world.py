@@ -436,10 +436,9 @@ class World(object):
         self.SendPacketToAllButOne(Packet,pPlayer)
         
     def UndoActions(self,Username,ReversePlayer,Time):
-        Username = Username.lower()
         self.FlushBlockLog()
         #Reverse stuff in SQL DB
-        self.IOThread.Tasks.put(["UNDO_ACTIONS",Username,ReversePlayer,Time])
+        self.IOThread.Tasks.put(["UNDO_ACTIONS",Username.lower(),ReversePlayer.lower(),Time])
 
     def AddBlockChanges(self,BlockChangeList):
         self.AsyncBlockChanges.put(BlockChangeList)
