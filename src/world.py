@@ -92,8 +92,7 @@ class AsynchronousIOThread(threading.Thread):
                 #Task[1] is a string such as "REPLACE INTO BlockLogs VALUES(?,?,?,?)"
                 #Task[2] is a tupe of values to subsitute into the string safely
                 #See: http://docs.python.org/library/sqlite3.html
-                self.DBConnection.execute(Task[1],Task[2])
-                self.DBConnection.commit()
+                self._ExecuteTask(Task[1], Task[2])
             elif Task[0] == "SHUTDOWN":
                 self.Running = False
                 self.World = None
@@ -102,6 +101,13 @@ class AsynchronousIOThread(threading.Thread):
                 #Connect/Reconnect to the DB.
                 self._ConnectTask()
 
+    def _ExecuteTask(self,Query,Parameters):
+        try:
+            self.DBConnection.execute(Query,Parameters)
+            self.DBConnection.commit()
+        except dbapi.OperationalError:
+            Console.Debug("IOThread","Failed to execute Query. Trying again soon")
+            self.Tasks.put(["EXECUTE",Query,Parameters])
     def _ConnectTask(self):
         self.Lock.acquire()
         if self.DBConnection != None:
@@ -124,7 +130,12 @@ class AsynchronousIOThread(threading.Thread):
         
     def _UndoActionsTask(self,Username,ReverseName,Time):
         now = time.time()
-        SQLResult = self.DBConnection.execute("SELECT Offset,OldValue from Blocklogs where Username = ? and Time > ?", (ReverseName,now-Time))
+        try:
+            SQLResult = self.DBConnection.execute("SELECT Offset,OldValue from Blocklogs where Username = ? and Time > ?", (ReverseName,now-Time))
+        except dbapi.OperationalError:
+            Console.Debug("IOThread","Failed to Execute undoactions. Trying again later")
+            self.Tasks.put(["UNDO_ACTIONS",Username,ReverseName,Time])
+            return
         Row = SQLResult.fetchone()
         BlockChangeList = [Username,ReverseName,0]
         NumChanged = 0
@@ -134,8 +145,12 @@ class AsynchronousIOThread(threading.Thread):
             Row = SQLResult.fetchone()
         BlockChangeList[2] = NumChanged
         self.World.AddBlockChanges(BlockChangeList)
-        self.DBConnection.execute("DELETE FROM Blocklogs where Username = ? and Time > ?",(ReverseName,now-Time))
-        self.DBConnection.commit()
+        try:
+            Console.Debug("IOThread","Failed to clean up undoactions. Trying again later.")
+            self.DBConnection.execute("DELETE FROM Blocklogs where Username = ? and Time > ?",(ReverseName,now-Time))
+            self.DBConnection.commit()
+        except dbapi.OperationalError:
+            self.Tasks.put(["EXECUTE"],"DELETE FROM Blocklogs where Username = ? and Time > ?",(ReverseName,now-Time))
         Console.Debug("IOThread","%s reversed %s's actions. %d changed in %f seconds" %(Username,ReverseName,NumChanged,time.time()-now))
     def Shutdown(self,Crash):
         self.Tasks.put(["SHUTDOWN"])
