@@ -105,11 +105,14 @@ class Player(object):
             ColourTag = ''
         OutStr = str()
         for Token in Tokens:
-            if len(Token) + len(OutStr) + 1 > 63:
+            if len(Token) >= 63:
+                continue #too long
+            elif len(Token) + len(OutStr) + 1 > 63:
                 self.SendMessage(OutStr)
                 OutStr = ColourTag + Token
             else:
                 OutStr = OutStr + ' ' + Token
+
         if len(OutStr) > 0:
             self.SendMessage(OutStr)
 

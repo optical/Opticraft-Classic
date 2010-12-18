@@ -231,14 +231,14 @@ class PlayerInfoCmd(CommandObject):
                 pPlayer.SendMessage("&a%s is &4Offline. &aRank: &e%s" %(Username,RankToName[pPlayer.ServerControl.GetRank(Username)]))
                 pPlayer.SendMessage("&aLast login was: &e%s &aago" %(ElapsedTime(int(pPlayer.ServerControl.Now)-Row["LastLogin"])))
                 if pPlayer.HasPermission('o'):
-                    pPlayer.SendMessage("&aTheir last ip was &e%s&a. Iplog: &e%s" %(Row["LastIp"],Row["IPLog"]))
+                    pPlayer.SendMessage("&aTheir last ip was &e%s" %(Row["LastIp"]))
 
             except dbapi.OperationalError:
                 pPlayer.SendMessage("&4The database is busy. Try again soon")
         else:
             pPlayer.SendMessage("&a%s has been online for &e%s" %(Target.GetName(), ElapsedTime(int(pPlayer.ServerControl.Now) -Target.GetLoginTime())))
             if pPlayer.HasPermission('o'):
-                pPlayer.SendMessage("&aCurrent IP: &e%s&a. Previous IP's: &e%s" %(Target.GetIP(),Target.GetIpLog()))
+                pPlayer.SendMessage("&aCurrent IP: &e%s" %(Target.GetIP()))
             pPlayer.SendMessage("&aThey are on world &e\"%s\"" %Target.GetWorld().Name)
             pPlayer.SendMessage("&aTheir rank is &e%s" %RankToName[Target.GetRank()])
 
