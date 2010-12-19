@@ -151,6 +151,7 @@ class Player(object):
                     break
             NewWorld = self.ServerControl.LoadWorld(Name)
         if NewWorld != None and NewWorld != False:
+            self.UpdateLastWorldChange()
             self.World.RemovePlayer(self,True)
             #Send packet telling client were changing the world.
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
@@ -248,6 +249,10 @@ class Player(object):
         return self.LoginCount
     def IncreaseLoginCount(self):
         self.LoginCount += 1
+    def GetLastWorldChange(self):
+        return self.LastWorldChange
+    def UpdateLastWorldChange(self):
+        self.LastWorldChange = int(self.ServerControl.Now)
     def IsDataLoaded(self):
         return self.DataIsLoaded
     def UpdatePlayedTime(self):
@@ -470,6 +475,7 @@ class Player(object):
         self.LastPlayedTimeUpdate = self.LoginTime
         self.LastAction = self.LoginTime
         self.LastPmUsername = ''
+        self.LastWorldChange = 0
         self.Disconnecting = False
         self.DataIsLoaded = False
         self.ChatMessageCount = 0
