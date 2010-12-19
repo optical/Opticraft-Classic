@@ -148,6 +148,10 @@ class JoinWorldCmd(CommandObject):
         if pPlayer.GetWorld().Name.lower() == World.lower():
             pPlayer.SendMessage("&4You are already on that world!")
             return
+        if pPlayer.ServerControl.Now - pPlayer.GetLastWorldChange() < 5:
+            pPlayer.SendMessage("&4You cannot change worlds that often!")
+            return
+
         pPlayer.ChangeWorld(World)
 class WorldsCmd(CommandObject):
     '''Handler for the /worlds command. Lists all available worlds.'''
