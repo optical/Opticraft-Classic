@@ -417,6 +417,10 @@ class Player(object):
         elif Contents[0] == "@":
             self.HandlePrivateMessage(Contents[1:])
         else:
+            if self.ServerControl.AllowCaps == False:
+                if Contents == Contents.upper() and len(Contents) >= self.ServerControl.MinCapsLength:
+                    self.SendMessage("&4Do not use caps!")
+                    return
             self.ServerControl.SendChatMessage(self.GetColouredName(),Contents)
             if self.ServerControl.LogChat:
                 TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
