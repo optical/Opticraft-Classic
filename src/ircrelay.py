@@ -40,6 +40,7 @@ class RelayBot(IRCClient):
         self.IRCToGame = self.ServerControl.IRCIRCToGame
         self.Host = self.ServerControl.IRCServer
         self.Port = self.ServerControl.IRCPort
+        self.IdentificationMessage = self.ServerControl.IRCIdentificationMessage
         self.ColourMap = dict()
         self.PopulateColourMap()
         if self.IRCToGame:
@@ -59,6 +60,8 @@ class RelayBot(IRCClient):
     def OnConnection(self,Data):
         Console.Out("IRC","Attmpting to join channel %s" %self.Channel)
         self.Write("JOIN %s" %self.Channel)
+        Tokens = self.IdentificationMessage.split()
+        self.SendMessage(Tokens[0], ' '.join(Tokens[1:]))
     def HandleIngameMessage(self,From,Message):
         if self.GameToIrc:
             Message = Message.replace("\r\n",'')
