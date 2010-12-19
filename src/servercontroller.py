@@ -185,8 +185,9 @@ class ServerController(object):
         self.IRCPort = int(self.ConfigValues.GetValue("irc","Port","6667"))
         self.IRCChannel = self.ConfigValues.GetValue("irc","Channel","#a")
         self.IRCNick = self.ConfigValues.GetValue("irc","Nickname","Optibot")
-        self.IRCGameToIRC =   bool(int(self.ConfigValues.GetValue("irc","GameChatRelay","0")))
-        self.IRCIRCToGame =  bool(int(self.ConfigValues.GetValue("irc","IrcChatRelay","0")))
+        self.IRCGameToIRC = bool(int(self.ConfigValues.GetValue("irc","GameChatRelay","0")))
+        self.IRCIRCToGame = bool(int(self.ConfigValues.GetValue("irc","IrcChatRelay","0")))
+        self.IRCIdentificationMessage = self.ConfigValues.GetValue("irc","IdentifyCommand","NickServ identify")
         if self.EnableIRC:
             self.IRCInterface = RelayBot(self.IRCNick,"Opticraft","Opticraft",self)
         self.RankedPlayers = dict()
