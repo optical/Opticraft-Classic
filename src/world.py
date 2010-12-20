@@ -359,6 +359,9 @@ class World(object):
         if pPlayer.HasPermission(self.MinRank) == False:
             pPlayer.SendMessage("&4You do not have the required rank to build on this world")
             return False
+        #Too far away!
+        if pPlayer.CalcDistance(x, y, z) > 10:
+            return False
 
         if pPlayer.GetAboutCmd() == True:
             #Display block information
