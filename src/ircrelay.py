@@ -35,7 +35,7 @@ class RelayBot(IRCClient):
         IRCClient.__init__(self,Nick,Email,RealName)
         self.AddPacketHandler("001", self.OnConnection)
         self.ServerControl = ServerControl
-        self.Channel = self.ServerControl.IRCChannel
+        self.Channel = self.ServerControl.IRCChannel.lower()
         self.GameToIrc = self.ServerControl.IRCGameToIRC
         self.IRCToGame = self.ServerControl.IRCIRCToGame
         self.Host = self.ServerControl.IRCServer
@@ -43,14 +43,37 @@ class RelayBot(IRCClient):
         self.IdentificationMessage = self.ServerControl.IRCIdentificationMessage
         self.ColourMap = dict()
         self.PopulateColourMap()
+        self.FloodControl = dict()
         if self.IRCToGame:
             self.AddPacketHandler("PRIVMSG",self.HandlePrivMsg)
-
+            self.AddPacketHandler("PART", self.OnPart)
+            self.AddPacketHandler("QUIT", self.OnQuit)
+            self.AddPacketHandler("NICK", self.OnPart)
     def HandlePrivMsg(self,Data):
         if self.IRCToGame:
             Tokens = Data.split()
-            if Tokens[2] == self.Channel:
+            if Tokens[2].lower() == self.Channel:
                 Username = Tokens[0].split("!")[0][1:]
+                #Flood prevention
+                if self.ServerControl.FloodPeriod:
+                    if self.FloodControl.has_key(Username):
+                        UserData = self.FloodControl[Username]
+                        #Userdata is a list of 2 items, FloodTime and FloodCount
+                        if self.ServerControl.Now - UserData[0] > self.ServerControl.FloodPeriod:
+                            UserData[0] = self.ServerControl.Now
+                            UserData[1] = 1
+                        else:
+                            #Increase message count by one
+                            UserData[1] += 1
+                            #If we exceed the limit, ignore the message and reset their time
+                            #(This prevents them from speaking for another whole period)
+                            if UserData[1] >= self.ServerControl.FloodMessageLimit:
+                                UserData[0] = self.ServerControl.Now
+                                return
+                    else:
+                        #Add them to the map
+                        self.FloodControl[Username] = [self.ServerControl.Now,1]
+
                 Message = ' '.join(Tokens[3:])[1:]
                 Message = Message.replace('&','')
                 self.ServerControl.SendChatMessage('&3[IRC]-&f%s' %Username,Message)
@@ -72,8 +95,38 @@ class RelayBot(IRCClient):
         if self.GameToIrc:
             self.SendMessage(self.Channel,'%s connected to the server' %Name)
     def HandleLogout(self,Name):
-        if self.GameToIrc:
+        if self.GameToIrc and self.ServerControl.ShuttingDown == False:
             self.SendMessage(self.Channel, '%s left the server' %Name)
+
+    def OnPart(self,Data):
+        Tokens = Data.split()
+        Username = Tokens[0][1:].split("!")[0]
+        Channel = Tokens[2]
+        if Channel[0] == ":":
+            Channel = Channel[1:]
+        if Channel.lower() == self.Channel:
+            try:
+                del self.FloodControl[Username]
+            except:
+                pass
+    def OnNickChange(self,Data):
+        Tokens = Data.split()
+        Username = Tokens[0][1:].split("!")[0]
+        NewNick = Tokens[2][1:]
+        try:
+            self.FloodControl[NewNick] = self.FloodControl[Username]
+            del self.FloodControl[Username]
+        except:
+            pass
+    def OnQuit(self,Data):
+        Tokens = Data.split()
+        Username = Tokens[0][1:].split("!")[0]
+        try:
+            del self.FloodControl[Username]
+        except:
+            pass
+    def OnShutdown(self,Crash):
+        self.Write("QUIT :Server is shutting down")
 
     def PopulateColourMap(self):
         self.ColourMap["&0"] = '' #Black
