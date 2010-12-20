@@ -404,7 +404,6 @@ class Player(object):
                     self.BlockChangeTime = self.ServerControl.Now
                     self.BlockChangeCount = 0
                 self.BlockChangeCount += 1
-                print self.BlockChangeCount
                 if self.BlockChangeCount > self.ServerControl.BlockChangeCount:
                     self.Disconnect("Antigrief: You are changing too many blocks")
                     return
