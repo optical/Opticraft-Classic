@@ -173,6 +173,8 @@ class ServerController(object):
         self.InstantClose = int(self.ConfigValues.GetValue("server","InstantClose","0"))
         self.AllowCaps = bool(int(self.ConfigValues.GetValue("server","AllowCaps","0")))
         self.MinCapsLength = int(self.ConfigValues.GetValue("server","MinLength","10"))
+        self.FloodPeriod = int(self.ConfigValues.GetValue("server","FloodPeriod","5"))
+        self.FloodMessageLimit = int(self.ConfigValues.GetValue("server","FloodCount","6"))
         self.LastIdleCheck = time.time()
         self.IdleCheckPeriod = 60
         self.EnableBlockLogs = int(self.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
@@ -199,6 +201,7 @@ class ServerController(object):
         self.AuthPlayers = set() #Players without a world (Logging in)
         self.PlayersPendingRemoval = set() #Players to remove from our set at the end of a cycle.
         self.PlayerIDs = range(self.MaxClients)
+        self.ShuttingDown = False
         self.LastCpuCheck = 0
         self.InitialCpuTimes = os.times()
         self.LastCpuTimes = 0
@@ -510,6 +513,7 @@ class ServerController(object):
                 time.sleep(SleepTime)
     def Shutdown(self,Crash):
         '''Starts shutting down the server. If crash is true it only saves what is needed'''
+        self.ShuttingDown = True
         self.HeartBeatControl.Running = False
         self.SockManager.Terminate(True)
         for pWorld in self.ActiveWorlds:
@@ -519,6 +523,9 @@ class ServerController(object):
         for pPlayer in ToRemove:
             self._RemovePlayer(pPlayer)
         self.PlayerDBThread.Tasks.put(["SHUTDOWN"])
+        if self.EnableIRC:
+            self.IRCInterface.OnShutdown(Crash)
+            asyncore.loop(timeout=0.01,count=1)
     def GetName(self):
         return self.Name
     def GetMotd(self):

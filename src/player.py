@@ -426,6 +426,15 @@ class Player(object):
                 if Contents == Contents.upper() and len(Contents) >= self.ServerControl.MinCapsLength:
                     self.SendMessage("&4Do not use caps!")
                     return
+            if self.ServerControl.FloodPeriod:
+                if self.ServerControl.Now - self.FloodPeriodTime >= self.ServerControl.FloodPeriod:
+                    self.FloodPeriodTime = self.ServerControl.Now
+                    self.FloodPeriodCount = 0
+                self.FloodPeriodCount += 1
+                if self.FloodPeriodCount > self.ServerControl.FloodMessageLimit:
+                    self.SendMessage("&4You are sending messages too quickly. Slow down!")
+                    self.FloodPeriodTime = self.ServerControl.Now #reset the count. Stops them spamming.
+                    return
             self.ServerControl.SendChatMessage(self.GetColouredName(),Contents)
             if self.ServerControl.LogChat:
                 TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
@@ -474,6 +483,8 @@ class Player(object):
         self.LoginTime = int(self.ServerControl.Now)
         self.LastPlayedTimeUpdate = self.LoginTime
         self.LastAction = self.LoginTime
+        self.FloodPeriodCount = 0
+        self.FloodPeriodTime = self.ServerControl.Now
         self.LastPmUsername = ''
         self.LastWorldChange = 0
         self.Disconnecting = False
