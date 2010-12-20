@@ -398,6 +398,17 @@ class Player(object):
             Mode = Packet.GetByte()
             Block = Packet.GetByte()
             Result = None
+            #Flood detection
+            if self.ServerControl.BlockChangePeriod and self.Rank == 'g':
+                if self.ServerControl.Now - self.BlockChangeTime > self.ServerControl.BlockChangePeriod:
+                    self.BlockChangeTime = self.ServerControl.Now
+                    self.BlockChangeCount = 0
+                self.BlockChangeCount += 1
+                print self.BlockChangeCount
+                if self.BlockChangeCount > self.ServerControl.BlockChangeCount:
+                    self.Disconnect("Antigrief: You are changing too many blocks")
+                    return
+
             if Mode == 0:
                 self.IncreaseBlocksErased()
                 if self.GetPaintCmd() == True:
@@ -491,6 +502,8 @@ class Player(object):
         self.LastAction = self.LoginTime
         self.FloodPeriodCount = 0
         self.FloodPeriodTime = self.ServerControl.Now
+        self.BlockChangeCount = 0
+        self.BlockChangeTime = self.ServerControl.Now
         self.LastPmUsername = ''
         self.LastWorldChange = 0
         self.Disconnecting = False
