@@ -85,14 +85,14 @@ class SocketManager(object):
             PlayerSock.setblocking(0)
             self.PlayerSockets.append(PlayerSock)
             pPlayer = Player(PlayerSock,SockAddress,self.ServerControl)
-            result = self.ServerControl.AttemptAddPlayer(pPlayer)
-            if result == False:
+            Result,Message = self.ServerControl.AttemptAddPlayer(pPlayer)
+            if Result == False:
                 #Server is full
                 try:
                     self.PlayerSockets.remove(PlayerSock)
                     try:
                         Packet = OptiCraftPacket(SMSG_DISCONNECT)
-                        Packet.WriteString("The server is full. Try again later")
+                        Packet.WriteString(Message)
                         PlayerSock.send(Packet.GetOutData())
                     except:
                         pass

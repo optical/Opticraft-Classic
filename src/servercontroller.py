@@ -174,6 +174,8 @@ class ServerController(object):
         self.AllowCaps = bool(int(self.ConfigValues.GetValue("server","AllowCaps","0")))
         self.MinCapsLength = int(self.ConfigValues.GetValue("server","MinLength","10"))
         self.FloodPeriod = int(self.ConfigValues.GetValue("server","FloodPeriod","5"))
+        self.MaxConnectionsPerIP = int(self.ConfigValues.GetValue("server","MaxConnections","6"))
+        self.IPCount = dict()
         self.FloodMessageLimit = int(self.ConfigValues.GetValue("server","FloodCount","6"))
         self.LastIdleCheck = time.time()
         self.IdleCheckPeriod = 60
@@ -627,8 +629,13 @@ class ServerController(object):
 
     def AttemptAddPlayer(self,pPlayer):
         if len(self.PlayerIDs) == 0:
-            return False
+            return False, "Server is full. Try again later."
         else:
+            ConnectionCount = self.IPCount.get(pPlayer.GetIP(),0) + 1
+            if self.MaxConnectionsPerIP and ConnectionCount > self.MaxConnectionsPerIP:
+                return False, "Too many connections from your ip-address"
+            else:
+                self.IPCount[pPlayer.GetIP()] = ConnectionCount
             self.SocketToPlayer[pPlayer.GetSocket()] = pPlayer
             self.PlayerSet.add(pPlayer)
             self.AuthPlayers.add(pPlayer)
@@ -637,6 +644,7 @@ class ServerController(object):
             self.NumPlayers += 1
             if self.NumPlayers > self.PeakPlayers:
                 self.PeakPlayers = self.NumPlayers
+            return True,''
 
     def RemovePlayer(self,pPlayer):
         self.PlayersPendingRemoval.add(pPlayer)
@@ -649,6 +657,7 @@ class ServerController(object):
             self.PlayerSet.remove(pPlayer)
             self.PlayerIDs.append(pPlayer.GetId()) #Make the Id avaliable for use again.
             del self.SocketToPlayer[pPlayer.GetSocket()]
+            self.IPCount[pPlayer.GetIP()] -= 1
         if pPlayer in self.AuthPlayers:
             self.AuthPlayers.remove(pPlayer)
         else:
