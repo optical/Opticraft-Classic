@@ -31,6 +31,7 @@ from constants import *
 from console import *
 import cStringIO
 import time
+import math
 class Player(object):
     #Constructor is located at the bottom
     def ProcessPackets(self):
@@ -315,7 +316,12 @@ class Player(object):
         self.LastPmUsername = Username
     def GetLastPM(self):
         return self.LastPmUsername
-    
+    def CalcDistance(self,x,y,z):
+        '''Returns the distance to another point in absolute coordinates'''
+        dx = self.X/32 - x
+        dy = self.Y/32 - y
+        dz = self.Z/32 - z
+        return math.sqrt(dx*dx+dy*dy+dz*dz)
     #Opcode handlers go below this line
     def HandleIdentify(self,Packet):
         '''Handles the initial packet sent by the client'''
