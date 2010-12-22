@@ -360,7 +360,7 @@ class World(object):
             pPlayer.SendMessage("&4You do not have the required rank to build on this world")
             return False
         #Too far away!
-        if pPlayer.CalcDistance(x, y, z) > 10:
+        if pPlayer.CalcDistance(x, y, z) > 10 and pPlayer.GetRank() == 'g':
             return False
 
         if pPlayer.GetAboutCmd() == True:
