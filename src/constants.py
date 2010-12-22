@@ -108,8 +108,9 @@ BLOCK_MOSSYROCK = 48
 BLOCK_OBSIDIAN = 49
 BLOCK_END = 50
 
+import string
 DisabledBlocks = set([BLOCK_WATER,BLOCK_STILLWATER,BLOCK_LAVA,BLOCK_STILLLAVA,BLOCK_HARDROCK])
-
+DisabledChars = ''.join([c for c in map(chr, range(256)) if c not in string.ascii_letters + string.digits + string.punctuation + string.whitespace]) + '&\r\n'
 #Permission ranks
 #These are subject to change as more ranks are added over time.
 # 0 = Spectator
