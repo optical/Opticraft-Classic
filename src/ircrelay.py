@@ -27,6 +27,7 @@
 
 
 from console import Console
+from constants import *
 from ircclient import IRCClient
 
 class RelayBot(IRCClient):
@@ -75,8 +76,8 @@ class RelayBot(IRCClient):
                         self.FloodControl[Username] = [self.ServerControl.Now,1]
 
                 Message = ' '.join(Tokens[3:])[1:]
-                Message = Message.replace('&','')
-                self.ServerControl.SendChatMessage('&3[IRC]-&f%s' %Username,Message)
+                Message = Message.translate(None,DisabledChars)
+                self.ServerControl.SendChatMessage('&3[IRC]&f-%s' %Username,Message)
     def Connect(self):
         Console.Out("IRC","Connecting to irc server %s on port %d" %(self.Host,self.Port))
         self.connect((self.Host,self.Port))
@@ -87,7 +88,6 @@ class RelayBot(IRCClient):
         self.SendMessage(Tokens[0], ' '.join(Tokens[1:]))
     def HandleIngameMessage(self,From,Message):
         if self.GameToIrc:
-            Message = Message.replace("\r\n",'')
             for Key in self.ColourMap:
                 From = From.replace(Key,self.ColourMap[Key])
             self.SendMessage(self.Channel, '(%s%s): %s' %(From,RelayBot.COLOUR_CODE,Message))

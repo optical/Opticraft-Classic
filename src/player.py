@@ -26,12 +26,12 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import hashlib
-from opticraftpacket import OptiCraftPacket
-from constants import *
-from console import *
 import cStringIO
 import time
 import math
+from opticraftpacket import OptiCraftPacket
+from constants import *
+from console import *
 class Player(object):
     #Constructor is located at the bottom
     def ProcessPackets(self):
@@ -432,7 +432,9 @@ class Player(object):
         self.IncreaseChatMessageCount()
         self.LastAction = self.ServerControl.Now
         Packet.GetByte() #junk
-        Contents = Packet.GetString()
+        Contents = Packet.GetString().translate(None,DisabledChars)
+        if len(Contents) == 0:
+            return
         if Contents[0] == "/":
             self.ServerControl.CommandHandle.HandleCommand(self,Contents[1:])
         elif Contents[0] == "@":
