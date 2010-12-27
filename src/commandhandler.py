@@ -447,7 +447,8 @@ class AppearCmd(CommandObject):
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
         if Target != None:
             if pPlayer.GetWorld() != Target.GetWorld():
-                pPlayer.SendMessage("&4That player is not on your world. Cannot teleport to them!")
+                pPlayer.ChangeWorld(Target.GetWorld().Name)
+                pPlayer.SetSpawnPosition(Target.GetX(),Target.GetY(),Target.GetZ(),Target.GetOrientation(),Target.GetPitch())
                 return
             pPlayer.Teleport(Target.GetX(),Target.GetY(),Target.GetZ(),Target.GetOrientation(),Target.GetPitch())
         else:
