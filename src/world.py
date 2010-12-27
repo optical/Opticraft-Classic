@@ -166,6 +166,7 @@ class World(object):
         self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
         self.SpawnOrientation, self.SpawnPitch = 0, 0
         self.MinRank = 'g'
+        self.Hidden = 0
         self.ServerControl = ServerControl
         self.BlockHistory = dict()
         #Config values
@@ -235,6 +236,7 @@ class World(object):
         int16 SpawnOrientation
         int16 SpawnPitch
         byte MinRank
+        byte IsHidden
         '''
         start = time.time()
         try:
@@ -254,6 +256,10 @@ class World(object):
             self.SpawnOrientation = struct.unpack("h",fHandle.read(2))[0]
             self.SpawnPitch = struct.unpack("h",fHandle.read(2))[0]
             self.MinRank = fHandle.read(1)
+            self.Hidden = fHandle.read(1)
+            if self.Hidden == '':
+                self.Hidden = '0'
+            self.Hidden = int(self.Hidden)
             fHandle.close()
             Console.Out("World", "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
             if len(self.Blocks) != self.X*self.Y*self.Z:
@@ -275,6 +281,7 @@ class World(object):
         int16 SpawnOrientation
         int16 SpawnPitch
         byte MinRank
+        byte IsHidden
         '''
         start = time.time()
         try:
@@ -296,6 +303,7 @@ class World(object):
         fHandle.write(struct.pack("h",self.SpawnOrientation))
         fHandle.write(struct.pack("h",self.SpawnPitch))
         fHandle.write(self.MinRank)
+        fHandle.write(str(self.Hidden))
         fHandle.close()
         shutil.copy("Worlds/%s.temp" %(self.Name),"Worlds/%s.save" %(self.Name))
         try:
@@ -715,15 +723,20 @@ class World(object):
             if pPlayer != Client:
                 pPlayer.OutBuffer.write(Data)
     @staticmethod
-    def GetRankValue(Name):
+    def GetCacheValues(Name):
         try:
             fHandle = open("Worlds/%s.save" %Name)
-            fHandle.seek(-1,os.SEEK_END)
-            Value = fHandle.read(1)
+            fHandle.seek(-2,os.SEEK_END)
+            Rank = fHandle.read(1)
+            Hidden = fHandle.read(1)
+            assert Hidden in ["0","1"]
+            assert Rank in RankToName
+        except AssertionError:
+            return 'g', 0
         except IOError:
-            return 'g'
+            return 'g', 0
         except ValueError:
-            return 'g'
+            return 'g', 0
         fHandle.close()
-        return Value
+        return Rank,int(Hidden)
 

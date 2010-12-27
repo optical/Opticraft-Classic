@@ -35,7 +35,7 @@ class HeartBeatController(Thread):
         Thread.__init__(self)
         self.daemon = True
         self.LastFetch = 0
-        self.FetchInterval = 30
+        self.FetchInterval = 45
         self.MaxClients = ServerControl.MaxClients
         self.Name = ServerControl.Name
         self.Public = ServerControl.Public
