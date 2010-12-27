@@ -157,13 +157,20 @@ class WorldsCmd(CommandObject):
     '''Handler for the /worlds command. Lists all available worlds.'''
     def Run(self,pPlayer,Args,Message):
         ActiveWorlds, IdleWorlds = pPlayer.ServerControl.GetWorlds()
+        All = len(Args) > 0
         OutString = str()
+        if All:
+            pPlayer.SendMessage("&aDisplaying all worlds")
         pPlayer.SendMessage("&aThe following worlds are available:")
         for pWorld in ActiveWorlds:
-            OutString = '%s%s%s ' %(OutString,RankToColour[pWorld.MinRank],pWorld.Name)
+            if pWorld.Hidden == 0 or All:
+                OutString = '%s%s%s ' %(OutString,RankToColour[pWorld.MinRank],pWorld.Name)
         for WorldName in IdleWorlds:
-            OutString = OutString = '%s%s%s ' %(OutString,RankToColour[pPlayer.ServerControl.GetWorldRank(WorldName)],WorldName)
+            if pPlayer.ServerControl.IsWorldHidden(WorldName) == 0 or All:
+                OutString = OutString = '%s%s%s ' %(OutString,RankToColour[pPlayer.ServerControl.GetWorldRank(WorldName)],WorldName)
         pPlayer.SendMessage(OutString,False)
+        if not All:
+            pPlayer.SendMessage("&aTo see all worlds, type /worlds all.")
         
 class StatsCmd(CommandObject):
     '''Handler for the /stats command. Returns information'''
@@ -825,6 +832,32 @@ class SetDefaultWorldCmd(CommandObject):
             return
         pPlayer.ServerControl.SetDefaultWorld(pWorld)
         pPlayer.SendMessage("&aDefault world changed to &f\"%s\"" %pWorld.Name)
+class HideWorldCmd(CommandObject):
+    '''Handler for the /hideworld command'''
+    def Run(self,pPlayer,Args,Message):
+        WorldName = Args[0]
+        pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
+        if pWorld == None:
+            pPlayer.SendMessage("&4Could not set world to default world.")
+            pPlayer.SendMessage("&4Try joining the world and trying again.")
+            return
+        pWorld.Hidden = 1
+        pPlayer.ServerControl.SetWorldHidden(pWorld.Name, 1)
+        pPlayer.SendMessage("&aWorld \"&e%s&a\" is now being hidden" %pWorld.Name)
+
+class UnHideWorldCmd(CommandObject):
+    '''Handler for the /unhideworld command'''
+    def Run(self,pPlayer,Args,Message):
+        WorldName = Args[0]
+        pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
+        if pWorld == None:
+            pPlayer.SendMessage("&4Could not set world to default world.")
+            pPlayer.SendMessage("&4Try joining the world and trying again.")
+            return
+        pWorld.Hidden = 0
+        pPlayer.ServerControl.SetWorldHidden(pWorld.Name, 0)
+        pPlayer.SendMessage("&aWorld \"&e%s&a\" is no longer being hidden" %pWorld.Name)
+
 
 class RenameWorldCmd(CommandObject):
     '''Handler for the /renameworld command'''
@@ -889,6 +922,7 @@ class RenameWorldCmd(CommandObject):
         #Update the rank-cache
         pPlayer.ServerControl.SetWorldRank(NewName, pPlayer.ServerControl.GetWorldRank(OldName))
         del pPlayer.ServerControl.WorldRankCache[OldName.lower()]
+        del pPlayer.ServerControl.WorldHideCache[OldName.lower()]
         #Finally, change zones.
         for pZone in pPlayer.ServerControl.GetZones():
             if pZone.Map.lower() == OldName:
@@ -943,6 +977,7 @@ class DeleteWorldCmd(CommandObject):
                         pass
                 pPlayer.ServerControl.IdleWorlds.remove(WorldName)
                 del pPlayer.ServerControl.WorldRankCache[WorldName.lower()]
+                del pPlayer.ServerControl.WorldHideCache[OldName.lower()]
                 pPlayer.SendMessage("&aSuccessfully deleted world \"&f%s&a\"" %WorldName)
                 return #Done...
 
@@ -1031,10 +1066,12 @@ class CommandHandler(object):
         self.AddCommand("zDelete", ZDeleteCmd, 'a', 'Deletes a restricted zone', 'Incorrect syntax. Usage: /zDelete <name>', 1)
         self.AddCommand("createworld", CreateWorldCmd, 'a', 'Creates a new world.', 'Incorrect syntax. Usage: /createworld <name> <length> <width> <height>', 4)
         self.AddCommand("setdefaultworld", SetDefaultWorldCmd, 'a', 'Sets the world you specify to be the default one', 'Incorrect syntax. Usage: /setdefaultworld <name>', 1)
-        self.AddCommand("RenameWorld", RenameWorldCmd, 'a', 'Renames a world', 'Incorrect syntax! Usage: /renameworld <oldname> <newname>', 2)
-        self.AddCommand("LoadWorld", LoadWorldCmd, 'a', 'Loads a world which has been added to the Worlds folder', 'Incorrect syntax! Usage: /loadworld <name>', 1)
-        self.AddCommand("LoadTemplate", LoadTemplateCmd, 'a', 'Loads a template world from the Templates directory', 'Incorrect syntax! Usage: /loadtemplate <templatename> <worldname>', 2)
-        self.AddCommand("ShowTemplates", ShowTemplatesCmd, 'a', 'Lists all the available world templates', '', 0)
+        self.AddCommand("renameworld", RenameWorldCmd, 'a', 'Renames a world', 'Incorrect syntax! Usage: /renameworld <oldname> <newname>', 2)
+        self.AddCommand("hideworld", HideWorldCmd, 'a', 'Hides a world from the /worlds list', 'Incorrect syntax! Usage: /hideworld <worldname>', 1)
+        self.AddCommand("unhideworld", UnHideWorldCmd, 'a', 'Unhides a world from the /worlds list', 'Incorrect syntax! Usage: /unhideworld <worldname>', 1)
+        self.AddCommand("loadworld", LoadWorldCmd, 'a', 'Loads a world which has been added to the Worlds folder', 'Incorrect syntax! Usage: /loadworld <name>', 1)
+        self.AddCommand("loadtemplate", LoadTemplateCmd, 'a', 'Loads a template world from the Templates directory', 'Incorrect syntax! Usage: /loadtemplate <templatename> <worldname>', 2)
+        self.AddCommand("showtemplates", ShowTemplatesCmd, 'a', 'Lists all the available world templates', '', 0)
         ######################
         #OWNER COMMANDS HERE #
         ######################
