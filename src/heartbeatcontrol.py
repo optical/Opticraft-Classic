@@ -27,6 +27,7 @@
 
 import urllib2
 import urllib
+import socket
 import time
 from threading import Thread
 from console import *
@@ -68,7 +69,25 @@ class HeartBeatController(Thread):
                     sleeptime = self.FetchInterval - (self.LastFetch-now)
                     if sleeptime > 0:
                         time.sleep(sleeptime)
-                        
+
+    def _RegisterHeartbeat(self,Data):
+        Connection = socket.socket()
+        Connection.connect(("www.minecraft.net",80))
+        Connection.send("GET /heartbeat.jsp?%s HTTP/1.1\r\n" %urllib.urlencode(Data))
+        Connection.send("Host: minecraft.net\r\n\r\n")
+    def _InitialHeartbeat(self,Url):
+        Handle = urllib2.urlopen(Url)
+        Url = Handle.read().strip()
+        self.FirstHeartbeat = False
+        if self.LanMode == True:
+            Url = "http://www.minecraft.net/play.jsp?ip=127.0.0.1&port=%d" %self.Port
+        Console.Out("Heartbeat","Your url is: %s" %Url)
+        Console.Out("Heartbeat","This has been saved to url.txt")
+        fHandle = open("url.txt","w")
+        fHandle.write(Url)
+        fHandle.close()
+        return True
+
     def FetchUrl(self):
         if self.DumpStats:
             try:
@@ -77,7 +96,7 @@ class HeartBeatController(Thread):
                 fHandle.close()
             except IOError:
                 pass
-        url = "http://www.minecraft.net/heartbeat.jsp"
+
         data = {
         "port": self.Port,
         "max": self.MaxClients,
@@ -87,20 +106,17 @@ class HeartBeatController(Thread):
         "salt": self.Salt,
         "users": self.Clients
         }
-        url = '%s?%s' %(url,urllib.urlencode(data))
-        try:
-            Handle = urllib2.urlopen(url)
-            if self.FirstHeartbeat:
-                url = Handle.read().strip()
-                self.FirstHeartbeat = False
-                if self.LanMode == True:
-                    url = "http://www.minecraft.net/play.jsp?ip=127.0.0.1&port=%d" %self.Port
-                Console.Out("Heartbeat","Your url is: %s" %url)
-                Console.Out("Heartbeat","This has been saved to url.txt")
-                fHandle = open("url.txt","w")
-                fHandle.write(url)
-                fHandle.close()
-            return True
-        except urllib2.URLError:
-            Console.Error("Heartbeat","Failed to register heartbeat, trying again...")
-            return False
+        if self.FirstHeartbeat:
+            url = 'http://www.minecraft.net/heartbeat.jsp?%s' %urllib.urlencode(data)
+            try:
+                self._InitialHeartbeat(url)
+            except urllib2.URLError:
+                Console.Error("Heartbeat","Failed to register heartbeat, trying again...")
+                return False
+        else:
+            try:
+                self._RegisterHeartbeat(data)
+            except socket.error:
+                return False
+            else:
+                return True
