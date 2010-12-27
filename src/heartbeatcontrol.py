@@ -49,6 +49,7 @@ class HeartBeatController(Thread):
         self.ServerControl = ServerControl
         self.Running = True
         self.FirstHeartbeat = True
+        self.Connection = None
 
     def IncreaseClients(self):
         self.Clients += 1
@@ -71,11 +72,11 @@ class HeartBeatController(Thread):
                         time.sleep(sleeptime)
 
     def _RegisterHeartbeat(self,Data):
-        Connection = socket.socket()
-        Connection.connect(("www.minecraft.net",80))
-        Connection.send("GET /heartbeat.jsp?%s HTTP/1.1\r\n" %urllib.urlencode(Data))
-        Connection.send("Host: minecraft.net\r\n\r\n")
-        Connection.close()
+        if self.Connection:
+            self.Connection.close()
+        self.Connection = socket.socket()
+        self.Connection.connect(("www.minecraft.net",80))
+        self.Connection.send("GET /heartbeat.jsp?%s HTTP/1.1\r\nHost: minecraft.net\r\n\r\n" %urllib.urlencode(Data))
     def _InitialHeartbeat(self,Url):
         Handle = urllib2.urlopen(Url)
         Url = Handle.read().strip()
