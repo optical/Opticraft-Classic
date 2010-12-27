@@ -75,6 +75,7 @@ class HeartBeatController(Thread):
         Connection.connect(("www.minecraft.net",80))
         Connection.send("GET /heartbeat.jsp?%s HTTP/1.1\r\n" %urllib.urlencode(Data))
         Connection.send("Host: minecraft.net\r\n\r\n")
+        Connection.close()
     def _InitialHeartbeat(self,Url):
         Handle = urllib2.urlopen(Url)
         Url = Handle.read().strip()
@@ -111,12 +112,12 @@ class HeartBeatController(Thread):
             try:
                 self._InitialHeartbeat(url)
             except urllib2.URLError:
-                Console.Error("Heartbeat","Failed to register heartbeat, trying again...")
                 return False
         else:
             try:
                 self._RegisterHeartbeat(data)
-            except socket.error:
+            except socket.error, (error_no, error_msg):
+                Console.Error("Heartbeat","Failed to register heartbeat, trying again... (%s)" %(error_msg))
                 return False
             else:
                 return True

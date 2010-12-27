@@ -180,7 +180,15 @@ class Player(object):
         self.Z = z
         self.O = o
         self.P = p
-
+    def SetSpawnPosition(self,x,y,z,o,p):
+        '''Stores client position. X Y Z are floats with the fractal bit at position 5'''
+        self.SpawnX = x
+        self.SpawnY = y
+        self.SpawnZ = z
+        self.SpawnO = o
+        self.SpawnP = p
+    def GetSpawnPosition(self):
+        return self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnO,self.SpawnP
     def GetX(self):
         return self.X
     def GetY(self):
@@ -523,6 +531,7 @@ class Player(object):
 
 
         self.X,self.Y,self.Z,self.O,self.P = -1,-1,-1,-1,-1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
+        self.SpawnX,self.SpawnY,self.SpawnZ,self.SpawnO,self.SpawnP = -1,-1,-1,-1,-1 #Used to spawn at a location when chaning worlds
 
         self.OutBuffer = cStringIO.StringIO()
         Console.Debug("Player","Player object created. IP: %s" %SockAddress[0])
