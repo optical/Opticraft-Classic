@@ -77,6 +77,7 @@ class HeartBeatController(Thread):
         self.Connection = socket.socket()
         self.Connection.connect(("www.minecraft.net",80))
         self.Connection.send("GET /heartbeat.jsp?%s HTTP/1.1\r\nHost: minecraft.net\r\n\r\n" %urllib.urlencode(Data))
+
     def _InitialHeartbeat(self,Url):
         Handle = urllib2.urlopen(Url)
         Url = Handle.read().strip()
