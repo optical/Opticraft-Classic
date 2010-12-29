@@ -509,8 +509,10 @@ class SummonCmd(CommandObject):
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
         if Target != None:
             if pPlayer.GetWorld() != Target.GetWorld():
-                Target.ChangeWorld(pPlayer.GetWorld().Name)
-                Target.SetSpawnPosition(pPlayer.GetX(),pPlayer.GetY(),pPlayer.GetZ(),pPlayer.GetOrientation(),pPlayer.GetPitch())
+                pPlayer.SendMessage("&4Cross map summons - coming to a store near you soon!")
+                return
+                #Target.ChangeWorld(pPlayer.GetWorld().Name)
+                #Target.SetSpawnPosition(pPlayer.GetX(),pPlayer.GetY(),pPlayer.GetZ(),pPlayer.GetOrientation(),pPlayer.GetPitch())
             else:
                 Target.Teleport(pPlayer.GetX(),pPlayer.GetY(),pPlayer.GetZ(),pPlayer.GetOrientation(),pPlayer.GetPitch())
             pPlayer.SendMessage("&aSuccessfully summoned %s" %Target.GetName())
