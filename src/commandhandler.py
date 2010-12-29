@@ -923,6 +923,7 @@ class RenameWorldCmd(CommandObject):
 
         #Update the rank-cache
         pPlayer.ServerControl.SetWorldRank(NewName, pPlayer.ServerControl.GetWorldRank(OldName))
+        pPlayer.ServerControl.SetWorldHidden(NewName, pPlayer.ServerControl.IsWorldHidden(OldName))
         del pPlayer.ServerControl.WorldRankCache[OldName.lower()]
         del pPlayer.ServerControl.WorldHideCache[OldName.lower()]
         #Finally, change zones.
