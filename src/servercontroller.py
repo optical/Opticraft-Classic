@@ -175,6 +175,7 @@ class ServerController(object):
         self.MinCapsLength = int(self.ConfigValues.GetValue("server","MinLength","10"))
         self.FloodPeriod = int(self.ConfigValues.GetValue("server","FloodPeriod","5"))
         self.MaxConnectionsPerIP = int(self.ConfigValues.GetValue("server","MaxConnections","6"))
+        self.LowLatencyMode = int(self.ConfigValues.GetValue("server", "LowLatencyMode", "0"))
         self.BlockChangeCount = int(self.ConfigValues.GetValue("server","BlockChangeCount","45"))
         self.BlockChangePeriod = int(self.ConfigValues.GetValue("server", "BlockChangePeriod", "5"))
         self.IPCount = dict()
