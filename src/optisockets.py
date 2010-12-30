@@ -83,6 +83,10 @@ class SocketManager(object):
         PlayerSock, SockAddress = self.ListenSock.Accept()
         while PlayerSock != None and SockAddress != None:
             PlayerSock.setblocking(0)
+            #This enables socket buffering through the nagle algorithmn
+            # - http://en.wikipedia.org/wiki/Nagle's_algorithm
+            if self.ServerControl.LowLatencyMode == False:
+                PlayerSock.setsockopt(0x06, socket.TCP_NODELAY, 0)
             self.PlayerSockets.append(PlayerSock)
             pPlayer = Player(PlayerSock,SockAddress,self.ServerControl)
             Result,Message = self.ServerControl.AttemptAddPlayer(pPlayer)
