@@ -158,7 +158,8 @@ class Player(object):
             OutPacket.WriteByte(0)
             self.SendPacket(OutPacket)
             NewWorld.AddPlayer(self,True)
-            self.ServerControl.SendJoinMessage("&e%s changed map to %s%s"%(self.Name,RankToColour[NewWorld.MinRank],NewWorld.Name))
+            if self.Invisible == False:
+                self.ServerControl.SendJoinMessage("&e%s changed map to %s%s"%(self.Name,RankToColour[NewWorld.MinRank],NewWorld.Name))
         else:
             #World couldn't be loaded (Probably because the block-log is still in use)
             #This is a very very rare condition which can occur on slow computers with high load (100+ users etc)

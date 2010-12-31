@@ -667,7 +667,7 @@ class World(object):
             Packet.WriteByte(pPlayer.GetId())
             self.SendPacketToAllButOne(Packet, pPlayer)
             if ChangingMaps:
-                self._ChangeMap(pPlayer)
+                self._ChangeWorld(pPlayer)
                 self.TransferringPlayers.append(pPlayer)
 
     def SendBlock(self,pPlayer,x,y,z):
@@ -699,7 +699,7 @@ class World(object):
             if nPlayer != pPlayer and pPlayer.CanBeSeenBy(nPlayer):
                 nPlayer.SendPacket(Packet)
 
-    def _ChangeMap(self,pPlayer):
+    def _ChangeWorld(self,pPlayer):
         for nPlayer in self.Players:
             if nPlayer != pPlayer:
                 Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
