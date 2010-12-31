@@ -263,6 +263,8 @@ class PlayerListCmd(CommandObject):
         for oPlayer in PlayerList:
             if oPlayer.IsAuthenticated() == False:
                 continue
+            if oPlayer.CanBeSeenBy(pPlayer) == False:
+                continue
             #1 = space
             if len(oPlayer.GetColouredName()) + 1 + len(OutStr) < 63:
                 OutStr = '%s %s' %(OutStr,oPlayer.GetColouredName())
@@ -576,6 +578,15 @@ class DemoteRecruitCmd(CommandObject):
             return
         pPlayer.ServerControl.SetRank(Username,"g")
         pPlayer.SendMessage("&aSuccessfully removed %s's rank." %(Username))
+class InvisibleCmd(CommandObject):
+    '''Handles the /invisible command'''
+    def Run(self,pPlayer,Args,Message):
+        if pPlayer.IsInvisible():
+            pPlayer.SetInvisible(False)
+            pPlayer.SendMessage("&aYou are no longer invisible")
+        else:
+            pPlayer.SetInvisible(True)
+            pPlayer.SendMessage("&aYou are now invisible to all users with a lower rank then yours.")
 ######################
 #ADMIN COMMANDS HERE #
 ######################
@@ -1053,6 +1064,7 @@ class CommandHandler(object):
         self.AddCommand("undoactions", UndoActionsCmd, 'o', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>',2)
         self.AddCommand("promote", PromoteRecruitCmd, 'o', 'Promotes a player to the recruit rank', 'Incorrect syntax! Usage: /promote <username>', 1)
         self.AddCommand("demote", DemoteRecruitCmd, 'o', 'Demotes a player from the recruit rank', 'Incorrect syntax! Usage: /demote <username>', 1)
+        self.AddCommand("invisible", InvisibleCmd, 'o', "Makes you invisible to other players", "", 0)
         self.AddCommand("destroytower",DestroyTowerCmd,'o', 'Destroys a vertical tower of shit','',0,Alias=True) #Hidden command
         ######################
         #ADMIN COMMANDS HERE #

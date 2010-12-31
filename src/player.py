@@ -268,6 +268,38 @@ class Player(object):
         self.TimePlayed += int(self.ServerControl.Now) - self.LastPlayedTimeUpdate
         self.LastPlayedTimeUpdate = int(self.ServerControl.Now)
 
+    def IsInvisible(self):
+        return self.Invisible
+    def SetInvisible(self, Value):
+        if Value == True:
+            self.Invisible = True
+            Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
+            Packet.WriteByte(self.GetId())
+            for pPlayer in self.World.Players:
+                #Make us invisible to all players who shouldnt be able to see us
+                if pPlayer != self and self.CanBeSeenBy(pPlayer) == False:
+                    pPlayer.SendPacket(Packet)
+        else:
+            #Make us visible to all those who previously couldnt see us.
+            Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
+            Packet.WriteByte(self.GetId())
+            Packet.WriteString(self.GetColouredName())
+            Packet.WriteInt16(self.GetX())
+            Packet.WriteInt16(self.GetZ())
+            Packet.WriteInt16(self.GetY())
+            Packet.WriteByte(self.GetOrientation())
+            Packet.WriteByte(self.GetPitch())
+            for pPlayer in self.World.Players:
+                if self.CanBeSeenBy(pPlayer) == False:
+                    pPlayer.SendPacket(Packet)
+            self.Invisible = False
+
+    def CanBeSeenBy(self,pPlayer):
+        '''Can i be seen by pPlayer'''
+        if self.Invisible and RankToLevel[self.Rank] > RankToLevel[pPlayer.GetRank()]:
+            return False
+        else:
+            return True
     def LoadData(self,Row):
         self.DataIsLoaded = True
         if Row == None:
@@ -295,9 +327,8 @@ class Player(object):
     def Teleport(self,x,y,z,o,p):
         '''Teleports the player to X Y Z. These coordinates have the fractal bit at position 5'''
         self.SetLocation(x, y, z, o, p)
-        Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
+        Packet = OptiCraftPacket(SMSG_PLAYERPOS)
         Packet.WriteByte(255)
-        Packet.WriteString("")
         Packet.WriteInt16(x)
         Packet.WriteInt16(z)
         Packet.WriteInt16(y)
@@ -504,6 +535,7 @@ class Player(object):
         self.PaintCmd = False
         self.TowerCmd = False
         self.Rank = 'g'
+        self.Invisible = False
         self.CreatingZone = False
         self.ZoneData = dict()
         self.LoginTime = int(self.ServerControl.Now)

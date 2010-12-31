@@ -686,7 +686,9 @@ class World(object):
         Packet.WriteInt16(pPlayer.GetY())
         Packet.WriteByte(pPlayer.GetOrientation())
         Packet.WriteByte(pPlayer.GetPitch())
-        self.SendPacketToAllButOne(Packet, pPlayer)
+        for nPlayer in self.Players:
+            if nPlayer != pPlayer and pPlayer.CanBeSeenBy(nPlayer):
+                nPlayer.SendPacket(Packet)
 
     def _ChangeMap(self,pPlayer):
         for nPlayer in self.Players:
@@ -694,9 +696,10 @@ class World(object):
                 Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
                 Packet.WriteByte(nPlayer.GetId())
                 pPlayer.SendPacket(Packet)
+
     def SendAllPlayers(self,Client):
         for pPlayer in self.Players:
-            if pPlayer.IsLoadingWorld() == False and pPlayer != Client:
+            if pPlayer.IsLoadingWorld() == False and pPlayer != Client and pPlayer.CanBeSeenBy(Client):
                 Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
                 Packet.WriteByte(pPlayer.GetId())
                 Packet.WriteString(pPlayer.GetColouredName())
