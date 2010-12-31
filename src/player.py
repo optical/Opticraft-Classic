@@ -507,7 +507,7 @@ class Player(object):
         Username = Tokens[0]
         Contents = ' '.join(Tokens[1:])
         Reciever = self.ServerControl.GetPlayerFromName(Username)
-        if Reciever == None:
+        if Reciever == None or Reciever.CanBeSeenBy(self) == False:
             self.SendMessage("&4That user is not online!")
             return
         if len(Contents) == 0:
