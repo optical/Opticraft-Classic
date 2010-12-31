@@ -313,7 +313,7 @@ class ServerController(object):
     def UnloadWorld(self,pWorld):
         self.ActiveWorlds.remove(pWorld)
         self.IdleWorlds.append(pWorld.Name)
-        Console.Out("World","World %s is being pushed to idle state" %pWorld.Name)
+        Console.Out("World","World %s has been unloaded." %pWorld.Name)
     def GetWorlds(self):
         '''Returns a tuple of lists. First element is a list of active World pointers
         ...Second element is a list of inactive World names'''

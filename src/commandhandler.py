@@ -789,6 +789,7 @@ class CreateWorldCmd(CommandObject):
         pWorld = World(pPlayer.ServerControl,Name,True,X,Y,Z)
         pPlayer.ServerControl.ActiveWorlds.append(pWorld)
         pPlayer.ServerControl.SetWorldRank(pWorld.Name, pWorld.MinRank)
+        pPlayer.ServerControl.SetWorldHidden(pWorld.Name, pWorld.Hidden)
         pWorld.SetIdleTimeout(pPlayer.ServerControl.WorldTimeout)
         pPlayer.SendMessage("&aSuccessfully created world \"&f%s&a\"" %Name)
 
@@ -851,7 +852,7 @@ class HideWorldCmd(CommandObject):
         WorldName = Args[0]
         pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
         if pWorld == None:
-            pPlayer.SendMessage("&4Could not set world to default world.")
+            pPlayer.SendMessage("&4Could not set world to hidden.")
             pPlayer.SendMessage("&4Try joining the world and trying again.")
             return
         pWorld.Hidden = 1
@@ -864,7 +865,7 @@ class UnHideWorldCmd(CommandObject):
         WorldName = Args[0]
         pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
         if pWorld == None:
-            pPlayer.SendMessage("&4Could not set world to default world.")
+            pPlayer.SendMessage("&4Could not unhide world.")
             pPlayer.SendMessage("&4Try joining the world and trying again.")
             return
         pWorld.Hidden = 0
@@ -991,7 +992,7 @@ class DeleteWorldCmd(CommandObject):
                         pass
                 pPlayer.ServerControl.IdleWorlds.remove(WorldName)
                 del pPlayer.ServerControl.WorldRankCache[WorldName.lower()]
-                del pPlayer.ServerControl.WorldHideCache[OldName.lower()]
+                del pPlayer.ServerControl.WorldHideCache[WorldName.lower()]
                 pPlayer.SendMessage("&aSuccessfully deleted world \"&f%s&a\"" %WorldName)
                 return #Done...
 
