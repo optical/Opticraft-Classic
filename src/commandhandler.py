@@ -179,7 +179,7 @@ class StatsCmd(CommandObject):
             Target = pPlayer
         else:
             Target = pPlayer.ServerControl.GetPlayerFromName(Args[0])
-            if Target == None:
+            if Target == None or Target.CanBeSeenBy(pPlayer) == False:
                 pPlayer.SendMessage("&4That player is not online")
                 return
 
@@ -231,7 +231,7 @@ class PlayerInfoCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
-        if Target == None:
+        if Target == None or Target.CanBeSeenBy(pPlayer) == False:
             #Try load some data from the DB
             try:
                 Result = pPlayer.ServerControl.PlayerDBConnection.execute("SELECT * FROM Players where Username = ?", (Username.lower(),))
@@ -447,7 +447,7 @@ class AppearCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
-        if Target != None:
+        if Target != None and Target.CanBeSeenBy(pPlayer):
             if pPlayer.GetWorld() != Target.GetWorld():
                 pPlayer.ChangeWorld(Target.GetWorld().Name)
                 pPlayer.SetSpawnPosition(Target.GetX(),Target.GetY(),Target.GetZ(),Target.GetOrientation(),Target.GetPitch())
@@ -509,7 +509,7 @@ class SummonCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
-        if Target != None:
+        if Target != None and Target.CanBeSeenBy(pPlayer):
             if pPlayer.GetWorld() != Target.GetWorld():
                 pPlayer.SendMessage("&4Cross map summons - coming to a store near you soon!")
                 return
