@@ -161,6 +161,7 @@ class World(object):
         self.Blocks = array("c")
         self.Players = set()
         self.TransferringPlayers = list()
+        self.JoiningPlayers = list()
         self.Name = Name
         self.X, self.Y, self.Z = -1,-1,-1
         self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
@@ -582,12 +583,17 @@ class World(object):
                     self.ServerControl.SendNotice("Antigrief: %s's actions have been reversed." %ReversedPlayer)
                 elif Initiator and NumChanged == 0:
                     Initiator.SendMessage("&4%s had no block history!" %ReversedPlayer)
-
+        while len(self.JoiningPlayers) > 0:
+            pPlayer = self.JoiningPlayers.pop()
+            self.Players.add(pPlayer)
+            pPlayer.SetWorld(self)
+            pPlayer.SetLoadingWorld(True)
         for pPlayer in self.Players:
             if pPlayer.IsLoadingWorld():
                 self.SendWorld(pPlayer)
                 continue
             pPlayer.ProcessPackets()
+        #Transferring players will now have all players leaving.
         while len(self.TransferringPlayers) > 0:
             self.Players.remove(self.TransferringPlayers.pop())
 
@@ -600,6 +606,8 @@ class World(object):
 
 
     def SendWorld(self,pPlayer):
+        Packet = OptiCraftPacket(SMSG_PRECHUNK)
+        pPlayer.SendPacket(Packet)
         StringHandle = cStringIO.StringIO()
         fHandle = gzip.GzipFile(fileobj=StringHandle,mode="wb",compresslevel=self.CompressionLevel)
         fHandle.write(self.NetworkSize)
@@ -670,12 +678,13 @@ class World(object):
         Packet.WriteInt16(y)
         Packet.WriteByte(ord(self.Blocks[self._CalculateOffset(x, y, z)]))
         pPlayer.SendPacket(Packet)
-    def AddPlayer(self,pPlayer):
-        self.Players.add(pPlayer)
-        Packet = OptiCraftPacket(SMSG_PRECHUNK)
-        pPlayer.SendPacket(Packet)
-        pPlayer.SetLoadingWorld(True)
-        pPlayer.SetWorld(self)
+    def AddPlayer(self,pPlayer, Transferring = False):
+        if not Transferring:
+            self.Players.add(pPlayer)
+            pPlayer.SetLoadingWorld(True)
+            pPlayer.SetWorld(self)
+        else:
+            self.JoiningPlayers.append(pPlayer)
 
     def SendPlayerJoined(self,pPlayer):
         Packet = OptiCraftPacket(SMSG_SPAWNPOINT)

@@ -46,10 +46,6 @@ class Player(object):
                 return
             PacketSize = PacketSizes[OpCode]
             BufLen = len(RawBuffer) - 1 #Remove one for opcode
-            #print "OpCode:", OpCode
-            #print "Buffer:", self.SockBuffer
-            #print "Buflen:", BufLen
-            #print "Size:", PacketSize
             if BufLen >= PacketSize:
                 Packet = OptiCraftPacket(OpCode,RawBuffer[1:PacketSize+1]) #up to and including end of packet
                 self.SockBuffer.truncate(0)
@@ -158,10 +154,10 @@ class Player(object):
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
             OutPacket.WriteByte(7)
             OutPacket.WriteString(self.ServerControl.GetName())
-            OutPacket.WriteString("&aChanging map to: &e%s" %Name)
+            OutPacket.WriteString("Loading world: %s%s" %(RankToColour[NewWorld.MinRank],NewWorld.Name))
             OutPacket.WriteByte(0)
             self.SendPacket(OutPacket)
-            NewWorld.AddPlayer(self)
+            NewWorld.AddPlayer(self,True)
             self.ServerControl.SendJoinMessage("&e%s changed map to %s%s"%(self.Name,RankToColour[NewWorld.MinRank],NewWorld.Name))
         else:
             #World couldn't be loaded (Probably because the block-log is still in use)
