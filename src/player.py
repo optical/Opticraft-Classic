@@ -51,7 +51,7 @@ class Player(object):
                 self.SockBuffer.truncate(0)
                 self.SockBuffer.write(RawBuffer[PacketSize+1:]) #From end of packet on
                 if self.OpcodeHandler.has_key(OpCode):
-                    self.OpcodeHandler[OpCode](Packet)
+                    self.OpcodeHandler[OpCode](self,Packet)
             else:
                 ProcessingPackets = False
         #Check to see if we have got too much data in our out buffer.
@@ -566,10 +566,8 @@ class Player(object):
         Console.Debug("Player","Player object created. IP: %s" %SockAddress[0])
         self.SockBuffer = cStringIO.StringIO()
         self.OpcodeHandler = {
-            CMSG_IDENTIFY: self.HandleIdentify,
-            CMSG_BLOCKCHANGE: self.HandleBlockChange,
-            CMSG_POSITIONUPDATE: self.HandleMovement,
-            CMSG_MESSAGE: self.HandleChatMessage
+            CMSG_IDENTIFY: Player.HandleIdentify,
+            CMSG_BLOCKCHANGE: Player.HandleBlockChange,
+            CMSG_POSITIONUPDATE: Player.HandleMovement,
+            CMSG_MESSAGE: Player.HandleChatMessage
         }
-
-

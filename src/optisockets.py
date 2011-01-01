@@ -38,8 +38,6 @@ class ListenSocket(object):
         #This allows the server to restart instantly instead of waiting around
         self.Socket.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEADDR, 1 )
         self.port = Port
-        #Temporary hack - REWRITE ME
-        self.NewPlayers = list()
         #Bind our socket to an interface
         try:
             self.Socket.bind((Host,Port))
@@ -167,9 +165,7 @@ class SocketManager(object):
                 continue
             Buffer = pPlayer.GetOutBuffer()
             Buffer.truncate(0)
-            NewData = ToSend[result:]
-
-            Buffer.write(NewData)
+            Buffer.write(ToSend[result:])
 
     def CloseSocket(self,Socket):
         self.ClosingSockets.add(Socket)
