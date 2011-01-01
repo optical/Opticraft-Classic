@@ -180,3 +180,7 @@ class SocketManager(object):
             self.PlayerSockets.remove(Socket)
             pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
             self.ServerControl.RemovePlayer(pPlayer)
+            try:
+                Socket.close()
+            except:
+                pass

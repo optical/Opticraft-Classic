@@ -557,11 +557,8 @@ class Player(object):
         self.LoginCount = 0
         #This is used for commands such as /lava, /water, and /grass
         self.BlockOverride = -1
-
-
         self.X,self.Y,self.Z,self.O,self.P = -1,-1,-1,-1,-1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
         self.SpawnX,self.SpawnY,self.SpawnZ,self.SpawnO,self.SpawnP = -1,-1,-1,-1,-1 #Used to spawn at a location when chaning worlds
-
         self.OutBuffer = cStringIO.StringIO()
         Console.Debug("Player","Player object created. IP: %s" %SockAddress[0])
         self.SockBuffer = cStringIO.StringIO()
