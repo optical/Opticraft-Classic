@@ -462,8 +462,7 @@ class ServerController(object):
             self.SockManager.Run()
             #Remove any players which need to be deleted.
             while len(self.PlayersPendingRemoval) > 0:
-                pPlayer = self.PlayersPendingRemoval.pop()
-                self._RemovePlayer(pPlayer)
+                self._RemovePlayer(self.PlayersPendingRemoval.pop())
             ToRemove = list()
             for pPlayer in self.AuthPlayers:
                 pPlayer.ProcessPackets()
