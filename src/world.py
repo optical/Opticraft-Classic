@@ -166,7 +166,7 @@ class World(object):
         self.X, self.Y, self.Z = -1,-1,-1
         self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
         self.SpawnOrientation, self.SpawnPitch = 0, 0
-        self.MinRank = 'g'
+        self.MinRank = 'guest'
         self.Hidden = 0
         self.ServerControl = ServerControl
         self.BlockHistory = dict()
@@ -369,7 +369,7 @@ class World(object):
             pPlayer.SendMessage("&4You do not have the required rank to build on this world")
             return False
         #Too far away!
-        if pPlayer.CalcDistance(x, y, z) > 10 and pPlayer.GetRank() == 'g':
+        if pPlayer.CalcDistance(x, y, z) > 10 and pPlayer.GetRank() == 'guest':
             return False
 
         if pPlayer.GetAboutCmd() == True:
@@ -436,7 +436,7 @@ class World(object):
                 if pZone.CanBuild(pPlayer) == False:
                     pPlayer.SendMessage("&4You cannot build in zone \"%s\"" %pZone.Name)
                     return False
-        if RankToLevel[pPlayer.GetRank()] < 6 and val in DisabledBlocks:
+        if pPlayer.HasPermission('recruit') == False:
             pPlayer.SendMessage("&4That block is disabled!")
             return False
         #Temporary code to make "steps" function normally.
@@ -744,20 +744,20 @@ class World(object):
             if pPlayer != Client:
                 pPlayer.OutBuffer.write(Data)
     @staticmethod
-    def GetCacheValues(Name):
+    def GetCacheValues(Name,ServerControl):
         try:
             fHandle = open("Worlds/%s.save" %Name)
             fHandle.seek(-2,os.SEEK_END)
             Rank = fHandle.read(1)
             Hidden = fHandle.read(1)
             assert Hidden in ["0","1"]
-            assert Rank in RankToName
+            assert Rank.lower() in ServerControl.RankNames
         except AssertionError:
-            return 'g', 0
+            return 'guest', 0
         except IOError:
-            return 'g', 0
+            return 'guest', 0
         except ValueError:
-            return 'g', 0
+            return 'guest', 0
         fHandle.close()
         return Rank,int(Hidden)
 

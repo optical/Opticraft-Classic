@@ -111,55 +111,7 @@ BLOCK_END = 50
 import string
 DisabledBlocks = set([BLOCK_WATER,BLOCK_STILLWATER,BLOCK_LAVA,BLOCK_STILLLAVA,BLOCK_HARDROCK])
 DisabledChars = ''.join([c for c in map(chr, range(256)) if c not in string.ascii_letters + string.digits + string.punctuation + string.whitespace]) + '&\r\n'
-#Permission ranks
-#These are subject to change as more ranks are added over time.
-# 0 = Spectator
-# 1 = Trusted
-# 2 = Builder
-# 3 = Operator
-# 4 = Admin
-# 5 = Owner
 
-RankToName = {
-    "g" : "Guest",
-    "s" : "Spectator",
-    "t": "Recruit",
-    "b": "Builder",
-    "o": "Operator",
-    "a": "Admin",
-    "z": "Owner"
-}
-RankToColour = {
-    "g" : "&f",
-    "s": "&f",
-    "a": "&9", #Blue
-    "b": "&a", #Light green
-    "o": "&b", #Teal
-    "t": "&7", #Grey
-    "z": "&c" #Red
-}
-RankToLevel = {
-    "s": 3,
-    "g" : 5,
-    "t": 7,
-    "b": 10,
-    "o": 20,
-    "a": 30,
-    "z": 0xFF,
-}
-RankToDescription = {
-    "s": "Griefers are set to this rank. They may not build",
-    "g" : "Everyone starts out at this rank",
-    "t": "Users who show potential get promoted to this rank. They may use lava and water",
-    "b": "Users who have proved themself and played for several days get this rank. They may build on builder only maps",
-    "o": "Mature, responsible users get promoted to this. Do not ask to be promoted to this rank",
-    "a": "These users are the server administrators",
-    "z": "This is the owner of the server",
-}
-ValidRanks = ''
-for Rank in RankToName.keys():
-    if Rank != '':
-        ValidRanks = "%s %s " %(ValidRanks,Rank)
 #Taken from http://snipplr.com/view/5713/python-elapsedtime-human-readable-time-span-given-total-seconds/
 def ElapsedTime(seconds, suffixes=[' year',' week',' day',' hour',' minute',' second'], add_s=True, separator=' '):
 	"""
