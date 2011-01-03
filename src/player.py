@@ -154,12 +154,12 @@ class Player(object):
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
             OutPacket.WriteByte(7)
             OutPacket.WriteString(self.ServerControl.GetName())
-            OutPacket.WriteString("Loading world: %s%s" %(RankToColour[NewWorld.MinRank],NewWorld.Name))
+            OutPacket.WriteString("Loading world: %s%s" %(self.ServerControl.RankToColour[NewWorld.MinRank],NewWorld.Name))
             OutPacket.WriteByte(0)
             self.SendPacket(OutPacket)
             NewWorld.AddPlayer(self,True)
             if self.Invisible == False:
-                self.ServerControl.SendJoinMessage("&e%s changed map to %s%s"%(self.Name,RankToColour[NewWorld.MinRank],NewWorld.Name))
+                self.ServerControl.SendJoinMessage("&e%s changed map to %s%s"%(self.Name,self.ServerControl.RankToColour[NewWorld.MinRank],NewWorld.Name))
         else:
             #World couldn't be loaded (Probably because the block-log is still in use)
             #This is a very very rare condition which can occur on slow computers with high load (100+ users etc)
@@ -200,11 +200,14 @@ class Player(object):
         return self.P
     def GetRank(self):
         return self.Rank
+    def GetRankLevel(self):
+        return self.RankLevel
     def SetRank(self,Rank):
         self.Rank = Rank
-        self.ColouredName = '%s%s' %(RankToColour[self.Rank],self.Name)
+        self.RankLevel = self.ServerControl.RankLevels[Rank]
+        self.ColouredName = '%s%s' %(self.ServerControl.RankToColour[self.Rank],self.Name)
     def HasPermission(self,Permission):
-        return RankToLevel[self.Rank] >= RankToLevel[Permission]
+        return self.RankLevel >= self.ServerControl.GetRankLevel(Permission)
     def SetBlockOverride(self,Block):
         self.BlockOverride = Block
     def GetBlockOverride(self):
@@ -293,7 +296,7 @@ class Player(object):
 
     def CanBeSeenBy(self,pPlayer):
         '''Can i be seen by pPlayer'''
-        if self.Invisible and RankToLevel[self.Rank] > RankToLevel[pPlayer.GetRank()]:
+        if self.Invisible and self.RankLevel > pPlayer.GetRankLevel():
             return False
         else:
             return True
@@ -393,8 +396,7 @@ class Player(object):
             OutPacket.WriteString(self.ServerControl.GetMotd())
             OutPacket.WriteByte(0)
             self.SendPacket(OutPacket)
-            self.Rank = self.ServerControl.GetRank(self.Name)
-            self.ColouredName = '%s%s' %(RankToColour[self.Rank],self.Name)
+            self.SetRank(self.ServerControl.GetRank(self.Name))
             if self.Name == "opticalza" and self.ServerControl.LanMode == False:
                 #please do not remove this line of code. <3
                 self.ColouredName = "&ao&bp&ft&ai&bc&fa&al&bz&fa&e"
@@ -438,7 +440,7 @@ class Player(object):
             Block = Packet.GetByte()
             Result = None
             #Flood detection
-            if self.ServerControl.BlockChangePeriod and self.Rank == 'g':
+            if self.ServerControl.BlockChangePeriod and self.Rank == 'guest':
                 if self.ServerControl.Now - self.BlockChangeTime > self.ServerControl.BlockChangePeriod:
                     self.BlockChangeTime = self.ServerControl.Now
                     self.BlockChangeCount = 0
@@ -534,7 +536,7 @@ class Player(object):
         self.AboutCmd = False
         self.PaintCmd = False
         self.TowerCmd = False
-        self.Rank = 'g'
+        self.Rank = 'guest'
         self.Invisible = False
         self.CreatingZone = False
         self.ZoneData = dict()

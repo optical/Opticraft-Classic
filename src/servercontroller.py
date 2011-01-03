@@ -198,6 +198,11 @@ class ServerController(object):
         if self.EnableIRC:
             self.IRCInterface = RelayBot(self.IRCNick,"Opticraft","Opticraft",self)
         self.RankedPlayers = dict()
+        self.RankNames = list() #Names of all ranks
+        self.RankLevels = dict() #Lowercase name of rank -> Rank level (int)
+        self.RankDescriptions = dict() #Lowercase name of rank -> Short description of rank
+        self.RankColours = dict() #Lowercase name of rank -> 2 Characters used for colour prefix
+        self.LoadPlayerRanks()
         self.LoadRanks()
         self.HeartBeatControl = HeartBeatController(self)
         self.SockManager = SocketManager(self)
@@ -276,7 +281,7 @@ class ServerController(object):
             if FileName[-5:] != ".save":
                 continue
             WorldName = FileName[:-5]
-            self.WorldRankCache[WorldName.lower()], self.WorldHideCache[WorldName.lower()] = World.GetCacheValues(WorldName)
+            self.WorldRankCache[WorldName.lower()], self.WorldHideCache[WorldName.lower()] = World.GetCacheValues(WorldName,self)
             if WorldName == self.ConfigValues.GetValue("worlds","DefaultName","Main"):
                 #The default world is always loaded
                 continue
@@ -351,6 +356,39 @@ class ServerController(object):
     def SetWorldRank(self,Name,Rank):
         self.WorldRankCache[Name.lower()] = Rank
     def LoadRanks(self):
+        #Add defaults incase some newby trys to remove a rank.
+        self.RankLevels["spectator"] = 5
+        self.RankLevels["guest"] = 10
+        self.RankLevels["recruit"] = 15
+        self.RankLevels["builder"] = 20
+        self.RankLevels["operator"] = 50
+        self.RankLevels["admin"] = 100
+        self.RankLevels["owner"] = 1000
+        self.RankColours["spectator"] = "&f"
+        self.RankColours["guest"] = "&f"
+        self.RankColours["recruit"] = "&7"
+        self.RankColours["builder"] = "&a"
+        self.RankColours["operator"] = "&b"
+        self.RankColours["admin"] = "&9"
+        self.RankColours["owner"] = "&c"
+
+        Items = self.ConfigValues.items("ranks")
+        for Item in Items:
+            self.RankNames.append(Item[0].capitalize())
+            self.RankLevels[Item[0].lower()] = int(Item[1])
+        Items = self.ConfigValues.items("rankcolours")
+        for Item in Items:
+            self.RankColours[Item[0].lower()] = Item[1]
+        Items = self.ConfigValues.items("rankdescriptions")
+        for Item in Items:
+            self.RankDescriptions[Item[0].lower()] = Item[1]
+
+        RankNames = ["Spectator","Guest","Builder","Operator","Admin","Owner"]
+        for Rank in RankNames:
+            if Rank not in self.RankNames:
+                self.RankNames.append(Rank)
+        self.RankNames.sort(key = lambda rank: self.RankLevels[rank.lower()])
+    def LoadPlayerRanks(self):
         try:
             Items = self.RankStore.items("ranks")
         except:
@@ -417,23 +455,27 @@ class ServerController(object):
         return (User+System,User,System)
 
     def GetRank(self,Username):
-        return self.RankedPlayers.get(Username.lower(),'g')
+        return self.RankedPlayers.get(Username.lower(),'guest')
+    def GetRankLevel(self,Rank):
+        return self.RankLevels[Rank.lower()]
+    def IsValidRank(self,Rank):
+        return Rank.lower() in self.RankLevels
 
     def SetRank(self,Username,Rank):
-        if Rank != 'g':
+        if Rank != 'guest':
             self.RankedPlayers[Username.lower()] = Rank.lower()
             self.RankStore.set("ranks",Username,Rank)
             pPlayer = self.GetPlayerFromName(Username)
             if pPlayer != None:
                 pPlayer.SetRank(Rank)
-                pPlayer.SendMessage("Your rank has been changed to %s!" %RankToName[Rank])
+                pPlayer.SendMessage("Your rank has been changed to %s!" %Rank)
         else:
             if Username.lower() in self.RankedPlayers:
                 del self.RankedPlayers[Username.lower()]
                 self.RankStore.remove_option("ranks",Username)
                 pPlayer = self.GetPlayerFromName(Username)
                 if pPlayer != None:
-                    pPlayer.SetRank('g')
+                    pPlayer.SetRank('guest')
                     pPlayer.SendMessage("You no longer have a rank.")
             else:
                 return
@@ -478,10 +520,11 @@ class ServerController(object):
                 self.AuthPlayers.remove(pPlayer)
                 #Put the player into our default world if they are identified
                 self.SendJoinMessage('&e%s has connected. Joined map %s%s' %(pPlayer.GetName(),
-                RankToColour[self.ActiveWorlds[0].MinRank],self.ActiveWorlds[0].Name))
+                self.RankToColour[self.ActiveWorlds[0].MinRank],self.ActiveWorlds[0].Name))
                 self.ActiveWorlds[0].AddPlayer(pPlayer)
                 for Line in self.Greeting:
                     pPlayer.SendMessage(Line)
+                    
             for pWorld in self.ActiveWorlds:
                 pWorld.Run()
                 
@@ -635,7 +678,7 @@ class ServerController(object):
     def RemoveIdlePlayers(self):
         for pPlayer in self.PlayerSet:
             if pPlayer.GetLastAction() + self.IdlePlayerLimit < self.Now:
-                if RankToLevel['g'] >= RankToLevel[pPlayer.GetRank()]:
+                if pPlayer.GetRankLevel() <= self.RankLevels['guest']:
                     pPlayer.Disconnect("You were kicked for being idle")
                     if pPlayer.IsAuthenticated():
                         self.SendMessageToAll("&e%s has been kicked for being idle" %pPlayer.GetName())

@@ -37,7 +37,6 @@ class Zone(object):
         self.Map = ''
         self.FileName = FileName #This is usually in format: Name-Randomnumber.ini
         self.MinRank = ''
-        self.MinRankNumeric = 0
         self.Owner = ''
         self.X1 = 0 #Lower of the two X values
         self.X2 = 0
@@ -58,10 +57,8 @@ class Zone(object):
         Name = pPlayer.GetName().lower()
         if Name == self.Owner or Name in self.Builders:
             return True
-        elif RankToLevel[pPlayer.GetRank()] >= self.MinRankNumeric:
-            return True
-        else:
-            return False
+        return pPlayer.HasPermission(self.MinRank)
+
         
     def Load(self):
         self.ConfigValues = ConfigReader()
@@ -76,7 +73,6 @@ class Zone(object):
         self.Z2 = int(self.ConfigValues.get("Info","Z2"))
         self.Owner = self.ConfigValues.get("Info","Owner")
         self.MinRank = self.ConfigValues.get("Info","Minrank")
-        self.MinRankNumeric = RankToLevel[self.MinRank]
         for Name,junk in self.ConfigValues.items("Builders"):
             self.Builders.add(Name)
         
@@ -101,7 +97,7 @@ class Zone(object):
         ConfigValues.set("Info","Z1",min(Z1,Z2))
         ConfigValues.set("Info","Z2",min(Z1,Z2)+Height)
         ConfigValues.set("Info","Owner",Owner.lower())
-        ConfigValues.set("Info","Minrank",'b')
+        ConfigValues.set("Info","Minrank",'builder')
         ConfigValues.add_section("Builders")
         fHandle = open("Zones/%s" %FileName,"w")
         ConfigValues.write(fHandle)
@@ -137,6 +133,5 @@ class Zone(object):
 
     def SetMinRank(self,Rank):
         self.MinRank = Rank
-        self.MinRankNumeric = RankToLevel[self.MinRank]
         self.ConfigValues.set("Info","Minrank",Rank)
         self.Save()
