@@ -245,6 +245,7 @@ class PlayerInfoCmd(CommandObject):
                     return
                 pPlayer.SendMessage("&a%s is &4Offline. &aRank: &e%s" %(Username,pPlayer.ServerControl.GetRank(Username).capitalize()))
                 pPlayer.SendMessage("&aLast login was: &e%s &aago" %(ElapsedTime(int(pPlayer.ServerControl.Now)-Row["LastLogin"])))
+                pPlayer.SendMessage("&aJoined on: &e%s" %(Row["Joined"]))
                 if pPlayer.HasPermission('operator'):
                     pPlayer.SendMessage("&aTheir last ip was &e%s" %(Row["LastIp"]))
 
@@ -256,6 +257,8 @@ class PlayerInfoCmd(CommandObject):
                 pPlayer.SendMessage("&aCurrent IP: &e%s" %(Target.GetIP()))
             pPlayer.SendMessage("&aThey are on world &e\"%s\"" %Target.GetWorld().Name)
             pPlayer.SendMessage("&aTheir rank is &e%s" %Target.GetRank().capitalize())
+            if Target.IsInivisible() and Target.CanBeSeenBy(pPlayer):
+                pPlayer.SendMessage("&aThey are currently invisible")
 
 
 class PlayerListCmd(CommandObject):
