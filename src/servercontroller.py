@@ -383,7 +383,7 @@ class ServerController(object):
         for Item in Items:
             self.RankDescriptions[Item[0].lower()] = Item[1]
 
-        RankNames = ["Spectator","Guest","Builder","Operator","Admin","Owner"]
+        RankNames = ["Spectator","Recruit","Guest","Builder","Operator","Admin","Owner"]
         for Rank in RankNames:
             if Rank not in self.RankNames:
                 self.RankNames.append(Rank)
