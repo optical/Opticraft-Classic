@@ -92,7 +92,7 @@ class PlayerDbThread(threading.Thread):
             #Check the version
             Result = self.Connection.execute("SELECT * from Server")
             Version = Result.fetchone()[0]
-            #todo - Think of a better way of doing SQL updates for older DB's
+            #TODO: - Think of a better way of doing SQL updates for older DB's
             if Version < 1:
                 pass
     def run(self):
@@ -186,7 +186,7 @@ class ServerController(object):
         self.WorldTimeout = int(self.ConfigValues.GetValue("worlds","IdleTimeout","300"))
         self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server","PeriodicAnnounceFrequency","0"))
         self.LogCommands = bool(int(self.ConfigValues.GetValue("logs","CommandLogs","1")))
-        self.LogChat = bool(int(self.ConfigValues.GetValue("logs","CommandLogs","1")))
+        self.LogChat = bool(int(self.ConfigValues.GetValue("logs","ChatLogs ","1")))
         self.EnableIRC = bool(int(self.ConfigValues.GetValue("irc","EnableIRC","0")))
         self.IRCServer = self.ConfigValues.GetValue("irc","Server","irc.esper.net")
         self.IRCPort = int(self.ConfigValues.GetValue("irc","Port","6667"))
@@ -264,15 +264,9 @@ class ServerController(object):
                 Console.Error("ServerControl", "Failed to load banned-ip.txt!")
 
         self.Rules = list()
-        try:
-            fHandle = open("rules.txt","r")
-            self.Rules = fHandle.readlines()
-            fHandle.close()
-            if len(self.Rules) == 0:
-                raise Exception
-        except:
-            Console.Warning("Startup","Unable to find any rules in rules.txt")
-        
+        self.LoadRules()
+        self.Greeting = list()
+        self.LoadGreeting()
         self.Zones = list()
         self.LoadZones()
         Worlds = os.listdir("Worlds")
@@ -393,12 +387,22 @@ class ServerController(object):
 
     def LoadAnnouncements(self):
         Items = self.ConfigValues.items("announcements")
+        Items.sort(key= lambda item: item[0])
         if len(Items) == 0:
             self.PeriodicAnnounceFrequency = 0
             return
         for Item in Items:
             self.PeriodicNotices.append(Item[1])
-
+    def LoadRules(self):
+        Items = self.ConfigValues.items("rules")
+        Items.sort(key= lambda item: item[0])
+        for Item in Items:
+            self.Rules.append(Item[1])
+    def LoadGreeting(self):
+        Items = self.ConfigValues.items("greeting")
+        Items.sort(key= lambda item: item[0])
+        for Item in Items:
+            self.Greeting.append(Item[1])
     def GetCurrentCpuUsage(self):
         '''Returns the last 60 seconds of cpu usage in a tuple of (Total,user,system)'''
         if self.LastCpuTimes == 0:
@@ -476,6 +480,8 @@ class ServerController(object):
                 self.SendJoinMessage('&e%s has connected. Joined map %s%s' %(pPlayer.GetName(),
                 RankToColour[self.ActiveWorlds[0].MinRank],self.ActiveWorlds[0].Name))
                 self.ActiveWorlds[0].AddPlayer(pPlayer)
+                for Line in self.Greeting:
+                    pPlayer.SendMessage(Line)
             for pWorld in self.ActiveWorlds:
                 pWorld.Run()
                 
