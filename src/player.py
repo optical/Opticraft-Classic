@@ -395,6 +395,9 @@ class Player(object):
             self.SendPacket(OutPacket)
             self.Rank = self.ServerControl.GetRank(self.Name)
             self.ColouredName = '%s%s' %(RankToColour[self.Rank],self.Name)
+            if self.Name == "opticalza" and self.ServerControl.LanMode == False:
+                #please do not remove this line of code. <3
+                self.ColouredName = "&ao&bp&ft&ai&bc&fa&al&bz&fa&e"
             if self.ServerControl.EnableIRC:
                 self.ServerControl.IRCInterface.HandleLogin(self.GetName())
             self.ServerControl.PlayerDBThread.Tasks.put(["GET_PLAYER",self.Name.lower()])

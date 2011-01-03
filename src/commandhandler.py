@@ -123,7 +123,7 @@ class RulesCmd(CommandObject):
     '''Lists all of the servers rules'''
     def Run(self,pPlayer,Args,Message):
         if len(pPlayer.ServerControl.Rules) == 0:
-            pPlayer.SendMessage("&arules.txt not found. This server has no rules!")
+            pPlayer.SendMessage("&aThis server has no rules!")
             return
         pPlayer.SendMessage("&aThe rules for this server are as follows:")
         for line in pPlayer.ServerControl.Rules:
