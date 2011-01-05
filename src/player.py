@@ -150,6 +150,7 @@ class Player(object):
         if NewWorld != None and NewWorld != False:
             self.UpdateLastWorldChange()
             self.World.RemovePlayer(self,True)
+            self.World = None
             #Send packet telling client were changing the world.
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
             OutPacket.WriteByte(7)
