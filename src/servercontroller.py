@@ -358,13 +358,11 @@ class ServerController(object):
     def LoadRanks(self):
         #Add defaults incase some newby trys to remove a rank.
         self.RankLevels["guest"] = 10
-        self.RankLevels["recruit"] = 15
         self.RankLevels["builder"] = 20
         self.RankLevels["operator"] = 50
         self.RankLevels["admin"] = 100
         self.RankLevels["owner"] = 1000
         self.RankColours["guest"] = "&f"
-        self.RankColours["recruit"] = "&7"
         self.RankColours["builder"] = "&a"
         self.RankColours["operator"] = "&b"
         self.RankColours["admin"] = "&9"

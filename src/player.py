@@ -166,10 +166,6 @@ class Player(object):
             self.SendMessage("&4Could not change your world. Try again in a minute")
 
 
-    def IsLoadingWorld(self):
-        return self.IsLoading
-    def SetLoadingWorld(self,Val):
-        self.IsLoading = Val
     def SetLocation(self,x,y,z,o,p):
         '''Stores client position. X Y Z are floats with the fractal bit at position 5'''
         self.X = x
@@ -532,7 +528,6 @@ class Player(object):
         self.Id = -1
         self.ServerControl = ServerControl
         self.World = None #Pointer to our current world.
-        self.IsLoading = False
         self.AboutCmd = False
         self.PaintCmd = False
         self.TowerCmd = False

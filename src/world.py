@@ -364,7 +364,6 @@ class World(object):
             return True #Cant set that block. But don't return False or it'll try "undo" the change!
         if val >= BLOCK_END:
             return False #Fake block type...
-        #Rank 5 and below are normal users. 6+ is a builder and can place disabled blocks
         if pPlayer.HasPermission(self.MinRank) == False:
             pPlayer.SendMessage("&4You do not have the required rank to build on this world")
             return False
@@ -436,9 +435,9 @@ class World(object):
                 if pZone.CanBuild(pPlayer) == False:
                     pPlayer.SendMessage("&4You cannot build in zone \"%s\"" %pZone.Name)
                     return False
-        if pPlayer.HasPermission('recruit') == False:
-            pPlayer.SendMessage("&4That block is disabled!")
-            return False
+        if val in DisabledBlocks and pPlayer.GetBlockOverride() not in DisabledBlocks:
+                pPlayer.SendMessage("&4That block is disabled!")
+                return False
         #Temporary code to make "steps" function normally.
         if val == BLOCK_STEP and z > 0:
             BlockBelow = self._CalculateOffset(x, y, z-1)
@@ -478,7 +477,7 @@ class World(object):
         if Result != None:
             #Easy peezy...
             return Result
-        #Turn to SQL
+        #Turn to SQL - This can throw an exception that needs to be handled!
         self.DBCursor.execute("SELECT Username,Time,Oldvalue FROM Blocklogs where Offset = ?", (Offset,))
         SQLResult = self.DBCursor.fetchone()
         if SQLResult == None:
@@ -583,15 +582,13 @@ class World(object):
                     self.ServerControl.SendNotice("Antigrief: %s's actions have been reversed." %ReversedPlayer)
                 elif Initiator and NumChanged == 0:
                     Initiator.SendMessage("&4%s had no block history!" %ReversedPlayer)
+
         while len(self.JoiningPlayers) > 0:
             pPlayer = self.JoiningPlayers.pop()
             self.Players.add(pPlayer)
             pPlayer.SetWorld(self)
-            pPlayer.SetLoadingWorld(True)
+            self.SendWorld(pPlayer)
         for pPlayer in self.Players:
-            if pPlayer.IsLoadingWorld():
-                self.SendWorld(pPlayer)
-                continue
             pPlayer.ProcessPackets()
         #Transferring players will now have all players leaving.
         while len(self.TransferringPlayers) > 0:
@@ -662,13 +659,12 @@ class World(object):
         if not ChangingMaps:
             self.Players.remove(pPlayer)
         #Send Some packets to local players...
-        if pPlayer.IsLoadingWorld() == False:
-            Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
-            Packet.WriteByte(pPlayer.GetId())
-            self.SendPacketToAllButOne(Packet, pPlayer)
-            if ChangingMaps:
-                self._ChangeWorld(pPlayer)
-                self.TransferringPlayers.append(pPlayer)
+        Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
+        Packet.WriteByte(pPlayer.GetId())
+        self.SendPacketToAllButOne(Packet, pPlayer)
+        if ChangingMaps:
+            self._ChangeWorld(pPlayer)
+            self.TransferringPlayers.append(pPlayer)
 
     def SendBlock(self,pPlayer,x,y,z):
         #We can trust that these coordinates will be within bounds.
@@ -679,12 +675,7 @@ class World(object):
         Packet.WriteByte(ord(self.Blocks[self._CalculateOffset(x, y, z)]))
         pPlayer.SendPacket(Packet)
     def AddPlayer(self,pPlayer, Transferring = False):
-        if not Transferring:
-            self.Players.add(pPlayer)
-            pPlayer.SetLoadingWorld(True)
-            pPlayer.SetWorld(self)
-        else:
-            self.JoiningPlayers.append(pPlayer)
+        self.JoiningPlayers.append(pPlayer)
 
     def SendPlayerJoined(self,pPlayer):
         Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
@@ -708,7 +699,7 @@ class World(object):
 
     def SendAllPlayers(self,Client):
         for pPlayer in self.Players:
-            if pPlayer.IsLoadingWorld() == False and pPlayer != Client and pPlayer.CanBeSeenBy(Client):
+            if pPlayer != Client and pPlayer.CanBeSeenBy(Client):
                 Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
                 Packet.WriteByte(pPlayer.GetId())
                 Packet.WriteString(pPlayer.GetColouredName())
