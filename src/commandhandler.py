@@ -389,7 +389,7 @@ class zSetMinRankCmd(CommandObject):
         ZoneName = Args[0]
         Rank = Args[1]
         if pPlayer.ServerControl.IsValidRank(Rank) != True:
-            pPlayer.SendMessage("&4Invalid rank! Valid ranks are: %s" %ValidRanks)
+            pPlayer.SendMessage("&4Invalid rank! Valid ranks are: %s" %', '.join(pPlayer.ServerControl.RankNames))
             return
         pZone = pPlayer.GetWorld().GetZone(ZoneName)
         if pZone == None:
@@ -648,7 +648,7 @@ class WorldSetRankCmd(CommandObject):
         WorldName = Args[0].lower()
         Rank = Args[1]
         if pPlayer.ServerControl.IsValidRank(Rank) == False:
-            pPlayer.SendMessage("&4That is not a valid rank! Valid ranks: %s" %ValidRanks)
+            pPlayer.SendMessage("&4That is not a valid rank! Valid ranks: %s" % ', '.join(pPlayer.ServerControl.RankNames))
             return
         pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
         if pWorld == None:
@@ -656,7 +656,7 @@ class WorldSetRankCmd(CommandObject):
             pPlayer.SendMessage("&4Try joining that world then setting the rank.")
             return
         else:
-            pWorld.MinRank = Rank
+            pWorld.SetMinRank(Rank.lower())
             pPlayer.ServerControl.SetWorldRank(pWorld.Name, Rank)
             pPlayer.SendMessage("&aSuccessfully set %s to be %s only" %(pWorld.Name,Rank.capitalize()))
 class TempOpCmd(CommandObject):
@@ -826,7 +826,7 @@ class HideWorldCmd(CommandObject):
             pPlayer.SendMessage("&4Could not set world to hidden.")
             pPlayer.SendMessage("&4Try joining the world and trying again.")
             return
-        pWorld.Hidden = 1
+        pWorld.SetHidden(1)
         pPlayer.ServerControl.SetWorldHidden(pWorld.Name, 1)
         pPlayer.SendMessage("&aWorld \"&e%s&a\" is now being hidden" %pWorld.Name)
 
@@ -839,7 +839,7 @@ class UnHideWorldCmd(CommandObject):
             pPlayer.SendMessage("&4Could not unhide world.")
             pPlayer.SendMessage("&4Try joining the world and trying again.")
             return
-        pWorld.Hidden = 0
+        pWorld.SetHidden(0)
         pPlayer.ServerControl.SetWorldHidden(pWorld.Name, 0)
         pPlayer.SendMessage("&aWorld \"&e%s&a\" is no longer being hidden" %pWorld.Name)
 
