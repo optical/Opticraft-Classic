@@ -166,8 +166,7 @@ class World(object):
         self.X, self.Y, self.Z = -1,-1,-1
         self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
         self.SpawnOrientation, self.SpawnPitch = 0, 0
-        self.MinRank = 'guest'
-        self.Hidden = 0
+        self.MetaData = dict()
         self.ServerControl = ServerControl
         self.BlockHistory = dict()
         #Config values
@@ -223,11 +222,15 @@ class World(object):
         self.Zones = list()
         self.ServerControl.InsertZones(self) #Servercontrol manages all the zones
 
-
+    def _ReadLengthString(self,FileHandle):
+        Val = struct.unpack("i", FileHandle.read(4))[0]
+        return FileHandle.read(Val)
+    def _MakeLengthString(self,String):
+        return struct.pack("i",len(String)) + String
+    
     def Load(self):
         '''The map file is a file of the following format:
-        int32 CompressedSize
-        array* Blockstore of length Blocksize
+        int16 VersionNumber
         int16 X
         int16 Y
         int16 Z
@@ -236,8 +239,9 @@ class World(object):
         int16 SpawnZ
         int16 SpawnOrientation
         int16 SpawnPitch
-        byte MinRank
-        byte IsHidden
+        int32 MetaDataLength (number of elements)
+              MetaDataLength *2 Length delimited strings of Key/Value
+        array* gzipped Blockstore till EOF
         '''
         start = time.time()
         try:
@@ -246,8 +250,10 @@ class World(object):
             Console.Warning("World","Failed to open up save file for world %s!" %self.Name)
             return False
         try:
-            CompressedSize = struct.unpack("i",fHandle.read(4))[0]
-            self.Blocks.fromstring(zlib.decompress(fHandle.read(CompressedSize)))
+            Version = struct.unpack("h", fHandle.read(2))[0] #Unused for now
+            if Version != 1:
+                Console.Error("World","Unknown map version %d found on world %s. Unable to load." %(Version,self.Name))
+                return False
             self.X = struct.unpack("h",fHandle.read(2))[0]
             self.Y = struct.unpack("h",fHandle.read(2))[0]
             self.Z = struct.unpack("h",fHandle.read(2))[0]
@@ -256,11 +262,14 @@ class World(object):
             self.SpawnZ = struct.unpack("h",fHandle.read(2))[0]
             self.SpawnOrientation = struct.unpack("h",fHandle.read(2))[0]
             self.SpawnPitch = struct.unpack("h",fHandle.read(2))[0]
-            self.MinRank = fHandle.read(1)
-            self.Hidden = fHandle.read(1)
-            if self.Hidden == '':
-                self.Hidden = '0'
-            self.Hidden = int(self.Hidden)
+            MetaLength = struct.unpack("i",fHandle.read(4))[0]
+            for i in xrange(MetaLength):
+                Key = self._ReadLengthString(fHandle)
+                Value = self._ReadLengthString(fHandle)
+                self.MetaData[Key] = Value
+            gzipHandle = gzip.GzipFile(fileobj=fHandle, mode="rb")
+            self.Blocks.fromstring(gzipHandle.read())
+            gzipHandle.close()                
             fHandle.close()
             Console.Out("World", "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
             if len(self.Blocks) != self.X*self.Y*self.Z:
@@ -268,15 +277,10 @@ class World(object):
         except:
             Console.Warning("World","Failed to load map '%s'.save The save file is out of date or corrupt." %self.Name)
             return False
-
-    def _ReadLengthString(self,FileHandle):
-        Val = struct.unpack("i", FileHandle.read(4))
-        return FileHandle.read(Val)
-
+    
     def Save(self, Verbose = True):
         '''The map file is a file of the following format:
-        int32 CompressedSize
-        array* Blockstore of length Blocksize
+        int16 VersionNumber
         int16 X
         int16 Y
         int16 Z
@@ -285,8 +289,9 @@ class World(object):
         int16 SpawnZ
         int16 SpawnOrientation
         int16 SpawnPitch
-        byte MinRank
-        byte IsHidden
+        int32 MetaDataLength (number of elements)
+              MetaDataLength *2 Length delimited strings of Key/Value
+        array* gzipped Blockstore till EOF
         '''
         start = time.time()
         try:
@@ -295,10 +300,7 @@ class World(object):
             fHandle = open("Worlds/%s.temp" %(self.Name),'wb')
         except:
             Console.Error("World","Failed to saved world %s to disk." %self.Name)
-
-        CompressedData = zlib.compress(self.Blocks,self.CompressionLevel)
-        fHandle.write(struct.pack("i",len(CompressedData)))
-        fHandle.write(CompressedData)
+        fHandle.write(struct.pack("h",1)) #Map version number
         fHandle.write(struct.pack("h",self.X))
         fHandle.write(struct.pack("h",self.Y))
         fHandle.write(struct.pack("h",self.Z))
@@ -307,11 +309,18 @@ class World(object):
         fHandle.write(struct.pack("h",self.SpawnZ))
         fHandle.write(struct.pack("h",self.SpawnOrientation))
         fHandle.write(struct.pack("h",self.SpawnPitch))
-        fHandle.write(self.MinRank)
-        fHandle.write(str(self.Hidden))
+        #Meta data saving.
+        fHandle.write(struct.pack("i",len(self.MetaData))) #Number of elements to be saved
+        for Key in self.MetaData:
+            fHandle.write(self._MakeLengthString(Key))
+            fHandle.write(self._MakeLengthString(self.MetaData[Key]))
+        #Block Array
+        gzipHandle = gzip.GzipFile(fileobj=fHandle, mode="wb",compresslevel=self.CompressionLevel)
+        gzipHandle.write(self.Blocks.toString())
+        gzipHandle.close()
         fHandle.close()
-        shutil.copy("Worlds/%s.temp" %(self.Name),"Worlds/%s.save" %(self.Name))
         try:
+            shutil.copy("Worlds/%s.temp" %(self.Name),"Worlds/%s.save" %(self.Name))
             os.remove("Worlds/%s.temp" %(self.Name))
         except:
             pass
@@ -524,8 +533,20 @@ class World(object):
             else:
                 Block = chr(BLOCK_AIR)
             self.Blocks.fromstring((self.X*self.Y)*Block)
+        self.MetaData["hidden"] = '0'
+        self.MetaData["minrank"] = "guest"
         self.Save(False)
-        
+
+    def SetMetaData(self,Key,Value):
+        self.MetaData[Key] = Value
+    def IsHidden(self):
+        return int(self.MetaData["hidden"])
+    def SetHidden(self,Value):
+        self.SetMetaData("hidden", str(Value))
+    def GetMinRank(self):
+        return self.MetaData["minrank"]
+    def SetMinRank(self,Value):
+        self.SetMetaData("minrank", Value)
     def Unload(self):
         #Remove players..
         for pPlayer in self.Players:
@@ -742,17 +763,23 @@ class World(object):
     def GetCacheValues(Name,ServerControl):
         try:
             fHandle = open("Worlds/%s.save" %Name)
-            fHandle.seek(-2,os.SEEK_END)
-            Rank = fHandle.read(1)
-            Hidden = fHandle.read(1)
-            assert Hidden in ["0","1"]
-            assert Rank.lower() in ServerControl.RankNames
+            fHandle.seek(18)
+            NumElements = struct.unpack("i", fHandle.read(4))
+            MinRank = 'guest'
+            Hidden = 0
+            for i in xrange(NumElements):
+                Key = self._ReadLengthString(fHandle)
+                Value = self._ReadLengthString(fHandle)
+                if Key == "hidden":
+                    Hidden = int(Value)
+                elif Key == "minrank":
+                    Hidden = Value
+            fHandle.close()
+            assert(MinRank.capitalize() in ServerControl.RankNames)
         except AssertionError:
-            return 'guest', 0
-        except IOError:
-            return 'guest', 0
-        except ValueError:
-            return 'guest', 0
-        fHandle.close()
-        return Rank,int(Hidden)
+            MinRank = 'guest'
+        except:
+            pass
+        finally:
+            return MinRank, Hidden
 
