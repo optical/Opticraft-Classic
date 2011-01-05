@@ -202,8 +202,8 @@ class ServerController(object):
         self.RankLevels = dict() #Lowercase name of rank -> Rank level (int)
         self.RankDescriptions = dict() #Lowercase name of rank -> Short description of rank
         self.RankColours = dict() #Lowercase name of rank -> 2 Characters used for colour prefix
-        self.LoadPlayerRanks()
         self.LoadRanks()
+        self.LoadPlayerRanks()
         self.HeartBeatControl = HeartBeatController(self)
         self.SockManager = SocketManager(self)
         self.PlayerSet = set() #All players logged into the server
@@ -357,14 +357,12 @@ class ServerController(object):
         self.WorldRankCache[Name.lower()] = Rank
     def LoadRanks(self):
         #Add defaults incase some newby trys to remove a rank.
-        self.RankLevels["spectator"] = 5
         self.RankLevels["guest"] = 10
         self.RankLevels["recruit"] = 15
         self.RankLevels["builder"] = 20
         self.RankLevels["operator"] = 50
         self.RankLevels["admin"] = 100
         self.RankLevels["owner"] = 1000
-        self.RankColours["spectator"] = "&f"
         self.RankColours["guest"] = "&f"
         self.RankColours["recruit"] = "&7"
         self.RankColours["builder"] = "&a"
@@ -383,7 +381,7 @@ class ServerController(object):
         for Item in Items:
             self.RankDescriptions[Item[0].lower()] = Item[1]
 
-        RankNames = ["Spectator","Recruit","Guest","Builder","Operator","Admin","Owner"]
+        RankNames = ["Spectator","Guest","Builder","Operator","Admin","Owner"]
         for Rank in RankNames:
             if Rank not in self.RankNames:
                 self.RankNames.append(Rank)
@@ -393,8 +391,21 @@ class ServerController(object):
             Items = self.RankStore.items("ranks")
         except:
             return
+        IsDirty = False
         for Username,Rank in Items:
+            if Rank.capitalize() not in self.RankNames:
+                IsDirty = True
+                Console.Warning("Ranks","Player %s has an unknown rank, '%s'" %(Username.capitalize(),Rank.capitalize()))
+                self.RankStore.remove_option("ranks",Username)
+                continue
             self.RankedPlayers[Username.lower()] = Rank.lower()
+        if IsDirty:
+            try:
+                fHandle = open("ranks.ini","w")
+                self.RankStore.write(fHandle)
+                fHandle.close()
+            except:
+                return
 
     def LoadZones(self):
         '''Loads up all the Zone objects into memory'''
