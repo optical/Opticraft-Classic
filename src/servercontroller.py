@@ -735,6 +735,9 @@ class ServerController(object):
 
         if pPlayer.GetWorld() != None:
             pPlayer.GetWorld().RemovePlayer(pPlayer)
+        if pPlayer.GetNewWorld() != None:
+            pPlayer.GetNewWorld().JoiningPlayers.remove(pPlayer)
+            pPlayer.SetNewWorld(None)
         if pPlayer.IsDataLoaded():
             #Update the played time.
             pPlayer.UpdatePlayedTime()
