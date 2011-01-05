@@ -1,4 +1,4 @@
-# Copyright (c) 2010, Jared Klopper
+# Copyright (c) 2010-2011,  Jared Klopper
 # All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without modification,
@@ -268,7 +268,11 @@ class World(object):
         except:
             Console.Warning("World","Failed to load map '%s'.save The save file is out of date or corrupt." %self.Name)
             return False
-    
+
+    def _ReadLengthString(self,FileHandle):
+        Val = struct.unpack("i", FileHandle.read(4))
+        return FileHandle.read(Val)
+
     def Save(self, Verbose = True):
         '''The map file is a file of the following format:
         int32 CompressedSize

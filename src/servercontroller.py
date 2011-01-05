@@ -1,4 +1,4 @@
-# Copyright (c) 2010, Jared Klopper
+# Copyright (c) 2010-2011,  Jared Klopper
 # All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without modification,
@@ -731,7 +731,6 @@ class ServerController(object):
                 del self.PlayerNames[pPlayer.GetName().lower()]
             if self.EnableIRC:
                 self.IRCInterface.HandleLogout(pPlayer.GetName())
-
 
         if pPlayer.GetWorld() != None:
             pPlayer.GetWorld().RemovePlayer(pPlayer)

@@ -1,4 +1,4 @@
-# Copyright (c) 2010, Jared Klopper
+# Copyright (c) 2010-2011,  Jared Klopper
 # All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without modification,
