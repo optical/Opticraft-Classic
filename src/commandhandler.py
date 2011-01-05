@@ -421,9 +421,9 @@ class zChangeOwnerCmd(CommandObject):
         if pPlayer.ServerControl.GetPlayerFromName(Username) != None:
             pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been set as the owner of zone &f\"%s\"" %pZone.Name)
 
-#######################
-#RECRUIT COMMANDS HERE#
-#######################
+########################
+#BUILDER COMMANDS HERE #
+########################
 class WaterCmd(CommandObject):
     '''Command handler for /water command. Replaces all block placed with water'''
     def Run(self,pPlayer,Args,Message):
@@ -445,10 +445,6 @@ class LavaCmd(CommandObject):
         else:
             pPlayer.SetBlockOverride(BLOCK_STILLLAVA)
             pPlayer.SendMessage("&aEvery block you create will now be lava. Type /lava to disable.")
-
-########################
-#BUILDER COMMANDS HERE #
-########################
 class AppearCmd(CommandObject):
     '''Appear command handler. Teleports user to specified players location'''
     def Run(self,pPlayer,Args,Message):
