@@ -130,6 +130,11 @@ class Player(object):
         return self.World
     def SetWorld(self,pWorld):
         self.World = pWorld
+        self.NewWorld = None
+    def GetNewWorld(self):
+        return self.NewWorld
+    def SetNewWorld(self,pWorld):
+        self.NewWorld = pWorld
     def ChangeWorld(self,Name):
         #is this an active world? If so - leave and join
         #else - Boot up new world and then leave/join
@@ -159,6 +164,7 @@ class Player(object):
             OutPacket.WriteByte(0)
             self.SendPacket(OutPacket)
             NewWorld.AddPlayer(self,True)
+            self.NewWorld = NewWorld
             if self.Invisible == False:
                 self.ServerControl.SendJoinMessage("&e%s changed map to %s%s"%(self.Name,self.ServerControl.RankToColour[NewWorld.MinRank],NewWorld.Name))
         else:
@@ -529,6 +535,7 @@ class Player(object):
         self.Id = -1
         self.ServerControl = ServerControl
         self.World = None #Pointer to our current world.
+        self.NewWorld = None #Pointer to the world we are currently changing to.
         self.AboutCmd = False
         self.PaintCmd = False
         self.TowerCmd = False
