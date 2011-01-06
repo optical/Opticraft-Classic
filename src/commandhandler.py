@@ -26,7 +26,6 @@
 #  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from servercontroller import GetRankLevel
 from constants import *
 from ordereddict import OrderedDict
 import platform
@@ -166,8 +165,8 @@ class WorldsCmd(CommandObject):
             pPlayer.SendMessage("&aDisplaying all worlds")
         pPlayer.SendMessage("&aThe following worlds are available:")
         for pWorld in ActiveWorlds:
-            if pWorld.Hidden == 0 or All:
-                OutString = '%s%s%s ' %(OutString,pPlayer.ServerControl.RankColours[pWorld.MinRank],pWorld.Name)
+            if pWorld.IsHidden() == 0 or All:
+                OutString = '%s%s%s ' %(OutString,pPlayer.ServerControl.RankColours[pWorld.GetMinRank()],pWorld.Name)
         for WorldName in IdleWorlds:
             if pPlayer.ServerControl.IsWorldHidden(WorldName) == 0 or All:
                 OutString = OutString = '%s%s%s ' %(OutString,pPlayer.ServerControl.RankColours[pPlayer.ServerControl.GetWorldRank(WorldName)],WorldName)
@@ -258,7 +257,7 @@ class PlayerInfoCmd(CommandObject):
                 pPlayer.SendMessage("&aCurrent IP: &e%s" %(Target.GetIP()))
             pPlayer.SendMessage("&aThey are on world &e\"%s\"" %Target.GetWorld().Name)
             pPlayer.SendMessage("&aTheir rank is &e%s" %Target.GetRank().capitalize())
-            if Target.IsInivisible(): #Dont check CanBeSeenBy() - thats been done already.
+            if Target.IsInvisible(): #Dont check CanBeSeenBy() - thats been done already.
                 pPlayer.SendMessage("&aThey are currently invisible")
 
 
@@ -759,8 +758,8 @@ class CreateWorldCmd(CommandObject):
             return
         pWorld = World(pPlayer.ServerControl,Name,True,X,Y,Z)
         pPlayer.ServerControl.ActiveWorlds.append(pWorld)
-        pPlayer.ServerControl.SetWorldRank(pWorld.Name, pWorld.MinRank)
-        pPlayer.ServerControl.SetWorldHidden(pWorld.Name, pWorld.Hidden)
+        pPlayer.ServerControl.SetWorldRank(pWorld.Name, pWorld.GetMinRank())
+        pPlayer.ServerControl.SetWorldHidden(pWorld.Name, pWorld.IsHidden())
         pWorld.SetIdleTimeout(pPlayer.ServerControl.WorldTimeout)
         pPlayer.SendMessage("&aSuccessfully created world \"&f%s&a\"" %Name)
 
