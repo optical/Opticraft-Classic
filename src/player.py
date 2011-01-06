@@ -160,13 +160,13 @@ class Player(object):
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
             OutPacket.WriteByte(7)
             OutPacket.WriteString(self.ServerControl.GetName())
-            OutPacket.WriteString("Loading world: %s%s" %(self.ServerControl.RankToColour[NewWorld.MinRank],NewWorld.Name))
+            OutPacket.WriteString("Loading world: %s%s" %(self.ServerControl.RankColours[NewWorld.GetMinRank()],NewWorld.Name))
             OutPacket.WriteByte(0)
             self.SendPacket(OutPacket)
             NewWorld.AddPlayer(self,True)
             self.NewWorld = NewWorld
             if self.Invisible == False:
-                self.ServerControl.SendJoinMessage("&e%s changed map to %s%s"%(self.Name,self.ServerControl.RankToColour[NewWorld.MinRank],NewWorld.Name))
+                self.ServerControl.SendJoinMessage("&e%s changed map to %s%s"%(self.Name,self.ServerControl.RankColours[NewWorld.GetMinRank()],NewWorld.Name))
         else:
             #World couldn't be loaded (Probably because the block-log is still in use)
             #This is a very very rare condition which can occur on slow computers with high load (100+ users etc)
@@ -208,7 +208,7 @@ class Player(object):
     def SetRank(self,Rank):
         self.Rank = Rank
         self.RankLevel = self.ServerControl.RankLevels[Rank]
-        self.ColouredName = '%s%s' %(self.ServerControl.RankToColour[self.Rank],self.Name)
+        self.ColouredName = '%s%s' %(self.ServerControl.RankColours[self.Rank],self.Name)
     def HasPermission(self,Permission):
         return self.RankLevel >= self.ServerControl.GetRankLevel(Permission)
     def SetBlockOverride(self,Block):
@@ -402,7 +402,7 @@ class Player(object):
             self.SetRank(self.ServerControl.GetRank(self.Name))
             if self.Name == "opticalza" and self.ServerControl.LanMode == False:
                 #please do not remove this line of code. <3
-                self.ColouredName = "&ao&bp&ft&ai&bc&fa&al&bz&fa&e"
+                self.ColouredName = "&ao&bp&ft&ai&bc&fa&al&bz&fa"
             if self.ServerControl.EnableIRC:
                 self.ServerControl.IRCInterface.HandleLogin(self.GetName())
             self.ServerControl.PlayerDBThread.Tasks.put(["GET_PLAYER",self.Name.lower()])

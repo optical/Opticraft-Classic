@@ -469,6 +469,9 @@ class ServerController(object):
         return self.RankLevels[Rank.lower()]
     def IsValidRank(self,Rank):
         return Rank.lower() in self.RankLevels
+    def _RankNames(self):
+        '''This returns a string of Ranks with valid descriptions'''
+        pass
 
     def SetRank(self,Username,Rank):
         if Rank != 'guest':
@@ -529,7 +532,7 @@ class ServerController(object):
                 self.AuthPlayers.remove(pPlayer)
                 #Put the player into our default world if they are identified
                 self.SendJoinMessage('&e%s has connected. Joined map %s%s' %(pPlayer.GetName(),
-                self.RankToColour[self.ActiveWorlds[0].MinRank],self.ActiveWorlds[0].Name))
+                self.RankColours[self.ActiveWorlds[0].GetMinRank()],self.ActiveWorlds[0].Name))
                 self.ActiveWorlds[0].AddPlayer(pPlayer)
                 for Line in self.Greeting:
                     pPlayer.SendMessage(Line)

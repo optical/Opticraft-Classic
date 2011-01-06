@@ -316,7 +316,7 @@ class World(object):
             fHandle.write(self._MakeLengthString(self.MetaData[Key]))
         #Block Array
         gzipHandle = gzip.GzipFile(fileobj=fHandle, mode="wb",compresslevel=self.CompressionLevel)
-        gzipHandle.write(self.Blocks.toString())
+        gzipHandle.write(self.Blocks.tostring())
         gzipHandle.close()
         fHandle.close()
         try:
@@ -377,7 +377,7 @@ class World(object):
             return True #Cant set that block. But don't return False or it'll try "undo" the change!
         if val >= BLOCK_END:
             return False #Fake block type...
-        if pPlayer.HasPermission(self.MinRank) == False:
+        if pPlayer.HasPermission(self.GetMinRank()) == False:
             pPlayer.SendMessage("&4You do not have the required rank to build on this world")
             return False
         #Too far away!
@@ -674,7 +674,6 @@ class World(object):
             Packet3.WriteByte(Location[3])
             Packet3.WriteByte(Location[4])
         pPlayer.SendPacket(Packet3)
-        pPlayer.SetLoadingWorld(False)
         self.SendPlayerJoined(pPlayer)
         self.SendAllPlayers(pPlayer)
 
