@@ -202,6 +202,7 @@ class ServerController(object):
         self.RankLevels = dict() #Lowercase name of rank -> Rank level (int)
         self.RankDescriptions = dict() #Lowercase name of rank -> Short description of rank
         self.RankColours = dict() #Lowercase name of rank -> 2 Characters used for colour prefix
+        self._ExampleRanks = str()
         self.LoadRanks()
         self.LoadPlayerRanks()
         self.HeartBeatControl = HeartBeatController(self)
@@ -239,6 +240,8 @@ class ServerController(object):
         self.PeakPlayers = 0
         self.Now = time.time()
         self.CommandHandle = CommandHandler(self)
+        #Override default command permissions from the config file
+        self.LoadCommandOverrides()
         if self.LogChat:
             try:
                 self.ChatLogHandle = open("Logs/chat.log","a")
@@ -355,7 +358,22 @@ class ServerController(object):
         return self.WorldRankCache[Name.lower()]
     def SetWorldRank(self,Name,Rank):
         self.WorldRankCache[Name.lower()] = Rank
+    def LoadCommandOverrides(self):
+        Items = self.ConfigValues.items("commandoverrides")
+        Console.Debug("Startup","Loading command overrides")
+        for Item in Items:
+            Command = Item[0]
+            Permission = Item[1]
+            if self.IsValidRank(Permission):
+                if self.CommandHandle.OverrideCommandPermissions(Command, Permission) == False:
+                    Console.Warning("Startup","Unable to override command %s as it does not exist!" %Command)
+                else:
+                    Console.Debug("Startup","Successfully set command %s's permission to %s" %(Command,Permission))
+            else:
+                Console.Warning("Startup","Unable to override command %s to %s as the rank doesn't exist!" %(Command,Permission))
+
     def LoadRanks(self):
+        Console.Debug("Startup","Loading ranks")
         #Add defaults incase some newby trys to remove a rank.
         self.RankLevels["guest"] = 10
         self.RankLevels["builder"] = 20
@@ -380,10 +398,20 @@ class ServerController(object):
             self.RankDescriptions[Item[0].lower()] = Item[1]
 
         RankNames = ["Spectator","Guest","Builder","Operator","Admin","Owner"]
+        
+        ToAdd = list()
         for Rank in RankNames:
             if Rank not in self.RankNames:
-                self.RankNames.append(Rank)
+                ToAdd.append(Rank)
+        while len(ToAdd) > 0:
+            self.RankNames.append(ToAdd.pop())
         self.RankNames.sort(key = lambda rank: self.RankLevels[rank.lower()])
+        ExampleRanks = list()
+        for Rank in self.RankNames:
+            if Rank.lower() in self.RankDescriptions.iterkeys():
+                ExampleRanks.append(Rank)
+        self._ExampleRanks = ', '.join(ExampleRanks)
+
     def LoadPlayerRanks(self):
         try:
             Items = self.RankStore.items("ranks")
@@ -469,9 +497,9 @@ class ServerController(object):
         return self.RankLevels[Rank.lower()]
     def IsValidRank(self,Rank):
         return Rank.lower() in self.RankLevels
-    def _RankNames(self):
+    def GetExampleRanks(self):
         '''This returns a string of Ranks with valid descriptions'''
-        pass
+        return self._ExampleRanks
 
     def SetRank(self,Username,Rank):
         if Rank != 'guest':

@@ -225,9 +225,9 @@ class RanksCmd(CommandObject):
         pPlayer.SendMessage("&aThe following ranks exist on this server")
         Items = pPlayer.ServerControl.RankNames
         for Rank in Items:
-            Description = pPlayer.ServerControl.RankDescriptions.get(Rank,None)
+            Description = pPlayer.ServerControl.RankDescriptions.get(Rank.lower(),None)
             if Description != None:
-                Colour = pPlayer.ServerControl.RankColours[Rank]
+                Colour = pPlayer.ServerControl.RankColours[Rank.lower()]
                 pPlayer.SendMessage("&e %s%s&e: %s" %(Colour,Rank,Description))
 
 class PlayerInfoCmd(CommandObject):
@@ -388,7 +388,7 @@ class zSetMinRankCmd(CommandObject):
         ZoneName = Args[0]
         Rank = Args[1]
         if pPlayer.ServerControl.IsValidRank(Rank) != True:
-            pPlayer.SendMessage("&4Invalid rank! Valid ranks are: %s" %', '.join(pPlayer.ServerControl.RankNames))
+            pPlayer.SendMessage("&4Invalid rank! Valid ranks are: %s" %pPlayer.ServerControl.GetExampleRanks())
             return
         pZone = pPlayer.GetWorld().GetZone(ZoneName)
         if pZone == None:
@@ -647,7 +647,7 @@ class WorldSetRankCmd(CommandObject):
         WorldName = Args[0].lower()
         Rank = Args[1]
         if pPlayer.ServerControl.IsValidRank(Rank) == False:
-            pPlayer.SendMessage("&4That is not a valid rank! Valid ranks: %s" % ', '.join(pPlayer.ServerControl.RankNames))
+            pPlayer.SendMessage("&4That is not a valid rank! Valid ranks: %s" %pPlayer.ServerControl.GetExampleRanks())
             return
         pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
         if pWorld == None:
@@ -679,7 +679,7 @@ class ModifyRankCmd(CommandObject):
         Username = Args[0]
         Rank = Args[1].lower()
         if pPlayer.ServerControl.IsValidRank(Rank) == False:
-            pPlayer.SendMessage("&4Invalid Rank! Valid ranks are: %s" %' '.join(pPlayer.ServerControl.RankNames))
+            pPlayer.SendMessage("&4Invalid Rank! Valid ranks are: %s" %pPlayer.ServerControl.GetExampleRanks())
             return
         #Check to see we can set this rank.
         NewRank = pPlayer.ServerControl.GetRankLevel(Rank)
@@ -991,7 +991,7 @@ class CommandHandler(object):
         self.AddCommand("maps", WorldsCmd, 'guest', 'Lists all available worlds', '', 0,Alias=True)
         self.AddCommand("join", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1)
         self.AddCommand("j", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
-        self.AddCommand("wap", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
+        self.AddCommand("warp", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
         self.AddCommand("goto", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1,Alias=True)
         self.AddCommand("grass", GrassCmd, 'guest', 'Allows you to place grass', '', 0)
         self.AddCommand("paint", PaintCmd, 'guest', 'When you destroy a block it will be replaced by what you are currently holding', '', 0)
@@ -1057,6 +1057,7 @@ class CommandHandler(object):
         ######################
         self.AddCommand("flushblocklog",FlushBlockLogCmd,'owner', 'Flushes the worlds blocklog to disk','',0)
         self.AddCommand("removeworld",DeleteWorldCmd,'owner', 'Deletes a world from the server','Incorrect syntax! Usage: /removeworld <worldname>',1)
+
     def HandleCommand(self,pPlayer,Message):
         '''Called when a player types a slash command'''
         if Message == '':
@@ -1073,3 +1074,11 @@ class CommandHandler(object):
 
     def AddCommand(self,Command,CmdObj,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias=False):
         self.CommandTable[Command.lower()] = CmdObj(self,Permissions,HelpMsg,ErrorMsg,MinArgs,Command,Alias)
+
+    def OverrideCommandPermissions(self,Command,NewPermission):
+        CmdObj = self.CommandTable.get(Command.lower(),None)
+        if CmdObj != None:
+            CmdObj.Permissions = NewPermission.lower()
+            CmdObj.PermissionLevel = self.ServerControl.GetRankLevel(NewPermission.lower())
+            return True
+        return False
