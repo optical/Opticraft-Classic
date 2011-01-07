@@ -116,6 +116,10 @@ def ConvertZones():
     start = time.time()
     Files = os.listdir("../../Zones")
     for File in Files:
+        if len(File) < 4:
+            continue
+        if File[-3:] != "ini":
+            continue        
         ConfigReader = RawConfigParser()
         ConfigReader.read("../../Zones/%s" %File)
         ConfigReader.set("Info","minrank",OldToNew[ConfigReader.get("Info","minrank")])
