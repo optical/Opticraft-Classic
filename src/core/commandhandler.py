@@ -26,16 +26,16 @@
 #  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from constants import *
-from ordereddict import OrderedDict
+from core.constants import *
+from core.ordereddict import OrderedDict
 import platform
 import os
 import os.path
 import time
 import sqlite3 as dbapi
 import shutil
-from world import World
-from console import *
+from core.world import World
+from core.console import *
 class CommandObject(object):
     '''Child class for all commands'''
     def __init__(self,CmdHandler,Permissions,HelpMsg,ErrorMsg,MinArgs,Name,Alias = False):

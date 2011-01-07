@@ -26,9 +26,9 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-from console import Console
-from constants import *
-from ircclient import IRCClient
+from core.console import Console
+from core.constants import *
+from core.ircclient import IRCClient
 
 class RelayBot(IRCClient):
     COLOUR_CODE = chr(0x03)

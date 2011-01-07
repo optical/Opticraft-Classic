@@ -28,7 +28,6 @@
 import os.path
 import os
 import cStringIO
-import zlib
 import gzip
 import struct
 import time
@@ -38,10 +37,10 @@ import sqlite3 as dbapi
 import threading
 import Queue
 from array import array
-from opticraftpacket import OptiCraftPacket
-from constants import *
-from zones import Zone
-from console import *
+from core.opticraftpacket import OptiCraftPacket
+from core.constants import *
+from core.zones import Zone
+from core.console import *
 class BlockLog(object):
     '''Stores the history of a block'''
     def __init__(self,Username,Time,Value):

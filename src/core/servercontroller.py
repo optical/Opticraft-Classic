@@ -35,16 +35,16 @@ import asyncore
 import sqlite3 as dbapi
 import threading
 import Queue
-from heartbeatcontrol import HeartBeatController
-from opticraftpacket import OptiCraftPacket
-from optisockets import SocketManager
-from commandhandler import CommandHandler
-from configreader import ConfigReader
-from zones import Zone
-from world import World, WorldLoadFailedException
-from constants import *
-from console import *
-from ircrelay import RelayBot
+from core.heartbeatcontrol import HeartBeatController
+from core.opticraftpacket import OptiCraftPacket
+from core.optisockets import SocketManager
+from core.commandhandler import CommandHandler
+from core.configreader import ConfigReader
+from core.zones import Zone
+from core.world import World, WorldLoadFailedException
+from core.constants import *
+from core.console import *
+from core.ircrelay import RelayBot
 class SigkillException(Exception):
     pass
 class PlayerDbThread(threading.Thread):
