@@ -49,8 +49,9 @@ def ConvertRanks():
     Items = ConfigReader.items("ranks")
     for Item in Items:
         Username,Rank = Item
-        ConfigReader.remove_option("ranks",Username)
-        ConfigReader.set("ranks",Username,OldToNew[Rank])
+        if OldToNew.has_key(Rank):
+            ConfigReader.remove_option("ranks",Username)
+            ConfigReader.set("ranks",Username,OldToNew[Rank])
     fHandle = open("../../ranks.ini","w")
     ConfigReader.write(fHandle)
     fHandle.close()
@@ -86,7 +87,8 @@ def ConvertWorld(FileName):
     SpawnOrientation = struct.unpack("h",fHandle.read(2))[0]
     SpawnPitch = struct.unpack("h",fHandle.read(2))[0]
     MinRank = fHandle.read(1)
-    MinRank = OldToNew[MinRank]
+    if OldToNew.has_key(MinRank):
+        MinRank = OldToNew[MinRank]
     Hidden = fHandle.read(1)
     fHandle.close()
     fHandle = open("../../Worlds/%s" %FileName,"wb")
@@ -122,7 +124,8 @@ def ConvertZones():
             continue        
         ConfigReader = RawConfigParser()
         ConfigReader.read("../../Zones/%s" %File)
-        ConfigReader.set("Info","minrank",OldToNew[ConfigReader.get("Info","minrank")])
+        if OldToNew.has_key(ConfigReader.get("Info","minrank")):
+            ConfigReader.set("Info","minrank",OldToNew[ConfigReader.get("Info","minrank")])
         fHandle = open("../../Zones/%s" %File,"w")
         ConfigReader.write(fHandle)
         fHandle.close()
