@@ -460,6 +460,36 @@ class AppearCmd(CommandObject):
 #########################
 #OPERATOR COMMANDS HERE #
 #########################
+class SolidCmd(CommandObject):
+    '''Command handler for /solid command. Replaces all block placed with adminium/admincrete'''
+    def Run(self,pPlayer,Args,Message):
+        if pPlayer.GetBlockOverride() == BLOCK_HARDROCK:
+            pPlayer.SendMessage("&aYou are no longer placing adminium")
+            pPlayer.SetBlockOverride(-1)
+            return
+        else:
+            pPlayer.SetBlockOverride(BLOCK_HARDROCK)
+            pPlayer.SendMessage("&aEvery block you create will now be adminium. Type /grass to disable.")
+class ModifyRankCmd(CommandObject):
+    '''Handle for the /addrank command - gives a username a rank. Can only be used by admins'''
+    def Run(self,pPlayer,Args,Message):
+        Username = Args[0]
+        Rank = Args[1].lower()
+        if pPlayer.ServerControl.IsValidRank(Rank) == False:
+            pPlayer.SendMessage("&4Invalid Rank! Valid ranks are: %s" %pPlayer.ServerControl.GetExampleRanks())
+            return
+        #Check to see we can set this rank.
+        NewRank = pPlayer.ServerControl.GetRankLevel(Rank)
+        if NewRank >= pPlayer.GetRankLevel():
+            pPlayer.SendMessage("&4You do not have permission to add this rank")
+            return
+        Target = pPlayer.ServerControl.GetRank(Username)
+        if pPlayer.ServerControl.GetRankLevel(Target) > pPlayer.GetRankLevel():
+            pPlayer.SendMessage("&4You may not set that players rank!")
+            return
+        pPlayer.ServerControl.SetRank(Username,Rank)
+        pPlayer.SendMessage("&aSuccessfully set %s's rank to %s" %(Username,Rank.capitalize()))
+
 class BanCmd(CommandObject):
     '''Ban command handler. Bans a username (permanently)'''
     def Run(self,pPlayer,Args,Message):
@@ -472,7 +502,7 @@ class BanCmd(CommandObject):
             return
         Result = pPlayer.ServerControl.AddBan(Username, 0) #TODO: Parse input so we can enter expiry!
         if Result:
-            pPlayer.ServerControl.SendNotice("%s was just banned by %s" %(Username,pPlayer.GetName()))
+            pPlayer.ServerControl.SendNotice("%s was banned by %s" %(Username,pPlayer.GetName()))
         pPlayer.SendMessage("&aSuccessfully banned %s" %(Username))
 
 class UnbanCmd(CommandObject):
@@ -672,26 +702,6 @@ class TempOpCmd(CommandObject):
         Target.SetRank('operator')
         Target.SendMessage("&aYou have been granted temporary operator privlidges by %s" %pPlayer.GetName())
         pPlayer.SendMessage("&a%s is now a temporary operator" %Username)
-
-class ModifyRankCmd(CommandObject):
-    '''Handle for the /addrank command - gives a username a rank. Can only be used by admins'''
-    def Run(self,pPlayer,Args,Message):
-        Username = Args[0]
-        Rank = Args[1].lower()
-        if pPlayer.ServerControl.IsValidRank(Rank) == False:
-            pPlayer.SendMessage("&4Invalid Rank! Valid ranks are: %s" %pPlayer.ServerControl.GetExampleRanks())
-            return
-        #Check to see we can set this rank.
-        NewRank = pPlayer.ServerControl.GetRankLevel(Rank)
-        if NewRank >= pPlayer.GetRankLevel():
-            pPlayer.SendMessage("&4You do not have permission to add this rank")
-            return
-        Target = pPlayer.ServerControl.GetRank(Username)
-        if pPlayer.ServerControl.GetRankLevel(Target) > pPlayer.GetRankLevel():
-            pPlayer.SendMessage("&4You may not set that players rank!")
-            return
-        pPlayer.ServerControl.SetRank(Username,Rank)
-        pPlayer.SendMessage("&aSuccessfully set %s's rank to %s" %(Username,Rank.capitalize()))
 
 class ZCreateCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
@@ -1022,6 +1032,7 @@ class CommandHandler(object):
         #########################
         #OPERATOR COMMANDS HERE #
         #########################
+        self.AddCommand("solid", SolidCmd, 'operator', 'Allows you to place adminium', '', 0)
         self.AddCommand("ban", BanCmd, 'operator', 'Bans a player from the server', 'Incorrect syntax! Usage: /ban <username>', 1)
         self.AddCommand("unban", UnbanCmd, 'operator', 'Unbans a player from the server', 'Incorrect syntax! Usage: /unban <username>', 1)
         self.AddCommand("kick", KickCmd, 'operator', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)

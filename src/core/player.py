@@ -161,7 +161,10 @@ class Player(object):
             OutPacket.WriteByte(7)
             OutPacket.WriteString(self.ServerControl.GetName())
             OutPacket.WriteString("Loading world: %s%s" %(self.ServerControl.RankColours[NewWorld.GetMinRank()],NewWorld.Name))
-            OutPacket.WriteByte(0)
+            if self.HasPermission(self.ServerControl.AdmincreteRank):
+                OutPacket.WriteByte(0x64)
+            else:
+                OutPacket.WriteByte(0x00)
             self.SendPacket(OutPacket)
             NewWorld.AddPlayer(self,True)
             self.NewWorld = NewWorld
@@ -209,6 +212,12 @@ class Player(object):
         self.Rank = Rank
         self.RankLevel = self.ServerControl.RankLevels[Rank]
         self.ColouredName = '%s%s' %(self.ServerControl.RankColours[self.Rank],self.Name)
+        Packet = OptiCraftPacket(SMSG_USERTYPE)
+        if self.HasPermission(self.ServerControl.AdmincreteRank):
+            Packet.WriteByte(0x64)
+        else:
+            Packet.WriteByte(0x00)
+        self.SendPacket(Packet)
     def HasPermission(self,Permission):
         return self.RankLevel >= self.ServerControl.GetRankLevel(Permission)
     def SetBlockOverride(self,Block):
@@ -392,14 +401,17 @@ class Player(object):
             Console.Out("Player", "%s connected to the server" %self.Name)
             self.ServerControl.PlayerNames[self.Name.lower()] = self
             self.IsIdentified = True
+            self.SetRank(self.ServerControl.GetRank(self.Name))
             #send the next packet...
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
             OutPacket.WriteByte(7)
             OutPacket.WriteString(self.ServerControl.GetName())
             OutPacket.WriteString(self.ServerControl.GetMotd())
-            OutPacket.WriteByte(0)
+            if self.HasPermission(self.ServerControl.AdmincreteRank):
+                OutPacket.WriteByte(0x64)
+            else:
+                OutPacket.WriteByte(0x00)
             self.SendPacket(OutPacket)
-            self.SetRank(self.ServerControl.GetRank(self.Name))
             if self.Name == "opticalza" and self.ServerControl.LanMode == False:
                 #please do not remove this line of code. <3
                 self.ColouredName = "&ao&bp&ft&ai&bc&fa&al&bz&fa"

@@ -205,6 +205,10 @@ class ServerController(object):
         self._ExampleRanks = str()
         self.LoadRanks()
         self.LoadPlayerRanks()
+        self.AdmincreteRank = self.ConfigValues.GetValue("server","AdmincreteRank",'operator')
+        if self.IsValidRank(self.AdmincreteRank) == False:
+            Console.Warning("Startup","Admincreterank refers to an unknown rank %s" %self.AdmincreteRank)
+            self.AdmincreteRank = 'builder'
         self.HeartBeatControl = HeartBeatController(self)
         self.SockManager = SocketManager(self)
         self.PlayerSet = set() #All players logged into the server
@@ -508,7 +512,7 @@ class ServerController(object):
             pPlayer = self.GetPlayerFromName(Username)
             if pPlayer != None:
                 pPlayer.SetRank(Rank)
-                pPlayer.SendMessage("Your rank has been changed to %s!" %Rank)
+                pPlayer.SendMessage("&aYour rank has been changed to %s!" %Rank.capitalize())
         else:
             if Username.lower() in self.RankedPlayers:
                 del self.RankedPlayers[Username.lower()]
@@ -516,7 +520,7 @@ class ServerController(object):
                 pPlayer = self.GetPlayerFromName(Username)
                 if pPlayer != None:
                     pPlayer.SetRank('guest')
-                    pPlayer.SendMessage("You no longer have a rank.")
+                    pPlayer.SendMessage("&aYour rank has been changed to %s!" %Rank.capitalize())
             else:
                 return
         try:
