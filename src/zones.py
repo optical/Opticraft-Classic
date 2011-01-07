@@ -28,11 +28,12 @@
 '''Zone system for opticraft maps'''
 from configreader import ConfigReader
 from constants import *
+from console import *
 import os.path
 import random
 class Zone(object):
     '''Zones are cuboid sections of the map with a height value tacked on'''
-    def __init__(self,FileName):
+    def __init__(self,FileName,ServerControl):
         self.Name = ''
         self.Map = ''
         self.FileName = FileName #This is usually in format: Name-Randomnumber.ini
@@ -44,6 +45,7 @@ class Zone(object):
         self.Y2 = 0
         self.Z1 = 0 #Lower of the two Z values
         self.Z2 = 0
+        self.ServerControl = ServerControl
         self.Builders = set()
         self.ConfigValues = None
         self.Load()
@@ -75,7 +77,9 @@ class Zone(object):
         self.MinRank = self.ConfigValues.get("Info","Minrank")
         for Name,junk in self.ConfigValues.items("Builders"):
             self.Builders.add(Name)
-        
+        if self.ServerControl.IsValidRank(self.MinRank) == False:
+            Console.Warning("Zones","Zone %s had invalid rank %s. Rank changed to builder" %(self.Name,self.MinRank))
+            self.SetMinRank('builder')
 
     @staticmethod
     def Create(Name,X1,X2,Y1,Y2,Z1,Z2,Height,Owner,Map):
