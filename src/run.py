@@ -31,6 +31,11 @@ import traceback
 import time
 import os
 import os.path
+import sys
+try:
+    import cProfile as Profile
+except ImportError:
+    import Profile
 from core.console import *
 
 def Main():
@@ -55,4 +60,9 @@ def Main():
             raw_input("\nPress enter to terminate ")
         return
 if __name__ == "__main__":
-    Main()
+    if len(sys.argv) > 1 and sys.argv[1] == "-profile":
+        Profile.run('Main()', 'profiler-%s.out' %time.strftime("%d-%m-%Y_%H-%M-%S", time.gmtime()))
+    else:
+        Main()
+        
+
