@@ -221,11 +221,12 @@ class World(object):
 
         self.Zones = list()
         self.ServerControl.InsertZones(self) #Servercontrol manages all the zones
-
-    def _ReadLengthString(self,FileHandle):
+    @staticmethod
+    def _ReadLengthString(FileHandle):
         Val = struct.unpack("i", FileHandle.read(4))[0]
         return FileHandle.read(Val)
-    def _MakeLengthString(self,String):
+    @staticmethod
+    def _MakeLengthString(String):
         return struct.pack("i",len(String)) + String
     
     def Load(self):
@@ -264,8 +265,8 @@ class World(object):
             self.SpawnPitch = struct.unpack("h",fHandle.read(2))[0]
             MetaLength = struct.unpack("i",fHandle.read(4))[0]
             for i in xrange(MetaLength):
-                Key = self._ReadLengthString(fHandle)
-                Value = self._ReadLengthString(fHandle)
+                Key = World._ReadLengthString(fHandle)
+                Value = World._ReadLengthString(fHandle)
                 self.MetaData[Key] = Value
             gzipHandle = gzip.GzipFile(fileobj=fHandle, mode="rb")
             self.Blocks.fromstring(gzipHandle.read())
@@ -312,8 +313,8 @@ class World(object):
         #Meta data saving.
         fHandle.write(struct.pack("i",len(self.MetaData))) #Number of elements to be saved
         for Key in self.MetaData:
-            fHandle.write(self._MakeLengthString(Key))
-            fHandle.write(self._MakeLengthString(self.MetaData[Key]))
+            fHandle.write(World._MakeLengthString(Key))
+            fHandle.write(World._MakeLengthString(self.MetaData[Key]))
         #Block Array
         gzipHandle = gzip.GzipFile(fileobj=fHandle, mode="wb",compresslevel=self.CompressionLevel)
         gzipHandle.write(self.Blocks.tostring())
@@ -433,7 +434,7 @@ class World(object):
                 return True
             elif zData["Phase"] == 2:
                 FileName = Zone.Create(zData["Name"], zData["X1"], x, zData["Y1"], y, zData["Z1"]-1, z-1, zData["Height"], zData["Owner"], self.Name)
-                pZone = Zone(FileName)
+                pZone = Zone(FileName,self.ServerControl)
                 self.Zones.append(pZone)
                 self.ServerControl.AddZone(pZone)
                 pPlayer.SendMessage("&aSuccessfully created zone \"%s\"" %zData["Name"])
@@ -763,22 +764,20 @@ class World(object):
         try:
             fHandle = open("Worlds/%s.save" %Name)
             fHandle.seek(18)
-            NumElements = struct.unpack("i", fHandle.read(4))
+            NumElements = struct.unpack("i", fHandle.read(4))[0]
             MinRank = 'guest'
             Hidden = 0
             for i in xrange(NumElements):
-                Key = self._ReadLengthString(fHandle)
-                Value = self._ReadLengthString(fHandle)
+                Key = World._ReadLengthString(fHandle)
+                Value = World._ReadLengthString(fHandle)
                 if Key == "hidden":
                     Hidden = int(Value)
                 elif Key == "minrank":
-                    Hidden = Value
+                    MinRank = Value
             fHandle.close()
             assert(MinRank.capitalize() in ServerControl.RankNames)
         except AssertionError:
             MinRank = 'guest'
-        except:
-            pass
         finally:
             return MinRank, Hidden
 

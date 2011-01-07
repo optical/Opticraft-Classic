@@ -441,7 +441,7 @@ class ServerController(object):
                 continue
             if File[-3:] != "ini":
                 continue
-            pZone = Zone(File)
+            pZone = Zone(File,self)
             self.Zones.append(pZone)
     def AddZone(self,pZone):
         self.Zones.append(pZone)
