@@ -26,9 +26,9 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 '''Zone system for opticraft maps'''
-from configreader import ConfigReader
-from constants import *
-from console import *
+from core.configreader import ConfigReader
+from core.constants import *
+from core.console import *
 import os.path
 import random
 class Zone(object):

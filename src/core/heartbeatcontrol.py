@@ -30,7 +30,7 @@ import urllib
 import socket
 import time
 from threading import Thread
-from console import *
+from core.console import *
 class HeartBeatController(Thread):
     def __init__(self,ServerControl):
         Thread.__init__(self)

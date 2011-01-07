@@ -26,12 +26,12 @@
 #  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from servercontroller import ServerController
+from core.servercontroller import ServerController
 import traceback
 import time
 import os
 import os.path
-from console import *
+from core.console import *
 
 def Main():
     ServerControl = ServerController()

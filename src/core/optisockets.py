@@ -28,9 +28,9 @@
 import socket
 import errno
 from select import select
-from player import Player
-from opticraftpacket import OptiCraftPacket
-from console import *
+from core.player import Player
+from core.opticraftpacket import OptiCraftPacket
+from core.console import *
 
 class ListenSocket(object):
     def __init__(self,Host,Port):

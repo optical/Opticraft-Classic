@@ -29,9 +29,9 @@ import hashlib
 import cStringIO
 import time
 import math
-from opticraftpacket import OptiCraftPacket
-from constants import *
-from console import *
+from core.opticraftpacket import OptiCraftPacket
+from core.constants import *
+from core.console import *
 class Player(object):
     #Constructor is located at the bottom
     def ProcessPackets(self):
