@@ -396,9 +396,9 @@ class World(object):
                 pPlayer.SendMessage("&aNo information available for this block (No changes made)")
             else:
                 now = int(time.time())
-                pPlayer.SendMessage("&aThis block was last changed by &f%s" %BlockInfo.Username)
-                pPlayer.SendMessage("&aThe old value for the block was &f%d" %ord(BlockInfo.Value))
-                pPlayer.SendMessage("&aChanged &f%s &aago" %ElapsedTime(now-BlockInfo.Time))
+                pPlayer.SendMessage("&aThis block was last changed by &e%s" %BlockInfo.Username)
+                pPlayer.SendMessage("&aThe old value for the block was &e%d" %ord(BlockInfo.Value))
+                pPlayer.SendMessage("&aChanged &e%s &aago" %ElapsedTime(now-BlockInfo.Time))
             pPlayer.SetAboutCmd(False)
             return False
         if pPlayer.GetTowerCmd() == True and val == 0:
