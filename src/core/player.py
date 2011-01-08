@@ -268,6 +268,14 @@ class Player(object):
         self.ChatMessageCount += 1
     def GetLoginCount(self):
         return self.LoginCount
+    def GetBannedBy(self):
+        return self.BannedBy
+    def SetBannedBy(self,Value):
+        self.BannedBy = Value
+    def SetRankedBy(self,Value):
+        self.RankedBy = Value
+    def GetRankedBy(self):
+        return self.RankedBy
     def IncreaseLoginCount(self):
         self.LoginCount += 1
     def GetLastWorldChange(self):
@@ -329,6 +337,8 @@ class Player(object):
             self.KickCount = Row["KickCount"]
             self.TimePlayed = Row["PlayedTime"]
             self.LoginCount = Row["LoginCount"] + 1
+            self.BannedBy = Row["BannedBy"]
+            self.RankedBy = Row["RankedBy"]
 
             #Update the IpLog
             Tokens = self.LastIps.split(",")
@@ -556,6 +566,8 @@ class Player(object):
         self.CreatingZone = False
         self.ZoneData = dict()
         self.LoginTime = int(self.ServerControl.Now)
+        self.BannedBy = ''
+        self.RankedBy = ''
         self.LastPlayedTimeUpdate = self.LoginTime
         self.LastAction = self.LoginTime
         self.FloodPeriodCount = 0

@@ -225,7 +225,7 @@ class VersionCmd(CommandObject):
 class CreditsCmd(CommandObject):
     '''Handler for the /credits command. Returns credit information'''
     def Run(self,pPlayer,Args,Message):
-        pPlayer.SendMessage("&aOpticraft was developed by Jared Klopper using the Python programming language, version 2.6")
+        pPlayer.SendMessage("&aOpticraft was developed by Jared Klopper using the Python programming language, vers                  ion 2.6")
 class RanksCmd(CommandObject):
     '''Handler for the /ranks command'''
     def Run(self,pPlayer,Args,Message):
@@ -252,9 +252,13 @@ class PlayerInfoCmd(CommandObject):
                     return
                 pPlayer.SendMessage("&a%s is &4Offline. &aRank: &e%s" %(Username,pPlayer.ServerControl.GetRank(Username).capitalize()))
                 pPlayer.SendMessage("&aLast login was: &e%s &aago" %(ElapsedTime(int(pPlayer.ServerControl.Now)-Row["LastLogin"])))
-                pPlayer.SendMessage("&aJoined on: &e%s" %(Row["Joined"]))
+                pPlayer.SendMessage("&aJoined on: &e%s" %(time.ctime(Row["Joined"])))
                 if pPlayer.HasPermission('operator'):
                     pPlayer.SendMessage("&aTheir last ip was &e%s" %(Row["LastIp"]))
+                    if Row["BannedBy"] != '':
+                        pPlayer.SendMessage("&aThey were banned by &e%s" %(Row["BannedBy"]))
+                    if Row["RankedBy"] != '':
+                        pPlayer.SendMessage("&aTheir rank was set by &e%s" %(Row["RankedBy"]))
 
             except dbapi.OperationalError:
                 pPlayer.SendMessage("&4The database is busy. Try again soon")
@@ -262,6 +266,8 @@ class PlayerInfoCmd(CommandObject):
             pPlayer.SendMessage("&a%s has been online for &e%s" %(Target.GetName(), ElapsedTime(int(pPlayer.ServerControl.Now) -Target.GetLoginTime())))
             if pPlayer.HasPermission('operator'):
                 pPlayer.SendMessage("&aCurrent IP: &e%s" %(Target.GetIP()))
+                if Target.GetRankedBy() != '':
+                    pPlayer.SendMessage("&aTheir rank was set by &e%s" %Target.GetRankedBy())
             pPlayer.SendMessage("&aThey are on world &e\"%s\"" %Target.GetWorld().Name)
             pPlayer.SendMessage("&aTheir rank is &e%s" %Target.GetRank().capitalize())
             if Target.IsInvisible(): #Dont check CanBeSeenBy() - thats been done already.
@@ -499,7 +505,7 @@ class ModifyRankCmd(CommandObject):
         if pPlayer.ServerControl.GetRankLevel(Target) > pPlayer.GetRankLevel():
             pPlayer.SendMessage("&4You may not set that players rank!")
             return
-        pPlayer.ServerControl.SetRank(Username,Rank)
+        pPlayer.ServerControl.SetRank(pPlayer,Username,Rank)
         pPlayer.SendMessage("&aSuccessfully set %s's rank to %s" %(Username,Rank.capitalize()))
 
 class BanCmd(CommandObject):
@@ -512,7 +518,7 @@ class BanCmd(CommandObject):
         if pPlayer.ServerControl.GetRankLevel(pPlayer.ServerControl.GetRank(Username)) >= pPlayer.GetRankLevel():
             pPlayer.SendMessage("&4You may not ban someone with the same rank or higher then yours")
             return
-        Result = pPlayer.ServerControl.AddBan(Username, 0) #TODO: Parse input so we can enter expiry!
+        Result = pPlayer.ServerControl.AddBan(pPlayer,Username, 0) #TODO: Parse input so we can enter expiry!
         if Result:
             pPlayer.ServerControl.SendNotice("%s was banned by %s" %(Username,pPlayer.GetName()))
         pPlayer.SendMessage("&aSuccessfully banned %s" %(Username))
@@ -638,7 +644,7 @@ class AddIPBanCmd(CommandObject):
              if Target.GetRankLevel() >= pPlayer.GetRankLevel():
                  pPlayer.SendMessage("&4You may not ban that user.")
                  return
-             pPlayer.ServerControl.AddBan(Arg, 0)
+             pPlayer.ServerControl.AddBan(pPlayer,Arg, 0)
              pPlayer.SendMessage("&aSuccessfully added username ban on %s" %Arg)
              #Set arg to the IP address so we can ban that too.
              Arg = Target.GetIP()
