@@ -74,10 +74,12 @@ class RelayBot(IRCClient):
                     else:
                         #Add them to the map
                         self.FloodControl[Username] = [self.ServerControl.Now,1]
-
                 Message = ' '.join(Tokens[3:])[1:]
                 Message = Message.translate(None,DisabledChars)
-                self.ServerControl.SendChatMessage('&3[IRC]&f-%s' %Username,Message)
+                if Message[0:6] != "ACTION":
+                    self.ServerControl.SendChatMessage('&3[IRC]&f-%s' %Username,Message)
+                else:
+                    self.ServerControl.SendChatMessage('&3[IRC]&5 *%s' %Username, Message[6:],NewLine="&5",NormalStart=False)
     def Connect(self):
         Console.Out("IRC","Connecting to irc server %s on port %d" %(self.Host,self.Port))
         self.connect((self.Host,self.Port))
@@ -91,6 +93,9 @@ class RelayBot(IRCClient):
             for Key in self.ColourMap:
                 From = From.replace(Key,self.ColourMap[Key])
             self.SendMessage(self.Channel, '(%s%s): %s' %(From,RelayBot.COLOUR_CODE,Message))
+    def HandleEmote(self,From,Message):
+        if self.GameToIrc:
+            self.SendMessage(self.Channel, '*%s6%s %s' %(RelayBot.COLOUR_CODE,From,Message))
     def HandleLogin(self,Name):
         if self.GameToIrc:
             self.SendMessage(self.Channel,'%s connected to the server' %Name)

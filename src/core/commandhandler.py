@@ -281,7 +281,12 @@ class PlayerListCmd(CommandObject):
         if OutStr != '':
             pPlayer.SendMessage(OutStr)
 
-
+class EmoteCmd(CommandObject):
+    '''Handler for the /me command. Emotes an action'''
+    def Run(self,pPlayer,Args,Message):
+        pPlayer.ServerControl.SendMessageToAll('&5*%s %s' %(pPlayer.GetName(),' '.join(Args)))
+        if pPlayer.ServerControl.EnableIRC:
+            pPlayer.ServerControl.IRCInterface.HandleEmote(pPlayer.GetName(), ' '.join(Args))
 
 class ReplyCmd(CommandObject):
     '''Handler for the /reply command. Shortcut command to reply to a PM'''
@@ -1012,6 +1017,8 @@ class CommandHandler(object):
         self.AddCommand("ranks", RanksCmd, 'guest', 'Displays information on all the ranks', '', 0)
         self.AddCommand("whois", PlayerInfoCmd, 'guest', 'Returns information on a player', 'Incorrect syntax! Usage: /whois <username>',1)
         self.AddCommand("players", PlayerListCmd, 'guest', 'Lists all online players', '',0)
+        self.AddCommand("me", EmoteCmd, 'guest', 'Emotes an aceiont', 'Incorrect syntax! Usage: /me <message>',1)
+        self.AddCommand("emote", EmoteCmd, 'guest', 'Emotes an aceiont', 'Incorrect syntax! Usage: /emote <message>',1,Alias=True)
         self.AddCommand("r", ReplyCmd, 'guest', 'Replys to the last person who sent you a PM', 'Incorrect syntax! Usage: /reply <Message>',1)
 #Zone commands
         self.AddCommand("zinfo", ZoneInfoCmd, 'guest', 'Returns information on a zone.', 'Incorrect syntax! Usage: /zinfo <zone>', 1)

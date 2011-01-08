@@ -799,16 +799,19 @@ class ServerController(object):
         Packet.WriteByte(0)
         Packet.WriteString(Message[:64])
         self.SendPacketToAll(Packet)
-    def SendChatMessage(self,From,Message):
+    def SendChatMessage(self,From,Message,NewLine = ">",NormalStart = True):
         Words = Message.split()
-        OutStr = '%s:&f' %From
+        if NormalStart:
+            OutStr = '%s:&f' %From
+        else:
+            OutStr = '%s' %From
         for Word in Words:
             if len(Word) >= 60:
                 return #Prevent crazy bugs due to this crappy string system
 
             if len(OutStr) + len(Words) > 63:
                 self.SendMessageToAll(OutStr)
-                OutStr = ">"
+                OutStr = NewLine
             OutStr = '%s %s' %(OutStr,Word)
         self.SendMessageToAll(OutStr)
 
