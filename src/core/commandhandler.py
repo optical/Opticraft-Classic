@@ -317,12 +317,13 @@ class ZoneInfoCmd(CommandObject):
         if pZone == None:
             pPlayer.SendMessage("&4No such zone exists on this map")
             return
+        pPlayer.SendMessage("&aName: &e%s" %pZone.Name)
         pPlayer.SendMessage("&aOwner: &e%s" %pZone.Owner)
         pPlayer.SendMessage("&aMinimum rank: &e%s" %pZone.MinRank.capitalize())
         pPlayer.SendMessage("&a---Builders---")
         Num = 0
         for Builder in pZone.Builders:
-            pPlayer.SendMessage(Builder)
+            pPlayer.SendMessage('&e%s' %Builder)
             Num += 1
         if Num == 0:
             pPlayer.SendMessage("This zone has no builders")
@@ -353,7 +354,7 @@ class ZoneTestCmd(CommandObject):
         Zones = pPlayer.GetWorld().GetZones()
         for pZone in Zones:
             if pZone.IsInZone(x, y, z):
-                pPlayer.SendMessage("&aIt appears you are in zone \"%s\"" %pZone.Name)
+                pPlayer.SendMessage("&aIt appears you are in zone \"&e%s&a\"" %pZone.Name)
                 return
         pPlayer.SendMessage("&aIt does not seem like you are in any zone.")
 
@@ -375,9 +376,9 @@ class AddZoneBuilderCmd(CommandObject):
             pPlayer.SendMessage("&4That user is already a builder for this zone!")
             return
         pZone.AddBuilder(Username)
-        pPlayer.SendMessage("&aSuccessfully added %s as a builder for zone \"%s\"" %(Username,pZone.Name))
+        pPlayer.SendMessage("&aSuccessfully added &e%s &aas a builder for zone \"&e%s&a\"" %(Username,pZone.Name))
         if pPlayer.ServerControl.GetPlayerFromName(Username) != None:
-            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been added as a builder to zone &f%s" %pZone.Name)
+            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been added as a builder to zone &e%s" %pZone.Name)
 class DelZoneBuilderCmd(CommandObject):
     '''Del zone builder handler. This deletes a builder from a zone'''
     def Run(self,pPlayer,Args,Message):
@@ -396,9 +397,9 @@ class DelZoneBuilderCmd(CommandObject):
             pPlayer.SendMessage("&4That user is not a builder for this zone!")
             return
         pZone.DelBuilder(Username)
-        pPlayer.SendMessage("&aSuccessfully removed %s as a builder for zone &f\"%s\"" %(Username,pZone.Name))
+        pPlayer.SendMessage("&aSuccessfully removed %s as a builder for zone &e\"%s&a\"" %(Username,pZone.Name))
         if pPlayer.ServerControl.GetPlayerFromName(Username) != None:
-            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been removed as a builder from zone &f\"%s\"" %pZone.Name)
+            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been removed as a builder from zone &e\"%s&a\"" %pZone.Name)
 
 class zSetMinRankCmd(CommandObject):
     '''Handler for the zSetMinRank command. Changes the minimum rank to build in a zone'''
@@ -417,7 +418,7 @@ class zSetMinRankCmd(CommandObject):
                 pPlayer.SendMessage("&4You are not allowed to change the minimum rank required in this zone!")
                 return
         pZone.SetMinRank(Rank)
-        pPlayer.SendMessage("&aMinimum non-builder ranked required to build in zone \"%s\" is now %s" %(pZone.Name,Rank.capitalize()))
+        pPlayer.SendMessage("&aMinimum non-builder ranked required to build in zone \"&e%s&a\" is now &e%s" %(pZone.Name,Rank.capitalize()))
 
 class zChangeOwnerCmd(CommandObject):
     '''zChangeOwner command handler. This changes the owner of a zone'''
@@ -434,9 +435,9 @@ class zChangeOwnerCmd(CommandObject):
                 return
         Username = Username.lower()
         pZone.ChangeOwner(Username)
-        pPlayer.SendMessage("&aSuccessfully changed the owner of zone &f\"%s\" &ato &f%s" %(pZone.Name,Username))
+        pPlayer.SendMessage("&aSuccessfully changed the owner of zone &e\"%s&a\" to &e%s" %(pZone.Name,Username))
         if pPlayer.ServerControl.GetPlayerFromName(Username) != None:
-            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been set as the owner of zone &f\"%s\"" %pZone.Name)
+            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&aYou have been set as the owner of zone &e\"%s&a\"" %pZone.Name)
 
 ########################
 #BUILDER COMMANDS HERE #
@@ -753,7 +754,7 @@ class ZDeleteCmd(CommandObject):
             return
         pPlayer.GetWorld().DeleteZone(pZone)
         pPlayer.ServerControl.DeleteZone(pZone)
-        pPlayer.SendMessage("&aSuccessfully deleted zone &f\"%s\"" %pZone.Name)
+        pPlayer.SendMessage("&aSuccessfully deleted zone &e\"%s&a\"" %pZone.Name)
         pZone.Delete()
 class CreateWorldCmd(CommandObject):
     '''Handles the world cretion command'''
@@ -789,7 +790,7 @@ class CreateWorldCmd(CommandObject):
         pPlayer.ServerControl.SetWorldRank(pWorld.Name, pWorld.GetMinRank())
         pPlayer.ServerControl.SetWorldHidden(pWorld.Name, pWorld.IsHidden())
         pWorld.SetIdleTimeout(pPlayer.ServerControl.WorldTimeout)
-        pPlayer.SendMessage("&aSuccessfully created world \"&f%s&a\"" %Name)
+        pPlayer.SendMessage("&aSuccessfully created world \"&e%s&a\"" %Name)
 
 class LoadWorldCmd(CommandObject):
     '''Handler for the /worldload command'''
@@ -802,7 +803,7 @@ class LoadWorldCmd(CommandObject):
             pPlayer.SendMessage("&4That world is already loaded!")
             return
         pPlayer.ServerControl.AddWorld(WorldName)
-        pPlayer.SendMessage("&aSuccessfully loaded world \"&f%s&a\"!" %WorldName)
+        pPlayer.SendMessage("&aSuccessfully loaded world \"&e%s&a\"!" %WorldName)
 class LoadTemplateCmd(CommandObject):
     '''Handler for the /loadtemplate command'''
     def Run(self,pPlayer,Args,Message):
@@ -816,7 +817,7 @@ class LoadTemplateCmd(CommandObject):
             return
         shutil.copy("Templates/%s.save" %TemplateName,"Worlds/%s.save" %WorldName)
         pPlayer.ServerControl.AddWorld(WorldName)
-        pPlayer.SendMessage("&aSuccessfully loaded template \"&f%s&a\"!" %TemplateName)
+        pPlayer.SendMessage("&aSuccessfully loaded template \"&e%s&a\"!" %TemplateName)
 class ShowTemplatesCmd(CommandObject):
     '''Handler for the /showtemplates command'''
     def Run(self,pPlayer,Args,Message):
@@ -843,7 +844,7 @@ class SetDefaultWorldCmd(CommandObject):
             pPlayer.SendMessage("&4Try joining the world and trying again.")
             return
         pPlayer.ServerControl.SetDefaultWorld(pWorld)
-        pPlayer.SendMessage("&aDefault world changed to &f\"%s\"" %pWorld.Name)
+        pPlayer.SendMessage("&aDefault world changed to &e\"%s\"" %pWorld.Name)
 class HideWorldCmd(CommandObject):
     '''Handler for the /hideworld command'''
     def Run(self,pPlayer,Args,Message):
@@ -991,7 +992,7 @@ class DeleteWorldCmd(CommandObject):
                 pPlayer.ServerControl.IdleWorlds.remove(WorldName)
                 del pPlayer.ServerControl.WorldRankCache[WorldName.lower()]
                 del pPlayer.ServerControl.WorldHideCache[WorldName.lower()]
-                pPlayer.SendMessage("&aSuccessfully deleted world \"&f%s&a\"" %WorldName)
+                pPlayer.SendMessage("&aSuccessfully deleted world \"&e%s&a\"" %WorldName)
                 return #Done...
 
 
