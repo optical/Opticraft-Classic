@@ -212,13 +212,20 @@ class sInfoCmd(CommandObject):
             DistData = platform.linux_distribution()
             System = "%s-%s" %(DistData[0],DistData[1])
         WorldData = pPlayer.ServerControl.GetWorlds()
-        pPlayer.SendMessage("&aThis server is running a development build of Opticraft on %s." %System,False)
-        pPlayer.SendMessage("&aThere are currently &f%d &ausers online, with a peak of &f%d &asince last restart." %(pPlayer.ServerControl.NumPlayers,pPlayer.ServerControl.PeakPlayers),False)
-        pPlayer.SendMessage("&aThere are &f%d &aworlds, &f%d &aof which are active and &f%d &aidle." %(len(WorldData[0]) + len(WorldData[1]),len(WorldData[0]),len(WorldData[1])),False)
-        pPlayer.SendMessage("&aCpu usage in the last minute: &f%.1f%% (us: %.1f%% sys: %.1f%%)" %pPlayer.ServerControl.GetCurrentCpuUsage(),False)
-        pPlayer.SendMessage("&aCpu usage overall &f%.1f%% (us: %.1f%% sys: %.1f%%)" %pPlayer.ServerControl.GetTotalCpuUsage(),False)
-        pPlayer.SendMessage("&aCurrent uptime: &f%s." %pPlayer.ServerControl.GetUptimeStr(),False)
-
+        pPlayer.SendMessage("&aThis server is running Opticraft-DEV on &e%s." %System,False)
+        pPlayer.SendMessage("&aCurrently &e%d &ausers online. Peak online: &e%d" %(pPlayer.ServerControl.NumPlayers,pPlayer.ServerControl.PeakPlayers),False)
+        pPlayer.SendMessage("&aTotal worlds: &e%d &a(&e%d &aactive, &e%d &aidle)" %(len(WorldData[0]) + len(WorldData[1]),len(WorldData[0]),len(WorldData[1])),False)
+        pPlayer.SendMessage("&aCpu usage in the last minute: &e%.1f%% (us: %.1f%% sys: %.1f%%)" %pPlayer.ServerControl.GetCurrentCpuUsage(),False)
+        pPlayer.SendMessage("&aCpu usage overall &e%.1f%% (us: %.1f%% sys: %.1f%%)" %pPlayer.ServerControl.GetTotalCpuUsage(),False)
+        pPlayer.SendMessage("&aCurrent uptime: &e%s." %pPlayer.ServerControl.GetUptimeStr(),False)
+class VersionCmd(CommandObject):
+    '''Handler for the /version command. Returns version information'''
+    def Run(self,pPlayer,Args,Message):
+        pPlayer.SendMessage("&aThis server is running Opticraft-DEV")
+class CreditsCmd(CommandObject):
+    '''Handler for the /credits command. Returns credit information'''
+    def Run(self,pPlayer,Args,Message):
+        pPlayer.SendMessage("&aOpticraft was developed by Jared Klopper using the Python programming language, version 2.6")
 class RanksCmd(CommandObject):
     '''Handler for the /ranks command'''
     def Run(self,pPlayer,Args,Message):
@@ -1012,6 +1019,8 @@ class CommandHandler(object):
         self.AddCommand("paint", PaintCmd, 'guest', 'When you destroy a block it will be replaced by what you are currently holding', '', 0)
         self.AddCommand("sinfo", sInfoCmd, 'guest', 'Displays information about the server', '', 0)
         self.AddCommand("info", sInfoCmd, 'guest', 'Displays information about the server', '', 0,Alias = True)
+        self.AddCommand("version", VersionCmd, 'guest', 'Displays information about the server', '', 0,Alias = True) #Hidden
+        self.AddCommand("credits", CreditsCmd, 'guest', 'Displays information about the server', '', 0,Alias = True) #Hidden
         self.AddCommand("stats", StatsCmd, 'guest', 'Displays a players statistics. Usage: /stats [Username]', '', 0)
         self.AddCommand("togglenotifications", ToggleNotificationsCmd, 'guest', 'Turns join/leave messages on or off', '', 0)
         self.AddCommand("ranks", RanksCmd, 'guest', 'Displays information on all the ranks', '', 0)
