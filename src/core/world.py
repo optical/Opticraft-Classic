@@ -443,11 +443,8 @@ class World(object):
                 return False
 
         #ZONES!
-        for pZone in self.Zones:
-            if pZone.IsInZone(x,y,z):
-                if pZone.CanBuild(pPlayer) == False:
-                    pPlayer.SendMessage("&4You cannot build in zone \"%s\"" %pZone.Name)
-                    return False
+        if self.CheckZones(pPlayer,x,y,z) == False:
+            return False
         if val in DisabledBlocks and pPlayer.GetBlockOverride() not in DisabledBlocks:
                 pPlayer.SendMessage("&4That block is disabled!")
                 return False
@@ -455,14 +452,26 @@ class World(object):
         if val == BLOCK_STEP and z > 0:
             BlockBelow = self._CalculateOffset(x, y, z-1)
             if ord(self.Blocks[BlockBelow]) == BLOCK_STEP:
-                self.SetBlock(None, x, y, z-1, BLOCK_DOUBLESTEP)
-                return False
+                if self.CheckZones(pPlayer,x,y,z-1) != False:
+                    self.SetBlock(None, x, y, z-1, BLOCK_DOUBLESTEP)
+                    return False
         ArrayValue = self._CalculateOffset(x,y,z)
+        if ord(self.Blocks[ArrayValue]) == BLOCK_HARDROCK:
+            if pPlayer.HasPermission(self.ServerControl.AdmincreteRank) == False:
+                #not allowed to delete admincrete
+                return False
         if self.LogBlocks == True:
             self.BlockHistory[ArrayValue] = BlockLog(pPlayer.GetName().lower(),int(time.time()),self.Blocks[ArrayValue])
         self.SetBlock(pPlayer,x,y,z,val)
         return True
 
+    def CheckZones(self,pPlayer,x,y,z):
+        for pZone in self.Zones:
+            if pZone.IsInZone(x,y,z):
+                if pZone.CanBuild(pPlayer) == False:
+                    pPlayer.SendMessage("&4You cannot build in zone \"%s\"" %pZone.Name)
+                    return False
+        return True
     def SetBlock(self,pPlayer,x,y,z,val):
         #Changes a block to a certain value.
         ArrayValue = self._CalculateOffset(x,y,z)
