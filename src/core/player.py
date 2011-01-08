@@ -562,6 +562,7 @@ class Player(object):
         self.PaintCmd = False
         self.TowerCmd = False
         self.Rank = 'guest'
+        self.RankLevel = ServerControl.GetRankLevel('guest')
         self.Invisible = False
         self.CreatingZone = False
         self.ZoneData = dict()
