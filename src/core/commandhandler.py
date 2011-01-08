@@ -367,7 +367,7 @@ class AddZoneBuilderCmd(CommandObject):
             pPlayer.SendMessage("&4No such zone exists on this map")
             return
         if pPlayer.GetName().lower() != pZone.Owner.lower():
-            if pPlayer.HasPermission('z') == False:
+            if pPlayer.HasPermission('owner') == False:
                 pPlayer.SendMessage("&4You are not allowed to delete builders from this zone!")
                 return
         Username = Username.lower()
@@ -388,7 +388,7 @@ class DelZoneBuilderCmd(CommandObject):
             pPlayer.SendMessage("&4No such zone exists on this map")
             return
         if pPlayer.GetName().lower() != pZone.Owner.lower():
-            if pPlayer.HasPermission('z') == False:
+            if pPlayer.HasPermission('owner') == False:
                 pPlayer.SendMessage("&4You are not allowed to delete builders from this zone!")
                 return
         Username = Username.lower()
@@ -413,7 +413,7 @@ class zSetMinRankCmd(CommandObject):
             pPlayer.SendMessage("&4No such zone exists on this map")
             return
         if pPlayer.GetName().lower() != pZone.Owner.lower():
-            if pPlayer.HasPermission('z') == False:
+            if pPlayer.HasPermission('owner') == False:
                 pPlayer.SendMessage("&4You are not allowed to change the minimum rank required in this zone!")
                 return
         pZone.SetMinRank(Rank)
@@ -429,7 +429,7 @@ class zChangeOwnerCmd(CommandObject):
             pPlayer.SendMessage("&4No such zone exists on this map")
             return
         if pPlayer.GetName().lower() != pZone.Owner.lower():
-            if pPlayer.HasPermission('z') == False:
+            if pPlayer.HasPermission('owner') == False:
                 pPlayer.SendMessage("&4You are not allowed to change this zones owner!")
                 return
         Username = Username.lower()
@@ -487,7 +487,7 @@ class SolidCmd(CommandObject):
             return
         else:
             pPlayer.SetBlockOverride(BLOCK_HARDROCK)
-            pPlayer.SendMessage("&aEvery block you create will now be adminium. Type /grass to disable.")
+            pPlayer.SendMessage("&aEvery block you create will now be adminium. Type /solid to disable.")
 class ModifyRankCmd(CommandObject):
     '''Handle for the /addrank command - gives a username a rank. Can only be used by admins'''
     def Run(self,pPlayer,Args,Message):
