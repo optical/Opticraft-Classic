@@ -50,6 +50,7 @@ class SigkillException(Exception):
 class PlayerDbThread(threading.Thread):
     '''This thread performs asynchronous querys on the player databases, specifically for loading
     and saving player data'''
+    CURRENT_VERSION = 2
     def __init__(self,ServerControl):
         threading.Thread.__init__(self)
         self.ServerControl = ServerControl
@@ -58,12 +59,12 @@ class PlayerDbThread(threading.Thread):
         self.Running = True
 
     def SavePlayerData(self,pPlayer):
-        QueryString = "REPLACE INTO Players Values (?,?,?,?,?,?,?,?,?,?,?,?)"
+        QueryString = "REPLACE INTO Players Values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
         try:
             self.Connection.execute(QueryString,(pPlayer.GetName().lower(),pPlayer.GetJoinedTime(),pPlayer.GetLoginTime(),
                                     pPlayer.GetBlocksMade(),pPlayer.GetBlocksErased(),pPlayer.GetIP(),pPlayer.GetIpLog(),
                                     pPlayer.GetJoinNotifications(),pPlayer.GetTimePlayed(),pPlayer.GetKickCount(),
-                                    pPlayer.GetChatMessageCount(),pPlayer.GetLoginCount()))
+                                    pPlayer.GetChatMessageCount(),pPlayer.GetLoginCount(),pPlayer.GetBannedBy(),pPlayer.GetRankedBy()))
             self.Connection.commit()
         except dbapi.OperationalError:
             #Try again later
@@ -83,18 +84,27 @@ class PlayerDbThread(threading.Thread):
             CreateQuery = "CREATE TABLE Players (Username TEXT UNIQUE,"
             CreateQuery += "Joined INTEGER, LastLogin INTEGER, BlocksMade INTEGER,"
             CreateQuery += "BlocksDeleted INTEGER, LastIP TEXT, IpLog TEXT, JoinNotifications INTEGER,"
-            CreateQuery += "PlayedTime INTEGER, KickCount INTEGER, ChatLines INTEGER, LoginCount INTEGER)"
+            CreateQuery += "PlayedTime INTEGER, KickCount INTEGER, ChatLines INTEGER, LoginCount INTEGER, BannedBy TEXT, RankedBy TEXT)"
             self.Connection.execute(CreateQuery)
             self.Connection.execute("CREATE INDEX Username ON Players (Username)")
-            self.Connection.execute("INSERT INTO Server VALUES (1)")
+            self.Connection.execute("INSERT INTO Server VALUES (?)", (PlayerDbThread.CURRENT_VERSION,))
             self.Connection.commit()
         else:
             #Check the version
             Result = self.Connection.execute("SELECT * from Server")
             Version = Result.fetchone()[0]
-            #TODO: - Think of a better way of doing SQL updates for older DB's
-            if Version < 1:
-                pass
+            if Version < PlayerDbThread.CURRENT_VERSION:
+                Console.Warning("PlayerDB","Player database is out of date. Updating now...")
+                while Version < PlayerDbThread.CURRENT_VERSION:
+                    if Version == 1:
+                        self._Apply1To2()
+                    Version += 1
+                    Console.Warning("PlayerDB","Player database now at version %d" %Version)
+                self.Connection.execute("DELETE FROM Server")
+                self.Connection.execute("INSERT INTO Server VALUES (?)", (PlayerDbThread.CURRENT_VERSION,))
+                self.Connection.commit()
+                Console.Out("PlayerDB","Player database is now up to date.")
+
     def run(self):
         self.Initialise()
         while self.Running:
@@ -103,17 +113,30 @@ class PlayerDbThread(threading.Thread):
                 self.LoadPlayerData(Task[1])
             elif Task[0] == "SAVE_PLAYER":
                 self.SavePlayerData(Task[1])
+            elif Task[0] == "EXECUTE":
+                self.Execute(Task[1],Task[2])
             elif Task[0] == "SHUTDOWN":
                 self.Connection.commit()
                 self.Running = False
                 self.Connection.close()
 
-
+    def Execute(self,QueryText,Args):
+        '''Executes a query on the database'''
+        try:
+            self.Connection.execute(QueryText,Args)
+            self.Connection.commit()
+        except:
+            pass
     def LoadPlayerData(self,Username):
         '''This function will never throw an exception, unless a plugin is incorrectly executing a query in the wrong thread'''
         Result = self.Connection.execute("SELECT * FROM Players where Username = ?", (Username,))
         Result = Result.fetchone()
         self.ServerControl.LoadResults.put((Username,Result))
+
+    #Version updates..
+    def _Apply1To2(self):
+        self.Connection.execute("ALTER TABLE Players ADD COLUMN BannedBy TEXT DEFAULT ''")
+        self.Connection.execute("ALTER TABLE Players ADD COLUMN RankedBy TEXT DEFAULT ''")
 
 
 
@@ -505,13 +528,14 @@ class ServerController(object):
         '''This returns a string of Ranks with valid descriptions'''
         return self._ExampleRanks
 
-    def SetRank(self,Username,Rank):
+    def SetRank(self,Initiator,Username,Rank):
         if Rank != 'guest':
             self.RankedPlayers[Username.lower()] = Rank.lower()
             self.RankStore.set("ranks",Username,Rank)
             pPlayer = self.GetPlayerFromName(Username)
             if pPlayer != None:
                 pPlayer.SetRank(Rank)
+                pPlayer.SetRankedBy(Initiator.GetName())
                 pPlayer.SendMessage("&aYour rank has been changed to %s!" %Rank.capitalize())
         else:
             if Username.lower() in self.RankedPlayers:
@@ -520,6 +544,7 @@ class ServerController(object):
                 pPlayer = self.GetPlayerFromName(Username)
                 if pPlayer != None:
                     pPlayer.SetRank('guest')
+                    pPlayer.SetRankedBy(Initiator.GetName())
                     pPlayer.SendMessage("&aYour rank has been changed to %s!" %Rank.capitalize())
             else:
                 return
@@ -529,6 +554,7 @@ class ServerController(object):
             fHandle.close()
         except:
             return
+        self.PlayerDBThread.Tasks.put(["EXECUTE","Update Players set RankedBy = ? where Username = ?",(Initiator.GetName(),Username.lower())])
     def HandleKill(self,SignalNumber,Frame):
         raise SigkillException()
     def Run(self):
@@ -678,15 +704,18 @@ class ServerController(object):
         except:
             pass
         
-    def AddBan(self,Username,Expiry):
+    def AddBan(self,Initiator,Username,Expiry):
         self.BannedUsers[Username.lower()] = Expiry
         self.FlushBans()
         pPlayer = self.GetPlayerFromName(Username)
         if pPlayer != None:
             pPlayer.IncreaseKickCount()
+            pPlayer.SetBannedBy(Initiator.GetName())
             pPlayer.Disconnect("You are banned from this server")
             return True
-        return False
+        else:
+            self.PlayerDBThread.Tasks.put(["EXECUTE","Update Players set BannedBy = ? where Username = ?",(Initiator.GetName(),Username.lower())])
+            return False
     def AddIPBan(self,Admin,IP,Expiry):
         self.BannedIPs[IP] = Expiry
         self.FlushIPBans()
@@ -695,11 +724,11 @@ class ServerController(object):
                 pPlayer.IncreaseKickCount()
                 pPlayer.Disconnect("You are ip-banned from this server")
                 self.SendNotice("%s has been ip-banned by %s" %(pPlayer.GetName(),Admin.GetName()))
-                
     def Unban(self,Username):
         if self.BannedUsers.has_key(Username.lower()) == True:
             del self.BannedUsers[Username.lower()]
             self.FlushBans()
+            self.PlayerDBThread.Tasks.put(["EXECUTE","Update Players set BannedBy = '' where Username = ?",(Username.lower(),)])
             return True
         else:
             return False
