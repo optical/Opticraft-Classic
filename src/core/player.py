@@ -117,6 +117,10 @@ class Player(object):
         return self.Id
     def SetId(self,Id):
         self.Id = Id
+    def GetNewId(self):
+        return self.NewId
+    def SetNewId(self,Id):
+        self.NewId = Id
     def GetName(self):
         return self.Name
     def GetColouredName(self):
@@ -558,6 +562,7 @@ class Player(object):
         self.ServerControl = ServerControl
         self.World = None #Pointer to our current world.
         self.NewWorld = None #Pointer to the world we are currently changing to.
+        self.NewId = -1 #New ID For changing worlds
         self.AboutCmd = False
         self.PaintCmd = False
         self.TowerCmd = False
