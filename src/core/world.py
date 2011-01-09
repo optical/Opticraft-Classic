@@ -168,6 +168,7 @@ class World(object):
         self.MetaData = dict()
         self.ServerControl = ServerControl
         self.BlockHistory = dict()
+        self.PlayerIDs = range(127)
         #Config values
         self.DefaultX = int(self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeX","256"))
         self.DefaultY = int(self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeY","256"))
@@ -621,6 +622,7 @@ class World(object):
             pPlayer = self.JoiningPlayers.pop()
             self.Players.add(pPlayer)
             pPlayer.SetWorld(self)
+            pPlayer.SetId(pPlayer.GetNewId())
             self.SendWorld(pPlayer)
         for pPlayer in self.Players:
             pPlayer.ProcessPackets()
@@ -635,6 +637,8 @@ class World(object):
             self.FlushBlockLog()
             self.IOThread.Shutdown(Crash)
 
+    def IsFull(self):
+        return len(self.PlayerIDs) == 0
 
     def SendWorld(self,pPlayer):
         Packet = OptiCraftPacket(SMSG_PRECHUNK)
@@ -695,6 +699,7 @@ class World(object):
         Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
         Packet.WriteByte(pPlayer.GetId())
         self.SendPacketToAllButOne(Packet, pPlayer)
+        self.PlayerIDs.append(pPlayer.GetId()) #release the ID
         if ChangingMaps:
             self._ChangeWorld(pPlayer)
             self.TransferringPlayers.append(pPlayer)
@@ -709,6 +714,7 @@ class World(object):
         pPlayer.SendPacket(Packet)
     def AddPlayer(self,pPlayer, Transferring = False):
         self.JoiningPlayers.append(pPlayer)
+        pPlayer.SetNewId(self.PlayerIDs.pop())
 
     def SendPlayerJoined(self,pPlayer):
         Packet = OptiCraftPacket(SMSG_SPAWNPOINT)

@@ -153,6 +153,11 @@ class JoinWorldCmd(CommandObject):
         if pPlayer.ServerControl.Now - pPlayer.GetLastWorldChange() < 5:
             pPlayer.SendMessage("&4You cannot change worlds that often!")
             return
+        for pWorld in pPlayer.ServerControl.ActiveWorlds:
+            if pWorld.Name.lower() == World:
+                if pWorld.IsFull():
+                    pPlayer.SendMessage("&4That world is full. Try again later")
+                    return
 
         pPlayer.ChangeWorld(World)
 class WorldsCmd(CommandObject):
@@ -470,6 +475,9 @@ class AppearCmd(CommandObject):
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
         if Target != None and Target.CanBeSeenBy(pPlayer):
             if pPlayer.GetWorld() != Target.GetWorld():
+                if Target.GetWorld().IsFull():
+                    pPlayer.SendMessage("&aYou cannot teleport to a world that is full")
+                    return
                 pPlayer.ChangeWorld(Target.GetWorld().Name)
                 pPlayer.SetSpawnPosition(Target.GetX(),Target.GetY(),Target.GetZ(),Target.GetOrientation(),Target.GetPitch())
                 return
@@ -562,6 +570,9 @@ class SummonCmd(CommandObject):
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
         if Target != None and Target.CanBeSeenBy(pPlayer):
             if pPlayer.GetWorld() != Target.GetWorld():
+                if pPlayer.GetWorld().IsFull():
+                    pPlayer.SendMessage("&4Summon failed. Your world is full.")
+                    return
                 Target.SetSpawnPosition(pPlayer.GetX(),pPlayer.GetY(),pPlayer.GetZ(),pPlayer.GetOrientation(),pPlayer.GetPitch())
                 Target.ChangeWorld(pPlayer.GetWorld().Name)
             else:

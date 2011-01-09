@@ -60,8 +60,17 @@ def Main():
             raw_input("\nPress enter to terminate ")
         return
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "-profile":
-        Profile.run('Main()', 'profiler-%s.out' %time.strftime("%d-%m-%Y_%H-%M-%S", time.gmtime()))
+    ProfileRun = False
+    for i in xrange(1,len(sys.argv)):
+        if sys.argv[i].lower() == "-profile":
+            ProfileRun = True
+        elif sys.argv[i].lower() == "-disablegc":
+            import gc
+            gc.disable()
+        else:
+            print "Unable to parse commandline arg: %s" %sys.argv[i]
+    if ProfileRun:
+        Profile.run('Main()', 'profiler-%s.pstats' %time.strftime("%d-%m-%Y_%H-%M-%S", time.gmtime()))
     else:
         Main()
         

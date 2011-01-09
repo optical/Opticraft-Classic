@@ -203,6 +203,7 @@ class ServerController(object):
         self.BlockChangePeriod = int(self.ConfigValues.GetValue("server", "BlockChangePeriod", "5"))
         self.IPCount = dict()
         self.FloodMessageLimit = int(self.ConfigValues.GetValue("server","FloodCount","6"))
+        self.EnableWorldOverflow = bool(int(self.ConfigValues.GetValue("server","EnableWorldOverflow","1")))
         self.LastIdleCheck = time.time()
         self.IdleCheckPeriod = 60
         self.EnableBlockLogs = int(self.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
@@ -238,7 +239,6 @@ class ServerController(object):
         self.PlayerNames = dict() #All logged in players names.
         self.AuthPlayers = set() #Players without a world (Logging in)
         self.PlayersPendingRemoval = set() #Players to remove from our set at the end of a cycle.
-        self.PlayerIDs = range(self.MaxClients)
         self.ShuttingDown = False
         self.LastCpuCheck = 0
         self.InitialCpuTimes = os.times()
@@ -250,7 +250,6 @@ class ServerController(object):
         self.PlayerDBConnection.row_factory = dbapi.Row
         self.PlayerDBCursor = self.PlayerDBConnection.cursor()
         self.CurrentCpuTimes = 0
-        reversed(self.PlayerIDs)
         self.SocketToPlayer = dict()
         self.Running = False
         self.ActiveWorlds = list() #A list of worlds currently running.
@@ -588,12 +587,23 @@ class ServerController(object):
             while len(ToRemove) > 0:
                 pPlayer = ToRemove.pop()
                 self.AuthPlayers.remove(pPlayer)
-                #Put the player into our default world if they are identified
-                self.SendJoinMessage('&e%s has connected. Joined map %s%s' %(pPlayer.GetName(),
-                self.RankColours[self.ActiveWorlds[0].GetMinRank()],self.ActiveWorlds[0].Name))
-                self.ActiveWorlds[0].AddPlayer(pPlayer)
-                for Line in self.Greeting:
-                    pPlayer.SendMessage(Line)
+                NewWorld = None
+                if self.EnableWorldOverflow:
+                    for pWorld in self.ActiveWorlds:
+                        if pWorld.IsFull() == False:
+                            NewWorld = pWorld
+                            break
+                else:
+                    if self.ActiveWorlds[0].IsFull() == False:
+                        NewWorld = seld.ActiveWorlds[0]
+                if NewWorld == None:
+                    pPlayer.Disconnect("The server is full!")
+                else:
+                    self.SendJoinMessage('&e%s has connected. Joined map %s%s' %(pPlayer.GetName(),
+                    self.RankColours[NewWorld.GetMinRank()],NewWorld.Name))
+                    NewWorld.AddPlayer(pPlayer)
+                    for Line in self.Greeting:
+                        pPlayer.SendMessage(Line)
                     
             for pWorld in self.ActiveWorlds:
                 pWorld.Run()
@@ -757,8 +767,8 @@ class ServerController(object):
                         self.SendMessageToAll("&e%s has been kicked for being idle" %pPlayer.GetName())
 
     def AttemptAddPlayer(self,pPlayer):
-        if len(self.PlayerIDs) == 0:
-            return False, "Server is full. Try again later."
+        if len(self.PlayerSet) == self.MaxClients:
+            return False, 'Server is full!'
         else:
             ConnectionCount = self.IPCount.get(pPlayer.GetIP(),0) + 1
             if self.MaxConnectionsPerIP and ConnectionCount > self.MaxConnectionsPerIP:
@@ -768,7 +778,7 @@ class ServerController(object):
             self.SocketToPlayer[pPlayer.GetSocket()] = pPlayer
             self.PlayerSet.add(pPlayer)
             self.AuthPlayers.add(pPlayer)
-            pPlayer.SetId(self.PlayerIDs.pop())
+
             self.HeartBeatControl.IncreaseClients()
             self.NumPlayers += 1
             if self.NumPlayers > self.PeakPlayers:
@@ -784,7 +794,6 @@ class ServerController(object):
         Console.Out("Player","Player %s has left the server" %pPlayer.GetName())
         if pPlayer in self.PlayerSet:
             self.PlayerSet.remove(pPlayer)
-            self.PlayerIDs.append(pPlayer.GetId()) #Make the Id avaliable for use again.
             del self.SocketToPlayer[pPlayer.GetSocket()]
             self.IPCount[pPlayer.GetIP()] -= 1
         if pPlayer in self.AuthPlayers:
@@ -799,7 +808,9 @@ class ServerController(object):
         if pPlayer.GetWorld() != None:
             pPlayer.GetWorld().RemovePlayer(pPlayer)
         if pPlayer.GetNewWorld() != None:
+            #Very rare. Client gets removed from server during a world transfer (same cycle)
             pPlayer.GetNewWorld().JoiningPlayers.remove(pPlayer)
+            pPlayer.GetNewWorld().PlayerIDs.append(pPlayer.GetNewId())
             pPlayer.SetNewWorld(None)
         if pPlayer.IsDataLoaded():
             #Update the played time.
