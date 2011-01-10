@@ -27,7 +27,7 @@ The configuration file is relatively straight forward. Edit the settings as you 
 This will allow you to change the Name and Motd of the server, as well as the player cap and port it runs on.
 Other more advanced settings can also be changed, such as disabling Block Logs, and enabling the IRC bot.
 
-Finally, you will want to open up ranks.ini and give yourself the 'z' permission flag. This will set you as
+Finally, you will want to open up ranks.ini and give yourself the owner permission flag. This will set you as
 an owner and give you access to all ingame commands.
 
 == Running ==
@@ -51,8 +51,7 @@ To see a full list of commands, use /commands ingame, and /help <command> to get
 /worlds: Lists all available worlds
 /createworld <name> <x> <y> <z>: Creates a new world
 /zcreate: Starts the zone creation process.
-/addrank <username> <t,b,o,a>: Sets a users rank to either Recruit, Builder, Operator or Admin
-/removerank <username>: Sets a user to the guest rank (default)
-/worldsetrank <World> <g,t,b,o,a,z>: Sets the worlds minimum rank to build on it. 
-                                   : Eg /worldsetrank Guest b. Will allows on builders and above to edit the world Guest
+/modifyrank <username> <rank>: Sets a users rank to a rank. Valid ranks include: Guest, Builder, operator or Admin
+/worldsetrank <World> <Rank>: Sets the worlds minimum rank to build on it. 
+                                   : Eg /worldsetrank Guest Builder. Will allows on builders and above to edit the world Guest
 
