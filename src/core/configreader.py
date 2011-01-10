@@ -36,3 +36,8 @@ class ConfigReader(RawConfigParser):
             return self.get(Section,Option)
         else:
             return Default
+    def GetItems(self,Section):
+        if self.has_section(Section):
+            return self.items(Section)
+        else:
+            return list()
