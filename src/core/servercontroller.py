@@ -385,7 +385,7 @@ class ServerController(object):
     def SetWorldRank(self,Name,Rank):
         self.WorldRankCache[Name.lower()] = Rank
     def LoadCommandOverrides(self):
-        Items = self.ConfigValues.items("commandoverrides")
+        Items = self.ConfigValues.GetItems("commandoverrides")
         Console.Debug("Startup","Loading command overrides")
         for Item in Items:
             Command = Item[0]
@@ -401,25 +401,27 @@ class ServerController(object):
     def LoadRanks(self):
         Console.Debug("Startup","Loading ranks")
         #Add defaults incase some newby trys to remove a rank.
+        self.RankLevels["spectator"] = 5
         self.RankLevels["guest"] = 10
         self.RankLevels["builder"] = 20
         self.RankLevels["operator"] = 50
         self.RankLevels["admin"] = 100
         self.RankLevels["owner"] = 1000
+        self.RankColours["spectator"] = "&f"
         self.RankColours["guest"] = "&f"
         self.RankColours["builder"] = "&a"
         self.RankColours["operator"] = "&b"
         self.RankColours["admin"] = "&9"
         self.RankColours["owner"] = "&c"
 
-        Items = self.ConfigValues.items("ranks")
+        Items = self.ConfigValues.GetItems("ranks")
         for Item in Items:
             self.RankNames.append(Item[0].capitalize())
             self.RankLevels[Item[0].lower()] = int(Item[1])
-        Items = self.ConfigValues.items("rankcolours")
+        Items = self.ConfigValues.GetItems("rankcolours")
         for Item in Items:
             self.RankColours[Item[0].lower()] = Item[1]
-        Items = self.ConfigValues.items("rankdescriptions")
+        Items = self.ConfigValues.GetItems("rankdescriptions")
         for Item in Items:
             self.RankDescriptions[Item[0].lower()] = Item[1]
 
@@ -440,7 +442,7 @@ class ServerController(object):
 
     def LoadPlayerRanks(self):
         try:
-            Items = self.RankStore.items("ranks")
+            Items = self.RankStore.GetItems("ranks")
         except:
             return
         IsDirty = False
@@ -487,7 +489,7 @@ class ServerController(object):
             self.Zones.remove(pZone)
 
     def LoadAnnouncements(self):
-        Items = self.ConfigValues.items("announcements")
+        Items = self.ConfigValues.GetItems("announcements")
         Items.sort(key= lambda item: item[0])
         if len(Items) == 0:
             self.PeriodicAnnounceFrequency = 0
@@ -495,12 +497,12 @@ class ServerController(object):
         for Item in Items:
             self.PeriodicNotices.append(Item[1])
     def LoadRules(self):
-        Items = self.ConfigValues.items("rules")
+        Items = self.ConfigValues.GetItems("rules")
         Items.sort(key= lambda item: item[0])
         for Item in Items:
             self.Rules.append(Item[1])
     def LoadGreeting(self):
-        Items = self.ConfigValues.items("greeting")
+        Items = self.ConfigValues.GetItems("greeting")
         Items.sort(key= lambda item: item[0])
         for Item in Items:
             self.Greeting.append(Item[1])
