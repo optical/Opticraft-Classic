@@ -273,8 +273,18 @@ class World(object):
             gzipHandle.close()                
             fHandle.close()
             Console.Out("World", "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
+            #Ensure the data is not corrupt in some way
             if len(self.Blocks) != self.X*self.Y*self.Z:
                 raise Exception()
+            try:
+                x = int(self.MetaData["hidden"])
+            except:
+                self.MetaData["hidden"] = "0"
+            try:
+                if self.ServerControl.IsValidRank(self.MetaData["minrank"]) == False:
+                    raise Exception()
+            except:
+                self.MetaData["minrank"] = "guest"
         except:
             Console.Warning("World","Failed to load map '%s'.save The save file is out of date or corrupt." %self.Name)
             return False
