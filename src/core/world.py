@@ -412,11 +412,17 @@ class World(object):
                 pPlayer.SendMessage("&aChanged &e%s &aago" %ElapsedTime(now-BlockInfo.Time))
             pPlayer.SetAboutCmd(False)
             return False
+        #ZONES!
+        if self.CheckZones(pPlayer,x,y,z) == False:
+            return False
+        if val in DisabledBlocks and pPlayer.GetBlockOverride() not in DisabledBlocks:
+                pPlayer.SendMessage("&4That block is disabled!")
+                return False
         if pPlayer.GetTowerCmd() == True and val == 0:
             BadBlock = self.Blocks[self._CalculateOffset(x, y, z)]
             while True:
                 CurBlock = self.Blocks[self._CalculateOffset(x, y, z)]
-                if CurBlock == BadBlock:
+                if CurBlock == BadBlock and self.CheckZones(pPlayer, x, y, z):
                     self.Blocks[self._CalculateOffset(x, y, z)] = chr(0)
                     Packet = OptiCraftPacket(SMSG_BLOCKSET)
                     Packet.WriteInt16(x)
@@ -453,12 +459,6 @@ class World(object):
                 pPlayer.FinishCreatingZone()
                 return False
 
-        #ZONES!
-        if self.CheckZones(pPlayer,x,y,z) == False:
-            return False
-        if val in DisabledBlocks and pPlayer.GetBlockOverride() not in DisabledBlocks:
-                pPlayer.SendMessage("&4That block is disabled!")
-                return False
         #Temporary code to make "steps" function normally.
         if val == BLOCK_STEP and z > 0:
             BlockBelow = self._CalculateOffset(x, y, z-1)
