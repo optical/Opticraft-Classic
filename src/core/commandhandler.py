@@ -473,7 +473,7 @@ class AppearCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
-        if Target != None and Target.CanBeSeenBy(pPlayer):
+        if Target != None and Target.CanBeSeenBy(pPlayer) and Target.GetWorld() != None:
             if pPlayer.GetWorld() != Target.GetWorld():
                 if Target.GetWorld().IsFull():
                     pPlayer.SendMessage("&aYou cannot teleport to a world that is full")
@@ -568,7 +568,7 @@ class SummonCmd(CommandObject):
     def Run(self,pPlayer,Args,Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
-        if Target != None and Target.CanBeSeenBy(pPlayer):
+        if Target != None and Target.GetWorld() != None and Target.CanBeSeenBy(pPlayer):
             if pPlayer.GetWorld() != Target.GetWorld():
                 if pPlayer.GetWorld().IsFull():
                     pPlayer.SendMessage("&4Summon failed. Your world is full.")
