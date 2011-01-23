@@ -422,7 +422,7 @@ class zSetMinRankCmd(CommandObject):
             if pPlayer.HasPermission('owner') == False:
                 pPlayer.SendMessage("&4You are not allowed to change the minimum rank required in this zone!")
                 return
-        pZone.SetMinRank(Rank)
+        pZone.SetMinRank(Rank.lower())
         pPlayer.SendMessage("&aMinimum non-builder ranked required to build in zone \"&e%s&a\" is now &e%s" %(pZone.Name,Rank.capitalize()))
 
 class zChangeOwnerCmd(CommandObject):
@@ -716,7 +716,7 @@ class WorldSetRankCmd(CommandObject):
             return
         else:
             pWorld.SetMinRank(Rank.lower())
-            pPlayer.ServerControl.SetWorldRank(pWorld.Name, Rank)
+            pPlayer.ServerControl.SetWorldRank(pWorld.Name, Rank.lower())
             pPlayer.SendMessage("&aSuccessfully set %s to be %s only" %(pWorld.Name,Rank.capitalize()))
 class TempOpCmd(CommandObject):
     '''Handle for the /tempop command - gives a username temporary operator status'''
