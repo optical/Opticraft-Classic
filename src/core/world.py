@@ -105,7 +105,7 @@ class AsynchronousIOThread(threading.Thread):
             self.DBConnection.execute(Query,Parameters)
             self.DBConnection.commit()
         except dbapi.OperationalError:
-            Console.Debug("IOThread","Failed to execute Query. Trying again soon")
+            Console.Warning("IOThread","Failed to execute Query. Trying again soon")
             self.Tasks.put(["EXECUTE",Query,Parameters])
     def _ConnectTask(self):
         self.Lock.acquire()
@@ -122,8 +122,17 @@ class AsynchronousIOThread(threading.Thread):
     def _FlushBlocksTask(self,Data):
         start = time.time()
         for key in Data:
-            BlockInfo = Data[key]
-            self.DBConnection.execute("REPLACE INTO Blocklogs VALUES(?,?,?,?)", (key,BlockInfo.Username,BlockInfo.Time,ord(BlockInfo.Value)))
+            SuccessfulQuery = False
+            while SuccessfulQuery != True:
+                try:
+                    BlockInfo = Data[key]
+                    self.DBConnection.execute("REPLACE INTO Blocklogs VALUES(?,?,?,?)", (key,BlockInfo.Username,BlockInfo.Time,ord(BlockInfo.Value)))
+                except dbapi.OperationalError:
+                    time.sleep(0.05) #Tiny sleep to prevent slamming the DB while its locked.
+                    continue
+                else:
+                    SuccessfulQuery = True
+
         self.DBConnection.commit()
         Console.Debug("IOThread","Flushing took %.3f seconds!" %(time.time()-start))
         

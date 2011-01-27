@@ -125,18 +125,29 @@ class PlayerDbThread(threading.Thread):
         try:
             self.Connection.execute(QueryText,Args)
             self.Connection.commit()
-        except:
-            pass
+        except dbapi.OperationalError:
+            self.Tasks.put(["EXECUTE",QueryText,Args])
+            time.sleep(0.05)
+
     def LoadPlayerData(self,Username):
-        '''This function will never throw an exception, unless a plugin is incorrectly executing a query in the wrong thread'''
-        Result = self.Connection.execute("SELECT * FROM Players where Username = ?", (Username,))
-        Result = Result.fetchone()
-        self.ServerControl.LoadResults.put((Username,Result))
+        try:
+            Result = self.Connection.execute("SELECT * FROM Players where Username = ?", (Username,))
+            Result = Result.fetchone()
+            self.ServerControl.LoadResults.put((Username,Result))
+        except dbapi.OperationalError:
+            self.Tasks.put(["GET_PLAYER",Username])
 
     #Version updates..
     def _Apply1To2(self):
-        self.Connection.execute("ALTER TABLE Players ADD COLUMN BannedBy TEXT DEFAULT ''")
-        self.Connection.execute("ALTER TABLE Players ADD COLUMN RankedBy TEXT DEFAULT ''")
+        Success = False
+        while Success != True:
+            try:
+                self.Connection.execute("ALTER TABLE Players ADD COLUMN BannedBy TEXT DEFAULT ''")
+                self.Connection.execute("ALTER TABLE Players ADD COLUMN RankedBy TEXT DEFAULT ''")
+                Success = True
+            except dbapi.OperationalError:
+                Console.Warning("PlayerDB","Failed to apply update. Trying again...")
+                time.sleep(1)
 
 
 
