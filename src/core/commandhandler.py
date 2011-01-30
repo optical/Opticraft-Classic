@@ -154,7 +154,7 @@ class JoinWorldCmd(CommandObject):
             pPlayer.SendMessage("&4You cannot change worlds that often!")
             return
         for pWorld in pPlayer.ServerControl.ActiveWorlds:
-            if pWorld.Name.lower() == World:
+            if pWorld.Name.lower() == World.lower():
                 if pWorld.IsFull():
                     pPlayer.SendMessage("&4That world is full. Try again later")
                     return
