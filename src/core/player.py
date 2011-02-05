@@ -85,11 +85,14 @@ class Player(object):
         self.ServerControl.RemovePlayer(self)
 
     def SendMessage(self,Message,ColourNewLines=True):
+        Message = Message.strip()
         if len(Message) > 63:
             self._SlowSendMessage(Message,ColourNewLines)
         else:
             Packet = OptiCraftPacket(SMSG_MESSAGE)
             Packet.WriteByte(0)
+            if Message[-1] in self.ColourCodes and Message[-2] == "&":
+                Message = Message[:-2].strip() #Any messages ending in a colour control code will crash the client
             Packet.WriteString(Message[:64])
             self.SendPacket(Packet)
 
@@ -600,6 +603,7 @@ class Player(object):
         self.OutBuffer = cStringIO.StringIO()
         Console.Debug("Player","Player object created. IP: %s" %SockAddress[0])
         self.SockBuffer = cStringIO.StringIO()
+        self.ColourCodes = set(["1","2","3","4","5","6","7","8","9","0","a","b","c","d","e","f"])
         self.OpcodeHandler = {
             CMSG_IDENTIFY: Player.HandleIdentify,
             CMSG_BLOCKCHANGE: Player.HandleBlockChange,
