@@ -167,6 +167,8 @@ class WorldLoadFailedException(Exception):
 class World(object):
     def __init__(self,ServerControl,Name,NewMap=False,NewX=-1,NewY=-1,NewZ=-1):
         self.Blocks = array("c")
+        self.BlockCache = cStringIO.StringIO()
+        self.IsDirty = True
         self.Players = set()
         self.TransferringPlayers = list()
         self.JoiningPlayers = list()
@@ -502,6 +504,7 @@ class World(object):
         Packet.WriteInt16(y)
         Packet.WriteByte(val)
         self.SendPacketToAllButOne(Packet,pPlayer)
+        self.IsDirty = True
         
     def UndoActions(self,Username,ReversePlayer,Time):
         self.FlushBlockLog()
@@ -662,11 +665,16 @@ class World(object):
     def SendWorld(self,pPlayer):
         Packet = OptiCraftPacket(SMSG_PRECHUNK)
         pPlayer.SendPacket(Packet)
-        StringHandle = cStringIO.StringIO()
-        fHandle = gzip.GzipFile(fileobj=StringHandle,mode="wb",compresslevel=self.CompressionLevel)
-        fHandle.write(self.NetworkSize)
-        fHandle.write(self.Blocks)
-        fHandle.close()
+        if self.IsDirty:
+            StringHandle = cStringIO.StringIO()
+            fHandle = gzip.GzipFile(fileobj=StringHandle,mode="wb",compresslevel=self.CompressionLevel)
+            fHandle.write(self.NetworkSize)
+            fHandle.write(self.Blocks)
+            fHandle.close()
+            self.IsDirty = False
+            self.BlockCache = StringHandle
+        else:
+            StringHandle = self.BlockCache
         TotalBytes = StringHandle.tell()
         StringHandle.seek(0)
         Chunk = StringHandle.read(1024)
