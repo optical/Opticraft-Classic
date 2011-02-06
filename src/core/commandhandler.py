@@ -511,7 +511,7 @@ class ModifyRankCmd(CommandObject):
             pPlayer.SendMessage("&4You do not have permission to add this rank")
             return
         Target = pPlayer.ServerControl.GetRank(Username)
-        if pPlayer.ServerControl.GetRankLevel(Target) > pPlayer.GetRankLevel():
+        if pPlayer.ServerControl.GetRankLevel(Target) >= pPlayer.GetRankLevel():
             pPlayer.SendMessage("&4You may not set that players rank!")
             return
         pPlayer.ServerControl.SetRank(pPlayer,Username,Rank)
