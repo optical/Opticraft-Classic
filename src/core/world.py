@@ -405,7 +405,9 @@ class World(object):
         #Too far away!
         if pPlayer.CalcDistance(x, y, z) > 10 and pPlayer.GetRank() == 'guest':
             return False
-
+        #Plugins
+        if self.ServerControl.PluginMgr.OnAttemptPlaceBlock(pPlayer, val, x, y, z) == False:
+            return False
         if pPlayer.GetAboutCmd() == True:
             #Display block information
             try:
@@ -496,6 +498,7 @@ class World(object):
         return True
     def SetBlock(self,pPlayer,x,y,z,val):
         #Changes a block to a certain value.
+        self.ServerControl.PluginMgr.OnPostPlaceBlock(pPlayer,val,x,y,z)
         ArrayValue = self._CalculateOffset(x,y,z)
         self.Blocks[ArrayValue] = chr(val)
         Packet = OptiCraftPacket(SMSG_BLOCKSET)
