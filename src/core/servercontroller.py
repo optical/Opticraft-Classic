@@ -42,6 +42,7 @@ from core.commandhandler import CommandHandler
 from core.configreader import ConfigReader
 from core.zones import Zone
 from core.world import World, WorldLoadFailedException
+from core.pluginmanager import PluginManager
 from core.constants import *
 from core.console import *
 from core.ircrelay import RelayBot
@@ -308,6 +309,8 @@ class ServerController(object):
             except:
                 Console.Error("ServerControl", "Failed to load banned-ip.txt!")
 
+        self.PluginMgr = PluginManager(self)
+        self.PluginMgr.LoadPlugins()
         self.Rules = list()
         self.LoadRules()
         self.Greeting = list()
@@ -733,6 +736,7 @@ class ServerController(object):
         pPlayer = self.GetPlayerFromName(Username)
         if pPlayer != None:
             pPlayer.IncreaseKickCount()
+            self.PluginMgr.OnKick(pPlayer, Username, 'Username ban', True)
             pPlayer.SetBannedBy(Initiator.GetName())
             pPlayer.Disconnect("You are banned from this server")
             return True
@@ -745,6 +749,7 @@ class ServerController(object):
         for pPlayer in self.PlayerSet:
             if pPlayer.GetIP() == IP:
                 pPlayer.IncreaseKickCount()
+                self.PluginMgr.OnKick(pPlayer,Admin,'Ip ban', True)
                 pPlayer.Disconnect("You are ip-banned from this server")
                 self.SendNotice("%s has been ip-banned by %s" %(pPlayer.GetName(),Admin.GetName()))
     def Unban(self,Username):
@@ -766,8 +771,9 @@ class ServerController(object):
     def Kick(self,Operator,Username,Reason):
         pPlayer = self.GetPlayerFromName(Username)
         if pPlayer != None:
-            self.SendNotice("%s was kicked by %s. Reason: %s" %(Username,Operator.GetName(),Reason))
             pPlayer.IncreaseKickCount()
+            self.PluginMgr.OnKick(pPlayer, Operator, Reason, False)
+            self.SendNotice("%s was kicked by %s. Reason: %s" %(Username,Operator.GetName(),Reason))
             pPlayer.Disconnect("You were kicked by %s. Reason: %s" %(Operator.GetName(),Reason))
             return True
         return False
@@ -805,6 +811,7 @@ class ServerController(object):
         '''Internally removes a player
         Note:Player poiner may not neccessarily exist in our storage'''
         Console.Out("Player","Player %s has left the server" %pPlayer.GetName())
+        self.PluginMgr.OnDisconnect(pPlayer)
         if pPlayer in self.PlayerSet:
             self.PlayerSet.remove(pPlayer)
             del self.SocketToPlayer[pPlayer.GetSocket()]

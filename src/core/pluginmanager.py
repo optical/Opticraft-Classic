@@ -30,8 +30,9 @@ from console import Console
 
 
 class PluginBase(object):
-    def __init__(self,PluginMgr,Name):
+    def __init__(self,PluginMgr,ServerControl,Name):
         self.PluginMgr = PluginMgr
+        self.ServerControl = ServerControl
         self.Name = Name
 
     def __repr__(self):
@@ -64,24 +65,35 @@ class PluginManager(object):
 
     def LoadPlugins(self):
         Plugins = self.ServerControl.ConfigValues.GetItems("plugins")
-        for PluginName in Plugins:
+        Console.Out("PluginMgr","Loading plugins...")
+        for PluginField in Plugins:
+            PluginFile = PluginField[0]
+            Enabled = PluginField[1]
+            if Enabled == False:
+                continue
             try:
-                PluginModule = __import__("plugins.%s" %PluginName, globals(), locals(), -1)
+                PluginModule = __import__("plugins.%s" %PluginFile, globals(), locals(), -1)
             except ImportError:
-                Console.Warning("PluginMgr","Plugin %s could not be imported" %PluginName)
+                Console.Warning("PluginMgr","Plugin file %s could not be imported" %PluginFile)
                 continue
             #Search for PluginBase objects to instantiate
-            for Key,Value in PluginModule.__dict__:
-                if issubclass(type(Value),PluginBase):
+            for Key in PluginModule.__dict__:
+                Value = PluginModule.__dict__[Key]
+                if type(Value) == type and issubclass(Value,PluginBase) and Value is not PluginBase:
                     #Make a plugin!
-                    pPlugin = Value(self,Key)
+                    Console.Out("PluginMgr","Loaded plugin \"%s\" from module \"%s\"" %(Key,PluginFile))
+                    pPlugin = Value(self,self.ServerControl,Key)
+                    self.Plugins.add(pPlugin)
                     pPlugin.OnLoad()
-                    self.Plugins.Add(pPlugin)
 
-    def RegisterHook(self,Plugin,Function,Hook):
+        Console.Out("PluginMgr","Finished loading plugins...")
+
+    def RegisterHook(self,Plugin,Function,HookName):
         '''Registers the plugin and function for the hook'''
-        HookList = self.Hooks.get(Hook.lower(),list())
+        HookList = self.Hooks.get(HookName.lower(),list())
         HookList.append(Hook(Plugin,Function))
+        if HookName.lower() not in self.Hooks:
+            self.Hooks[HookName.lower()] = HookList
 
     def RemoveHook(self,Plugin,HookName):
         HookList = self.Hooks[HookName.lower()]
@@ -99,33 +111,40 @@ class PluginManager(object):
 
     #Hook events are all listed below!
     def OnPlayerConnect(self,pPlayer):
+        '''Called when a player successfully authenticates with the server.
+        ...At this stage they will not be on a world nor have any data loaded'''
         for Hook in self._GetHooks("on_connect"):
             Hook.Function(pPlayer)
 
-    def OnDisconnect(self,pPlayer,Reason):
+    def OnDisconnect(self,pPlayer):
         '''Called when a player leaves the server for whatever reason (Kick,Ban,Quit,etc)'''
         for Hook in self._GetHooks("on_disconnect"):
-            Hook.Function(pPlayer,Reason)
+            Hook.Function(pPlayer)
 
-    def OnKick(self,pPlayer,Reason,Ban):
+    def OnKick(self,pPlayer,Initiator,Reason,Ban):
         '''Called when a player is kicked or banned. Ban is true when it is a Ban (D'oh!)'''
         for Hook in self._GetHooks("on_kick"):
-            Hook.Function(pPlayer,Reason,Ban)
+            Hook.Function(pPlayer,Initiator,Reason,Ban)
 
-    def OnAttemptPlaceBlock(self,pPlayer,BlockValue):
+    def OnAttemptPlaceBlock(self,pPlayer,BlockValue,x,y,z):
         '''Plugins may return false to disallow the block placement'''
         Allowed = True
         for Hook in self._GetHooks("on_attemptplaceblock"):
-            Result = Hook.Function(pPlayer,BlockValue)
+            Result = Hook.Function(pPlayer,BlockValue,x,y,z)
             if Result == False:
                 Allowed = False
         return Allowed
 
+    def OnPostPlaceBlock(self,pPlayer,BlockValue,x,y,z):
+        '''Called when a block is changed on the map.
+        ...IMPORTANT: The pPlayer reference may be null in the event
+        ...of an automated (non-player) block change!'''
+        for Hook in self._GetHooks("on_postplaceblock"):
+            Hook.Function(pPlayer,BlockValue,x,y,z)
+
     def OnChat(self,pPlayer,ChatMessage):
         '''Called when a player types a message
-        ...This fires for any message besides slash "/" commands
-        ...Includes pm's!
-        '''
+        ...This fires for any message besides slash "/" commands and PM's'''
         for Hook in self._GetHooks("on_chat"):
             Hook.Function(pPlayer,ChatMessage)
 

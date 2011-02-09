@@ -162,6 +162,7 @@ class Player(object):
         if NewWorld != None and NewWorld != False:
             self.UpdateLastWorldChange()
             self.World.RemovePlayer(self,True)
+            OldWorld = self.World
             self.World = None
             #Send packet telling client were changing the world.
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
@@ -175,6 +176,7 @@ class Player(object):
             self.SendPacket(OutPacket)
             NewWorld.AddPlayer(self,True)
             self.NewWorld = NewWorld
+            self.ServerControl.PluginMgr.OnChangeWorld(self,OldWorld,NewWorld)
             if self.Invisible == False:
                 self.ServerControl.SendJoinMessage("&e%s changed map to %s%s"%(self.Name,self.ServerControl.RankColours[NewWorld.GetMinRank()],NewWorld.Name))
         else:
@@ -435,7 +437,7 @@ class Player(object):
             if self.ServerControl.EnableIRC:
                 self.ServerControl.IRCInterface.HandleLogin(self.GetName())
             self.ServerControl.PlayerDBThread.Tasks.put(["GET_PLAYER",self.Name.lower()])
-
+            self.ServerControl.PluginMgr.OnPlayerConnect(self)
             return
         else:
             Console.Warning("Player","%s Failed to authenticate. Disconnecting" %self.Name)
@@ -482,6 +484,7 @@ class Player(object):
                     return
 
             if Mode == 0:
+                Block = 0
                 self.IncreaseBlocksErased()
                 if self.GetPaintCmd() == True:
                      if self.BlockOverride != -1:
@@ -495,6 +498,7 @@ class Player(object):
                 if self.BlockOverride != -1:
                     Block = self.BlockOverride
                 Result = self.World.AttemptSetBlock(self,x,y,z,Block)
+
             if Result != True or self.GetBlockOverride() != -1:
                 if self.World.WithinBounds(x, y, z):
                     self.World.SendBlock(self,x,y,z)
@@ -526,6 +530,7 @@ class Player(object):
                     self.SendMessage("&4You are sending messages too quickly. Slow down!")
                     self.FloodPeriodTime = self.ServerControl.Now #reset the count. Stops them spamming.
                     return
+            self.ServerControl.PluginMgr.OnChat(self,Contents)
             self.ServerControl.SendChatMessage(self.GetColouredName(),Contents)
             if self.ServerControl.LogChat:
                 TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
