@@ -33,10 +33,10 @@ class PluginBase(object):
     def __init__(self,PluginMgr,ServerControl,Name):
         self.PluginMgr = PluginMgr
         self.ServerControl = ServerControl
-        self.Name = Name
+        self.ModuleName = Name
 
     def __repr__(self):
-        return self.Name
+        return self.ModuleName
 
     def OnLoad(self):
         '''Called when the plugin is loaded
@@ -69,24 +69,50 @@ class PluginManager(object):
         for PluginField in Plugins:
             PluginFile = PluginField[0]
             Enabled = PluginField[1]
-            if Enabled == False:
-                continue
-            try:
-                PluginModule = __import__("plugins.%s" %PluginFile, globals(), locals(), -1)
-            except ImportError:
-                Console.Warning("PluginMgr","Plugin file %s could not be imported" %PluginFile)
-                continue
-            #Search for PluginBase objects to instantiate
-            for Key in PluginModule.__dict__:
-                Value = PluginModule.__dict__[Key]
-                if type(Value) == type and issubclass(Value,PluginBase) and Value is not PluginBase:
-                    #Make a plugin!
-                    Console.Out("PluginMgr","Loaded plugin \"%s\" from module \"%s\"" %(Key,PluginFile))
-                    pPlugin = Value(self,self.ServerControl,Key)
-                    self.Plugins.add(pPlugin)
-                    pPlugin.OnLoad()
-
+            if Enabled != False:
+                self.LoadPlugin(PluginFile)
         Console.Out("PluginMgr","Finished loading plugins...")
+
+    def LoadPlugin(self,PluginFile):
+        try:
+            PluginModule = __import__("plugins.%s" %PluginFile, globals(), locals(), -1)
+        except ImportError:
+            Console.Warning("PluginMgr","Plugin file %s could not be imported" %PluginFile)
+            return
+        #Search for PluginBase objects to instantiate
+        for Key in PluginModule.__dict__:
+            Value = PluginModule.__dict__[Key]
+            if type(Value) == type and issubclass(Value,PluginBase) and Value is not PluginBase:
+                #Make a plugin!
+                Console.Out("PluginMgr","Loaded object \"%s\" from plugin \"%s\"" %(Key,PluginFile))
+                pPlugin = Value(self,self.ServerControl,Key)
+                self.Plugins.add(pPlugin)
+                pPlugin.OnLoad()
+
+    def UnloadPlugin(self,PluginName):
+        '''Unloads all pluginbase objects in module pluginname'''
+        PluginName = PluginName.lower()
+        ToRemove = list()
+        for pPlugin in self.Plugins:
+            if pPlugin.ModuleName.lower() == PluginName:
+                ToRemove.append(pPlugin)
+
+        while len(ToRemove) > 0:
+            pPlugin = ToRemove.pop()
+            #Not very effecient code...
+            for HookList in self.Hooks:
+                DeadHooks = list()
+                for pHook in HookList:
+                    if pHook.Plugin == pPlugin:
+                        DeadHooks.append(pHook)
+                while len(DeadHooks) > 0:
+                    HookList.remove(DeadHooks.pop())
+            #All hooks removed, time for commands
+            #TODO: Commands! >:)
+            pPlugin.Unload()
+            self.Plugins.remove(pPlugin) #Goodbye, cruel world!
+
+
 
     def RegisterHook(self,Plugin,Function,HookName):
         '''Registers the plugin and function for the hook'''
