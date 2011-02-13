@@ -26,9 +26,9 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 '''Plugin support'''
-from console import Console
-
-
+from core.console import Console
+import sys
+sys.path.append("plugins")
 class PluginBase(object):
     def __init__(self,PluginMgr,ServerControl,Name):
         self.PluginMgr = PluginMgr
@@ -44,9 +44,12 @@ class PluginBase(object):
         pass
 
     def UnLoad(self):
-        '''Called when the plugin is unloaded
-        ...Remove all hooks and commands here. Tidy up!'''
+        '''Allows the plguin to tidy up any additional stuff it has
+        ...Besides hooks and commands (PluginMgr will handle them)'''
         pass
+
+    def AddCommand(self,Command,CmdObj,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias=False):
+         self.PluginMgr.RegisterCommand(self, CmdObj(self,Permissions,HelpMsg,ErrorMsg,MinArgs,Command,Alias))
 
 class Hook(object):
     '''Simple struct to store Hook info'''
@@ -58,7 +61,9 @@ class PluginManager(object):
     def __init__(self,ServerControl):
         self.ServerControl = ServerControl
         self.Hooks = dict() #Value is a list, key is a lower case string
-        self.Plugins = set()
+        self.Commands = dict() #key is string (PluginModule), value is list of commandobjects
+        self.Plugins = set() # A set of PluginBase Objects.
+        self.PluginModules = list() #List of loaded plugin names
 
     def _GetHooks(self,Name):
         return self.Hooks.get(Name,list())
@@ -75,23 +80,39 @@ class PluginManager(object):
 
     def LoadPlugin(self,PluginFile):
         try:
-            PluginModule = __import__("plugins.%s" %PluginFile, globals(), locals(), -1)
+            PluginModule = __import__("%s" %PluginFile)
         except ImportError:
             Console.Warning("PluginMgr","Plugin file %s could not be imported" %PluginFile)
-            return
+            return False
+        self.PluginModules.append(PluginFile.lower())
         #Search for PluginBase objects to instantiate
         for Key in PluginModule.__dict__:
             Value = PluginModule.__dict__[Key]
             if type(Value) == type and issubclass(Value,PluginBase) and Value is not PluginBase:
                 #Make a plugin!
-                Console.Out("PluginMgr","Loaded object \"%s\" from plugin \"%s\"" %(Key,PluginFile))
-                pPlugin = Value(self,self.ServerControl,Key)
-                self.Plugins.add(pPlugin)
-                pPlugin.OnLoad()
+                try:
+                    pPlugin = Value(self,self.ServerControl,PluginFile)
+                    Console.Out("PluginMgr","Loaded object \"%s\" from plugin \"%s\"" %(Key,PluginFile))
+                    self.Plugins.add(pPlugin)
+                    pPlugin.OnLoad()
+                except:
+                    Console.Warning("PluginMgr","Error loading plugin object \"%s\" from file \"%s\"" %(Key,PluginFile))
+                    continue
+        return True
 
     def UnloadPlugin(self,PluginName):
         '''Unloads all pluginbase objects in module pluginname'''
         PluginName = PluginName.lower()
+        if PluginName in self.PluginModules:
+            self.PluginModules.remove(PluginName)
+        #Remove commands
+        for Module in self.Commands:
+            if Module == PluginName:
+                for CommandObj in self.Commands[Module]:
+                    self.ServerControl.CommandHandle.RemoveCommand(CommandObj)
+                del self.Commands[PluginName]
+                break
+
         ToRemove = list()
         for pPlugin in self.Plugins:
             if pPlugin.ModuleName.lower() == PluginName:
@@ -100,8 +121,9 @@ class PluginManager(object):
         while len(ToRemove) > 0:
             pPlugin = ToRemove.pop()
             #Not very effecient code...
-            for HookList in self.Hooks:
+            for HookName in self.Hooks:
                 DeadHooks = list()
+                HookList = self.Hooks[HookName]
                 for pHook in HookList:
                     if pHook.Plugin == pPlugin:
                         DeadHooks.append(pHook)
@@ -109,11 +131,10 @@ class PluginManager(object):
                     HookList.remove(DeadHooks.pop())
             #All hooks removed, time for commands
             #TODO: Commands! >:)
-            pPlugin.Unload()
+            pPlugin.OnUnload()
             self.Plugins.remove(pPlugin) #Goodbye, cruel world!
-
-
-
+        Console.Out("PluginMgr","Successfully unloaded plugin \"%s\"" %PluginName)
+        return True
     def RegisterHook(self,Plugin,Function,HookName):
         '''Registers the plugin and function for the hook'''
         HookList = self.Hooks.get(HookName.lower(),list())
@@ -133,7 +154,12 @@ class PluginManager(object):
             Console.Warning("PluginMgr","Plugin %s tried to remove non-existant hook \"%s\"" %(Plugin,HookName))
 
     def RegisterCommand(self,Plugin,CommandObj):
-        pass
+        pList = self.Commands.get(Plugin.ModuleName,None)
+        if pList == None:
+            pList = list()
+            self.Commands[Plugin.ModuleName] = pList
+        pList.append(CommandObj)
+        self.ServerControl.CommandHandle.AddCommandObj(CommandObj)
 
     #Hook events are all listed below!
     def OnPlayerConnect(self,pPlayer):
