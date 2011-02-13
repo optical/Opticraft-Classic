@@ -954,6 +954,61 @@ class RenameWorldCmd(CommandObject):
                 pZone.SetMap(NewName)
         pPlayer.SendMessage("&aSuccessfully renamed map %s to %s" %(OldName,NewName))
 
+class PluginCmd(CommandObject):
+    '''Handler for the /plugins command'''
+    def Run(self,pPlayer,Args,Message):
+        Args = [Arg.lower() for Arg in Args]
+        if Args[0] == "list":
+            self.ListPlugins(pPlayer,Args)
+        elif Args[0] == "load":
+            self.LoadPlugin(pPlayer,Args)
+        elif Args[0] == "unload":
+            self.UnloadPlugin(pPlayer,Args)
+        elif Args[0] == "reload":
+            if len(Args) == 1:
+                pPlayer.SendMessage("&4Specify the name of the plugin you want to reload!")
+                return
+            self.UnloadPlugin(pPlayer, Args)
+            self.LoadPlugin(pPlayer, Args)
+        else:
+            pPlayer.SendMessage("&4Unrecognized command. Valid commands are /plugins <list, load, unload, reload>")
+            
+    def ListPlugins(self,pPlayer,Args):
+        if len(pPlayer.ServerControl.PluginMgr.PluginModules) == 0:
+            pPlayer.SendMessage("&aThere are no plugins currently loaded!")
+            return
+        pPlayer.SendMessage("&aThe following plugins are currently loaded:")
+        for pPlugin in pPlayer.ServerControl.PluginMgr.PluginModules:
+            pPlayer.SendMessage("&aPlugin: &e%s" %pPlugin)
+            
+    def LoadPlugin(self,pPlayer,Args):
+        if len(Args) == 1:
+            pPlayer.SendMessage("&4Specify the name of the plugin you want to load!")
+            return
+        PluginName = Args[1]
+        if PluginName in pPlayer.ServerControl.PluginMgr.PluginModules:
+            pPlayer.SendMessage("&4That plugin is already loaded!")
+            return
+        Result = pPlayer.ServerControl.PluginMgr.LoadPlugin(PluginName)
+        if Result:
+            pPlayer.SendMessage("&aSuccessfully loaded plugin \"&e%s&a\"" %PluginName)
+        else:
+            pPlayer.SendMessage("&4Unable to load plugin \"%s\"" %PluginName)
+
+    def UnloadPlugin(self, pPlayer, Args):
+        if len(Args) == 1:
+            pPlayer.SendMessage("&4Specify the name of the plugin you want to unload!")
+            return
+        PluginName = Args[1]
+        if PluginName not in pPlayer.ServerControl.PluginMgr.PluginModules:
+            pPlayer.SendMessage("&4That plugin is already loaded!")
+            return
+        Result = pPlayer.ServerControl.PluginMgr.UnloadPlugin(PluginName)
+        if Result:
+            pPlayer.SendMessage("&aSuccessfully unloaded plugin \"&e%s&a\"" %PluginName)
+        else:
+            pPlayer.SendMessage("&4Unable to unload plugin \"%s\"" %PluginName)
+
 ######################
 #OWNER COMMANDS HERE #
 ######################
@@ -1097,6 +1152,7 @@ class CommandHandler(object):
         self.AddCommand("loadworld", LoadWorldCmd, 'admin', 'Loads a world which has been added to the Worlds folder', 'Incorrect syntax! Usage: /loadworld <name>', 1)
         self.AddCommand("loadtemplate", LoadTemplateCmd, 'admin', 'Loads a template world from the Templates directory', 'Incorrect syntax! Usage: /loadtemplate <templatename> <worldname>', 2)
         self.AddCommand("showtemplates", ShowTemplatesCmd, 'admin', 'Lists all the available world templates', '', 0)
+        self.AddCommand("plugin", PluginCmd, 'admin', 'Provides the ability to list, load, unload and reload plugins','Incorrect syntax! Usage: /plugins <list/load/unload/reload> [plugin]',1)
         ######################
         #OWNER COMMANDS HERE #
         ######################
@@ -1119,6 +1175,11 @@ class CommandHandler(object):
 
     def AddCommand(self,Command,CmdObj,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias=False):
         self.CommandTable[Command.lower()] = CmdObj(self,Permissions,HelpMsg,ErrorMsg,MinArgs,Command,Alias)
+
+    def AddCommandObj(self,CmdObj):
+        self.CommandTable[CmdObj.Name.lower()] = CmdObj
+    def RemoveCommand(self,CmdObj):
+        del self.CommandTable[CmdObj.Name.lower()]
 
     def OverrideCommandPermissions(self,Command,NewPermission):
         CmdObj = self.CommandTable.get(Command.lower(),None)
