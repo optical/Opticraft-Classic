@@ -303,6 +303,22 @@ class Player(object):
             return self.PermanentPluginData
         else:
             return json.dumps(self.PermanentPluginData.AsJSON())
+    def GetPluginData(self,Key):
+        '''This is used for temporary values being stored by plugins
+        Key must be a string. Value may be any type'''
+        return self.TemporaryPluginData.get(Key,None)
+    def SetPluginData(self,Key,Value):
+        '''This is used for temporary values being stored by plugins
+        Key must be a string. Value may be any type'''
+        self.TemporaryPluginData[Key] = Value
+    def GetPermanentPluginData(self,Key):
+        '''Returns values which persist in the database
+        ...Key must be a string, value must be json encodeable'''
+        return self.PermanentPluginData.get(Key,None)
+    def SetPermnanentPluginData(self,Key,Value):
+        '''Sets values which persist in the database
+        ...Key must be a string, value must be json encodeable'''
+        self.PermanentPluginData[Key] = Value
 
     def IsInvisible(self):
         return self.Invisible
@@ -355,6 +371,9 @@ class Player(object):
             self.LoginCount = Row["LoginCount"] + 1
             self.BannedBy = Row["BannedBy"]
             self.RankedBy = Row["RankedBy"]
+            JSONData = Row["PluginData"]
+            if JSONData != "":
+                self.PermanentPluginData = PluginData.FromJSON(Row["PluginData"])
 
             #Update the IpLog
             Tokens = self.LastIps.split(",")

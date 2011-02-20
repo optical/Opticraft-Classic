@@ -256,6 +256,8 @@ class PluginDict(object):
         return self._dictionary.__reversed__()
     def __len__(self):
         return self._dictionary.__len__()
+    def get(self,Key,Default):
+        return self._dictionary.get(Key,Default)
 
     def AsJSON(self):
         assert(NonJsonValues == False)
@@ -263,8 +265,15 @@ class PluginDict(object):
 
     @staticmethod
     def FromJSON(self,JSON):
-        TempDict = json.loads(JSON)
         NewDict = PluginDict()
+        NewDict._dictionary = PluginDict.FromJSON(JSON)
+        return NewDict
+
+    @staticmethod
+    def _FromJSON(self,JSON):
+        '''returns a dictionary, not a plugindict'''
+        TempDict = json.loads(JSON)
+        NewDict = dict()
         for Key in TempDict:
             Value = TempDict[Key]
             if type(Key) == unicode:
@@ -278,3 +287,8 @@ class PluginDict(object):
 class PluginData(PluginDict):
     def __init__(self):
         PluginDict.__init__(self,NonJsonValues = False)
+
+    def FromJSON(self,JSON):
+        NewDict = PluginData()
+        NewDict._dictionary = PluginDict.FromJSON(JSON)
+        return NewDict
