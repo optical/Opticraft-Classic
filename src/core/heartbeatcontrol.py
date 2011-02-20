@@ -86,9 +86,8 @@ class HeartBeatController(Thread):
             Url = "http://www.minecraft.net/play.jsp?ip=127.0.0.1&port=%d" %self.Port
         Console.Out("Heartbeat","Your url is: %s" %Url)
         Console.Out("Heartbeat","This has been saved to url.txt")
-        fHandle = open("url.txt","w")
-        fHandle.write(Url)
-        fHandle.close()
+        with open("url.txt","w") as fHandle:
+            fHandle.write(Url)
         return True
 
     def FetchUrl(self):

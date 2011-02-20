@@ -60,8 +60,8 @@ class Hook(object):
 class PluginManager(object):
     def __init__(self,ServerControl):
         self.ServerControl = ServerControl
-        self.Hooks = dict() #Value is a list, key is a lower case string
-        self.Commands = dict() #key is string (PluginModule), value is list of commandobjects
+        self.Hooks = dict() #Value is a list, Key is a lower case string
+        self.Commands = dict() #Key is string (PluginModule), value is list of commandobjects
         self.Plugins = set() # A set of PluginBase Objects.
         self.PluginModules = list() #List of loaded plugin names
 
@@ -161,7 +161,15 @@ class PluginManager(object):
         pList.append(CommandObj)
         self.ServerControl.CommandHandle.AddCommandObj(CommandObj)
 
+    #=================================
     #Hook events are all listed below!
+    #=================================
+
+    def OnServerStart(self):
+        '''Called when the server finishes up its startup routine'''
+        for Hook in self._GetHooks("on_start"):
+            Hook.Function()
+
     def OnPlayerConnect(self,pPlayer):
         '''Called when a player successfully authenticates with the server.
         ...At this stage they will not be on a world nor have any data loaded'''
@@ -205,4 +213,68 @@ class PluginManager(object):
         .../join, /tp, /summon, or any other means'''
         for Hook in self._GetHooks("on_changeworld"):
             Hook.Function(pPlayer,OldWorld,NewWorld)
-            
+
+    def OnWorldLoad(self,pWorld):
+        '''Called when a world object is created'''
+        for Hook in self._GetHooks("on_worldload"):
+            Hook.Function(pWorld)
+
+    def OnWorldUnload(self,pWorld):
+        '''Called when a world is unloaded'''
+        for Hook in self._GetHooks("on_worldunload"):
+            Hook.Function(pWorld)
+
+
+class PluginDict(object):
+    '''Dictionary wrapper which ensures that key is always of type string
+    ...Optionally can alse ensure all values can be encoded to a json type'''
+    def __init__(self, NonJsonValues = True):
+        self._dictionary = dict()
+        #Nasty piece of code.
+        self.ValidJsonTypes = set([str,int,long,bool,dict,list,None,float])
+
+    def __getitem__(self,Key):
+        if type(Key) != str:
+            raise ValueError("Plugin Data key must be a string")
+        return self._dictionary[Key]
+
+    def __setitem__(self,Key,Value):
+        if type(Key) != str:
+            raise ValueError("Plugin Data key must be a string")
+        if NonJsonValues == false and type(Value) not in self.ValidJsonTypes:
+            raise ValueError("Values must be json encodeable")
+
+        self._dictionary[Key] = Value
+    def __delitem__(self,Key):
+        del self._dictionary[Key]
+
+    def __contains__(self,Value):
+        return Value in self._dictionary
+    def __iter__(self):
+        return self._dictionary.__iter__()
+    def __reversed__(self):
+        return self._dictionary.__reversed__()
+    def __len__(self):
+        return self._dictionary.__len__()
+
+    def AsJSON(self):
+        assert(NonJsonValues == False)
+        return json.dumps(self._dictionary,ensure_ascii=True)
+
+    @staticmethod
+    def FromJSON(self,JSON):
+        TempDict = json.loads(JSON)
+        NewDict = PluginDict()
+        for Key in TempDict:
+            Value = TempDict[Key]
+            if type(Key) == unicode:
+                Key = str(Key)
+            if Type(Value) == unicode:
+                Value = str(Value)
+            NewDict[Key] = Value
+        return NewDict
+
+
+class PluginData(PluginDict):
+    def __init__(self):
+        PluginDict.__init__(self,NonJsonValues = False)

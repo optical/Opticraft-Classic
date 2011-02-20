@@ -103,9 +103,8 @@ class Zone(object):
         ConfigValues.set("Info","Owner",Owner.lower())
         ConfigValues.set("Info","Minrank",'builder')
         ConfigValues.add_section("Builders")
-        fHandle = open("Zones/%s" %FileName,"w")
-        ConfigValues.write(fHandle)
-        fHandle.close()
+        with open("Zones/%s" %FileName,"w") as fHandle:
+            ConfigValues.write(fHandle)
         return FileName
 
     def AddBuilder(self,Username):
@@ -114,9 +113,8 @@ class Zone(object):
         self.Save()
 
     def Save(self):
-        fHandle = open("Zones/%s" %self.FileName,"w")
-        self.ConfigValues.write(fHandle)
-        fHandle.close()
+        with open("Zones/%s" %self.FileName,"w") as fHandle:
+            self.ConfigValues.write(fHandle)
 
     def Delete(self):
         '''Deletes the zone from disk'''

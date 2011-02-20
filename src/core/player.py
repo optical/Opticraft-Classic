@@ -32,6 +32,7 @@ import math
 from core.opticraftpacket import OptiCraftPacket
 from core.constants import *
 from core.console import *
+from core.pluginmanager import PluginDict, PluginData
 class Player(object):
     #Constructor is located at the bottom
     def ProcessPackets(self):
@@ -296,6 +297,12 @@ class Player(object):
     def UpdatePlayedTime(self):
         self.TimePlayed += int(self.ServerControl.Now) - self.LastPlayedTimeUpdate
         self.LastPlayedTimeUpdate = int(self.ServerControl.Now)
+    def GetPluginDataDictionary(self,JSON=False):
+        '''Returns a reference to the pluginData Dictionary, or a json encoded version of it'''
+        if not JSON:
+            return self.PermanentPluginData
+        else:
+            return json.dumps(self.PermanentPluginData.AsJSON())
 
     def IsInvisible(self):
         return self.Invisible
@@ -609,6 +616,8 @@ class Player(object):
         Console.Debug("Player","Player object created. IP: %s" %SockAddress[0])
         self.SockBuffer = cStringIO.StringIO()
         self.ColourCodes = set(["1","2","3","4","5","6","7","8","9","0","a","b","c","d","e","f"])
+        self.TemporaryPluginData = PluginDict() #Destroyed during logout
+        self.PermanentPluginData = PluginData() #Loaded and saved to DB.
         self.OpcodeHandler = {
             CMSG_IDENTIFY: Player.HandleIdentify,
             CMSG_BLOCKCHANGE: Player.HandleBlockChange,

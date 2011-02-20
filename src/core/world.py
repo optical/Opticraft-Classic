@@ -232,6 +232,8 @@ class World(object):
 
         self.Zones = list()
         self.ServerControl.InsertZones(self) #Servercontrol manages all the zones
+        self.ServerControl.PluginMgr.OnWorldLoad(self)
+
     @staticmethod
     def _ReadLengthString(FileHandle):
         Val = struct.unpack("i", FileHandle.read(4))[0]
@@ -594,6 +596,7 @@ class World(object):
         if self.LogBlocks:
             self.FlushBlockLog()
             self.IOThread.Shutdown(False)
+        self.ServerControl.PluginMgr.OnWorldUnload(self)
 
     def Run(self):
         if self.Unloaded == True:
