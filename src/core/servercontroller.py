@@ -51,7 +51,7 @@ class SigkillException(Exception):
 class PlayerDbThread(threading.Thread):
     '''This thread performs asynchronous querys on the player databases, specifically for loading
     and saving player data'''
-    CURRENT_VERSION = 2
+    CURRENT_VERSION = 3
     def __init__(self,ServerControl):
         threading.Thread.__init__(self)
         self.ServerControl = ServerControl
@@ -60,12 +60,13 @@ class PlayerDbThread(threading.Thread):
         self.Running = True
 
     def SavePlayerData(self,pPlayer):
-        QueryString = "REPLACE INTO Players Values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+        QueryString = "REPLACE INTO Players Values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
         try:
             self.Connection.execute(QueryString,(pPlayer.GetName().lower(),pPlayer.GetJoinedTime(),pPlayer.GetLoginTime(),
                                     pPlayer.GetBlocksMade(),pPlayer.GetBlocksErased(),pPlayer.GetIP(),pPlayer.GetIpLog(),
                                     pPlayer.GetJoinNotifications(),pPlayer.GetTimePlayed(),pPlayer.GetKickCount(),
-                                    pPlayer.GetChatMessageCount(),pPlayer.GetLoginCount(),pPlayer.GetBannedBy(),pPlayer.GetRankedBy()))
+                                    pPlayer.GetChatMessageCount(),pPlayer.GetLoginCount(),pPlayer.GetBannedBy(),
+                                    pPlayer.GetRankedBy(),pPlayer.GetPluginDataDictionary(JSON=True)))
             self.Connection.commit()
         except dbapi.OperationalError:
             #Try again later
@@ -85,7 +86,8 @@ class PlayerDbThread(threading.Thread):
             CreateQuery = "CREATE TABLE Players (Username TEXT UNIQUE,"
             CreateQuery += "Joined INTEGER, LastLogin INTEGER, BlocksMade INTEGER,"
             CreateQuery += "BlocksDeleted INTEGER, LastIP TEXT, IpLog TEXT, JoinNotifications INTEGER,"
-            CreateQuery += "PlayedTime INTEGER, KickCount INTEGER, ChatLines INTEGER, LoginCount INTEGER, BannedBy TEXT, RankedBy TEXT)"
+            CreateQuery += "PlayedTime INTEGER, KickCount INTEGER, ChatLines INTEGER, LoginCount INTEGER,"
+            CreateQuery += "BannedBy TEXT, RankedBy TEXT, PluginData TEXT)"
             self.Connection.execute(CreateQuery)
             self.Connection.execute("CREATE INDEX Username ON Players (Username)")
             self.Connection.execute("INSERT INTO Server VALUES (?)", (PlayerDbThread.CURRENT_VERSION,))
@@ -99,6 +101,8 @@ class PlayerDbThread(threading.Thread):
                 while Version < PlayerDbThread.CURRENT_VERSION:
                     if Version == 1:
                         self._Apply1To2()
+                    elif Version == 2:
+                        self._Apply2To3()
                     Version += 1
                     Console.Warning("PlayerDB","Player database now at version %d" %Version)
                 self.Connection.execute("DELETE FROM Server")
@@ -139,6 +143,7 @@ class PlayerDbThread(threading.Thread):
             self.Tasks.put(["GET_PLAYER",Username])
 
     #Version updates..
+    #TODO: Clean this mess up.
     def _Apply1To2(self):
         Success = False
         while Success != True:
@@ -149,7 +154,15 @@ class PlayerDbThread(threading.Thread):
             except dbapi.OperationalError:
                 Console.Warning("PlayerDB","Failed to apply update. Trying again...")
                 time.sleep(1)
-
+    def _Apply2To3(self):
+        Success = False
+        while Success != True:
+            try:
+                self.Connection.execute("ALTER TABLE Players ADD COLUMN PluginData TEXT DEFAULT ''")
+                Success = True
+            except dbapi.OperationalError:
+                Console.Warning("PlayerDB","Failed to apply update. Trying again...")
+                time.sleep(1)
 
 
 class ServerController(object):
@@ -291,21 +304,19 @@ class ServerController(object):
         #Load up banned usernames.
         if os.path.isfile("banned.txt"):
             try:
-                fHandle = open("banned.txt","r")
-                for line in fHandle:
-                    Tokens = line.split(":")
-                    self.BannedUsers[Tokens[0]] = int(Tokens[1])
-                fHandle.close()
+                with open("banned.txt","r") as fHandle:
+                    for line in fHandle:
+                        Tokens = line.split(":")
+                        self.BannedUsers[Tokens[0]] = int(Tokens[1])
             except:
                 Console.Error("ServerControl","Failed to load banned.txt!")
         #Load up banned IP's
         if os.path.isfile("banned-ip.txt"):
             try:
-                fHandle = open("banned-ip.txt","r")
-                for line in fHandle:
-                    Tokens = line.split(":")
-                    self.BannedIPs[Tokens[0]] = int(Tokens[1])
-                fHandle.close()
+                with open("banned-ip.txt","r") as fHandle:
+                    for line in fHandle:
+                        Tokens = line.split(":")
+                        self.BannedIPs[Tokens[0]] = int(Tokens[1])
             except:
                 Console.Error("ServerControl", "Failed to load banned-ip.txt!")
 
@@ -468,12 +479,8 @@ class ServerController(object):
                 continue
             self.RankedPlayers[Username.lower()] = Rank.lower()
         if IsDirty:
-            try:
-                fHandle = open("ranks.ini","w")
+            with open("ranks.ini","w") as fHandle:
                 self.RankStore.write(fHandle)
-                fHandle.close()
-            except:
-                return
 
     def LoadZones(self):
         '''Loads up all the Zone objects into memory'''
@@ -563,12 +570,8 @@ class ServerController(object):
                     pPlayer.SendMessage("&aYour rank has been changed to %s!" %Rank.capitalize())
             else:
                 return
-        try:
-            fHandle = open("ranks.ini","w")
+        with open("ranks.ini","w") as fHandle:
             self.RankStore.write(fHandle)
-            fHandle.close()
-        except:
-            return
         self.PlayerDBThread.Tasks.put(["EXECUTE","Update Players set RankedBy = ? where Username = ?",(Initiator.GetName(),Username.lower())])
     def HandleKill(self,SignalNumber,Frame):
         raise SigkillException()
@@ -588,6 +591,7 @@ class ServerController(object):
         self.PlayerDBThread.start()
         Console.Out("Startup","Startup procedure completed in %.0fms" %((time.time() -self.StartTime)*1000))
         Console.Out("Server","Press Ctrl-C at any time to shutdown the sever safely.")
+        self.PluginMgr.OnServerStart()
         while self.Running == True:
             self.Now = time.time()
             self.SockManager.Run()

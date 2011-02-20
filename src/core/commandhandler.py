@@ -37,7 +37,8 @@ import shutil
 from core.world import World
 from core.console import *
 class CommandObject(object):
-    '''Child class for all commands'''
+    '''Parents class for all commands'''
+    '''Abstract'''
     def __init__(self,CmdHandler,Permissions,HelpMsg,ErrorMsg,MinArgs,Name,Alias = False):
         self.Permissions = Permissions
         self.PermissionLevel = CmdHandler.ServerControl.GetRankLevel(Permissions)
@@ -935,9 +936,8 @@ class RenameWorldCmd(CommandObject):
                     if pPlayer.ServerControl.ConfigValues.GetValue("worlds","DefaultName","Main").lower() == OldName:
                         #<_<
                         pPlayer.ServerControl.ConfigValues.set("worlds","DefaultName",NewName)
-                        fHandle = open("opticraft.cfg","w")
-                        pPlayer.ServerControl.ConfigValues.write(fHandle)
-                        fHandle.close()
+                        with open("opticraft.cfg","w") as fHandle:
+                            pPlayer.ServerControl.ConfigValues.write(fHandle)
                     break
         #Rename Backups
         if os.path.exists("Backups/%s" %OldName):
