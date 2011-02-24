@@ -28,7 +28,10 @@
 '''Plugin support'''
 from core.console import Console
 import sys
+import json
+
 sys.path.append("plugins")
+
 class PluginBase(object):
     def __init__(self,PluginMgr,ServerControl,Name):
         self.PluginMgr = PluginMgr
@@ -81,6 +84,7 @@ class PluginManager(object):
     def LoadPlugin(self,PluginFile):
         try:
             PluginModule = __import__("%s" %PluginFile)
+            reload(PluginModule) #Ensure the most up to date version from disk is loaded
         except ImportError:
             Console.Warning("PluginMgr","Plugin file %s could not be imported" %PluginFile)
             return False
@@ -175,6 +179,10 @@ class PluginManager(object):
         ...At this stage they will not be on a world nor have any data loaded'''
         for Hook in self._GetHooks("on_connect"):
             Hook.Function(pPlayer)
+    def OnPlayerDataLoaded(self,pPlayer):
+        '''Called when a players data is loaded from the database'''
+        for Hook in self._GetHooks("on_playerdataloaded"):
+            Hook.Function(pPlayer)
 
     def OnDisconnect(self,pPlayer):
         '''Called when a player leaves the server for whatever reason (Kick,Ban,Quit,etc)'''
@@ -264,13 +272,13 @@ class PluginDict(object):
         return json.dumps(self._dictionary,ensure_ascii=True)
 
     @staticmethod
-    def FromJSON(self,JSON):
+    def FromJSON(JSON):
         NewDict = PluginDict()
         NewDict._dictionary = PluginDict.FromJSON(JSON)
         return NewDict
 
     @staticmethod
-    def _FromJSON(self,JSON):
+    def _FromJSON(JSON):
         '''returns a dictionary, not a plugindict'''
         TempDict = json.loads(JSON)
         NewDict = dict()
@@ -288,7 +296,8 @@ class PluginData(PluginDict):
     def __init__(self):
         PluginDict.__init__(self,NonJsonValues = False)
 
-    def FromJSON(self,JSON):
+    @staticmethod
+    def FromJSON(JSON):
         NewDict = PluginData()
-        NewDict._dictionary = PluginDict.FromJSON(JSON)
+        NewDict._dictionary = PluginDict._FromJSON(JSON)
         return NewDict
