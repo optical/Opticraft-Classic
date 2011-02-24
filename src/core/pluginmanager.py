@@ -46,7 +46,7 @@ class PluginBase(object):
         ...Register all your commands and hooks at this stage'''
         pass
 
-    def UnLoad(self):
+    def OnUnload(self):
         '''Allows the plguin to tidy up any additional stuff it has
         ...Besides hooks and commands (PluginMgr will handle them)'''
         pass
@@ -194,21 +194,21 @@ class PluginManager(object):
         for Hook in self._GetHooks("on_kick"):
             Hook.Function(pPlayer,Initiator,Reason,Ban)
 
-    def OnAttemptPlaceBlock(self,pPlayer,BlockValue,x,y,z):
+    def OnAttemptPlaceBlock(self,pWorld,pPlayer,BlockValue,x,y,z):
         '''Plugins may return false to disallow the block placement'''
         Allowed = True
         for Hook in self._GetHooks("on_attemptplaceblock"):
-            Result = Hook.Function(pPlayer,BlockValue,x,y,z)
+            Result = Hook.Function(pWorld,pPlayer,BlockValue,x,y,z)
             if Result == False:
                 Allowed = False
         return Allowed
 
-    def OnPostPlaceBlock(self,pPlayer,BlockValue,x,y,z):
+    def OnPostPlaceBlock(self,pWorld,pPlayer,BlockValue,x,y,z):
         '''Called when a block is changed on the map.
         ...IMPORTANT: The pPlayer reference may be null in the event
         ...of an automated (non-player) block change!'''
         for Hook in self._GetHooks("on_postplaceblock"):
-            Hook.Function(pPlayer,BlockValue,x,y,z)
+            Hook.Function(pWorld,pPlayer,BlockValue,x,y,z)
 
     def OnChat(self,pPlayer,ChatMessage):
         '''Called when a player types a message
@@ -239,6 +239,7 @@ class PluginDict(object):
     def __init__(self, NonJsonValues = True):
         self._dictionary = dict()
         #Nasty piece of code.
+        self.NonJsonValues = NonJsonValues
         self.ValidJsonTypes = set([str,int,long,bool,dict,list,None,float])
 
     def __getitem__(self,Key):
@@ -249,7 +250,7 @@ class PluginDict(object):
     def __setitem__(self,Key,Value):
         if type(Key) != str:
             raise ValueError("Plugin Data key must be a string")
-        if NonJsonValues == false and type(Value) not in self.ValidJsonTypes:
+        if self.NonJsonValues == false and type(Value) not in self.ValidJsonTypes:
             raise ValueError("Values must be json encodeable")
 
         self._dictionary[Key] = Value
@@ -268,7 +269,7 @@ class PluginDict(object):
         return self._dictionary.get(Key,Default)
 
     def AsJSON(self):
-        assert(NonJsonValues == False)
+        assert(self.NonJsonValues == False)
         return json.dumps(self._dictionary,ensure_ascii=True)
 
     @staticmethod
