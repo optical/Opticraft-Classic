@@ -302,7 +302,7 @@ class Player(object):
         if not JSON:
             return self.PermanentPluginData
         else:
-            return json.dumps(self.PermanentPluginData.AsJSON())
+            return self.PermanentPluginData.AsJSON()
     def GetPluginData(self,Key):
         '''This is used for temporary values being stored by plugins
         Key must be a string. Value may be any type'''
@@ -380,6 +380,7 @@ class Player(object):
             if self.GetIP() not in Tokens:
                 self.LastIps = "%s,%s" %(self.LastIps,self.GetIP())
 
+        self.ServerControl.PluginMgr.OnPlayerDataLoaded(self)
 
     def Teleport(self,x,y,z,o,p):
         '''Teleports the player to X Y Z. These coordinates have the fractal bit at position 5'''
