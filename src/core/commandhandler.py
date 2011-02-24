@@ -316,6 +316,9 @@ class EmoteCmd(CommandObject):
 class ReplyCmd(CommandObject):
     '''Handler for the /reply command. Shortcut command to reply to a PM'''
     def Run(self,pPlayer,Args,Message):
+        if pPlayer.IsMuted:
+            pPlayer.SendMessage("&4You cannot chat while muted!")
+            return
         if pPlayer.GetLastPM() == '':
             pPlayer.SendMessage("&4No one recently sent you a PM!")
             return
