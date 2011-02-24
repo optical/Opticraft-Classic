@@ -551,9 +551,12 @@ class Player(object):
             return
         if Contents[0] == "/":
             self.ServerControl.CommandHandle.HandleCommand(self,Contents[1:])
-        elif Contents[0] == "@":
+        elif Contents[0] == "@" and self.IsMuted == False:
             self.HandlePrivateMessage(Contents[1:])
         else:
+            if self.IsMuted:
+                self.SendMessage("&4You cannot change, you have been muted!")
+                return
             if self.ServerControl.AllowCaps == False:
                 if Contents == Contents.upper() and len(Contents) >= self.ServerControl.MinCapsLength:
                     self.SendMessage("&4Do not use caps!")
@@ -604,6 +607,7 @@ class Player(object):
         self.ColouredName = ''
         self.IsIdentified = False
         self.IsFrozen = False
+        self.IsMuted = False
         self.Id = -1
         self.ServerControl = ServerControl
         self.World = None #Pointer to our current world.

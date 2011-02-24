@@ -306,6 +306,9 @@ class PlayerListCmd(CommandObject):
 class EmoteCmd(CommandObject):
     '''Handler for the /me command. Emotes an action'''
     def Run(self,pPlayer,Args,Message):
+        if pPlayer.IsMuted:
+            pPlayer.SendMessage("&4You cannot emote while muted!")
+            return
         pPlayer.ServerControl.SendMessageToAll('&5*%s %s' %(pPlayer.GetName(),' '.join(Args)))
         if pPlayer.ServerControl.EnableIRC:
             pPlayer.ServerControl.IRCInterface.HandleEmote(pPlayer.GetName(), ' '.join(Args))
@@ -566,6 +569,24 @@ class KickCmd(CommandObject):
             pPlayer.SendMessage("&aSuccessfully kicked %s" %(Username))
         else:
             pPlayer.SendMessage("&4That user is not online!")
+
+class MuteCmd(CommandObject):
+    '''Mutes a player from talking'''
+    def Run(self,pPlayer,Args,Message):
+        Username = Args[0]
+        Target = pPlayer.ServerControl.GetPlayerFromName(Username)
+        if Target != None:
+            if Target.IsMuted == False:
+                Target.IsMuted = True
+                Target.SendMessage("&aYou have been temporarily muted \"&e%s&a\"" %pPlayer.GetName())
+                pPlayer.SendMessage("&aYou have temporarily muted \"&e%s&a\"" %Target.GetName())
+            else:
+                Target.IsMuted = False
+                Target.SendMessage("&aYou are no longer muted.")
+                pPlayer.SendMessage("&a\"&e%s&a\" is no longer muted" %Target.GetName())
+        else:
+            pPlayer.SendMessage("&4That player is not online!")
+
 
 class FreezeCmd(CommandObject):
     '''Freezes a player in place'''
@@ -1148,6 +1169,8 @@ class CommandHandler(object):
         self.AddCommand("freeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1)
         self.AddCommand("unfreeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1, Alias=True)
         self.AddCommand("defreeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1, Alias=True)
+        self.AddCommand("mute", MuteCmd, 'operator', 'Mutes and unmutes a player, temporarily preventing them from talking', 'Incorrect syntax! Usage: /mute <username>', 1)
+        self.AddCommand("mute", MuteCmd, 'operator', 'Mutes and unmutes a player, temporarily preventing them from talking', 'Incorrect syntax! Usage: /mute <username>', 1, Alias=True)
         self.AddCommand("playerinfo", PlayerInfoCmd, 'operator', 'Returns information on a player', 'Incorrect syntax! Usage: /playerinfo <username>',1,Alias=True)
         self.AddCommand("summon", SummonCmd, 'operator', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
         self.AddCommand("undoactions", UndoActionsCmd, 'operator', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>',2)
