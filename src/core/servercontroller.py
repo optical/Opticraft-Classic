@@ -191,24 +191,7 @@ class ServerController(object):
         Console.SetColour(int(self.ConfigValues.GetValue("server","ConsoleColour","1")))
         Console.Out("Startup","Opticraft is starting up.")
         self.Port = int(self.ConfigValues.GetValue("server","Port","25565"))
-        self.Salt = str(random.randint(1,0xFFFFFFFF-1))
-        #Check to see if we have a salt saved to disk.
-        if os.path.exists("opticraft.salt"):
-            #Load this salt instead.
-            try:
-                saltHandle = open("opticraft.salt","r")
-                self.Salt = saltHandle.readline().strip()
-                saltHandle.close()
-            except IOError:
-                Console.Warning("Startup","Failed to load salt from opticraft.salt")
-        else:
-            #Save this salt to disk.
-            try:
-                saltHandle = open("opticraft.salt","w")
-                saltHandle.write(self.Salt)
-                saltHandle.close()
-            except IOError:
-                Console.Warning("Startup","Failed to save salt to opticraft.salt")
+        self.Salt = self.GenerateSalt()
 
         self.Name = self.ConfigValues.GetValue("server","Name","An opticraft server")
         self.Motd = self.ConfigValues.GetValue("server","Motd","Powered by opticraft!")
@@ -351,6 +334,19 @@ class ServerController(object):
             Console.Warning("Startup","Failed to write process id to opticraft.pid")
 
         self.LastKeepAlive = -1
+
+    def GenerateSalt(self):
+        Salt = ''
+        #attempt to seed with a non-deterministic value
+        try:
+            random.seed(os.urandom(512))
+        except:
+            pass #Wont happen in any real world situation
+        SeedChars = string.ascii_letters + string.digits
+        SeedCharLen = len(SeedChars)-1
+        for i in xrange(random.randint(12,16)):
+            Salt += SeedChars[random.randint(0,SeedCharLen)]
+        return Salt
 
     def LoadWorld(self,Name):
         '''Name will be a valid world name (case sensitive)'''
