@@ -145,6 +145,9 @@ class JoinWorldCmd(CommandObject):
     '''Handler for the /join command. Changes the players world'''
     def Run(self,pPlayer,Args,Message):
         World = Args[0]
+        if pPlayer.IsFrozen:
+            pPlayer.SendMessage("&4You cannot change worlds while frozen!")
+            return
         if pPlayer.ServerControl.WorldExists(World) == False:
             pPlayer.SendMessage("&4That world does not exist!")
             return
@@ -563,6 +566,23 @@ class KickCmd(CommandObject):
             pPlayer.SendMessage("&aSuccessfully kicked %s" %(Username))
         else:
             pPlayer.SendMessage("&4That user is not online!")
+
+class FreezeCmd(CommandObject):
+    '''Freezes a player in place'''
+    def Run(self,pPlayer,Args,Message):
+        Username = Args[0]
+        Target = pPlayer.ServerControl.GetPlayerFromName(Username)
+        if Target != None:
+            if Target.IsFrozen == False:
+                Target.IsFrozen = True
+                Target.SendMessage("&aYou have been frozen in place by \"&e%s&a\"" %pPlayer.GetName())
+                pPlayer.SendMessage("&aYou have frozen \"&e%s&a\" in place" %Target.GetName())
+            else:
+                Target.IsFrozen = False
+                Target.SendMessage("&aYou are no longer frozen.")
+                pPlayer.SendMessage("&a\"&e%s&a\" is no longer frozen" %Target.GetName())
+        else:
+            pPlayer.SendMessage("&4That player is not online!")
 
 class SummonCmd(CommandObject):
     '''Summon command handler. Teleports specified player to user location'''
@@ -1125,6 +1145,9 @@ class CommandHandler(object):
         self.AddCommand("ban", BanCmd, 'operator', 'Bans a player from the server', 'Incorrect syntax! Usage: /ban <username>', 1)
         self.AddCommand("unban", UnbanCmd, 'operator', 'Unbans a player from the server', 'Incorrect syntax! Usage: /unban <username>', 1)
         self.AddCommand("kick", KickCmd, 'operator', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)
+        self.AddCommand("freeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1)
+        self.AddCommand("unfreeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1, Alias=True)
+        self.AddCommand("defreeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1, Alias=True)
         self.AddCommand("playerinfo", PlayerInfoCmd, 'operator', 'Returns information on a player', 'Incorrect syntax! Usage: /playerinfo <username>',1,Alias=True)
         self.AddCommand("summon", SummonCmd, 'operator', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
         self.AddCommand("undoactions", UndoActionsCmd, 'operator', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>',2)

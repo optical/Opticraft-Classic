@@ -481,6 +481,16 @@ class Player(object):
             p = Packet.GetByte()
             if x == self.X and y == self.Y and z == self.Z and o == self.O and p == self.P:
                 return #Saves bandwidth. No need to redistribute something we just sent..
+            if self.IsFrozen:
+                NewPacket = OptiCraftPacket(SMSG_PLAYERPOS)
+                NewPacket.WriteByte(0xFF)
+                NewPacket.WriteInt16(self.X)
+                NewPacket.WriteInt16(self.Z)
+                NewPacket.WriteInt16(self.Y)
+                NewPacket.WriteByte(self.O)
+                NewPacket.WriteByte(self.P)
+                self.SendPacket(NewPacket)
+                return
             self.SetLocation(x, y, z, o, p)
             NewPacket = OptiCraftPacket(SMSG_PLAYERPOS)
             NewPacket.WriteByte(self.GetId())
@@ -593,6 +603,7 @@ class Player(object):
         self.Name = ''
         self.ColouredName = ''
         self.IsIdentified = False
+        self.IsFrozen = False
         self.Id = -1
         self.ServerControl = ServerControl
         self.World = None #Pointer to our current world.
