@@ -192,7 +192,6 @@ class ServerController(object):
         Console.Out("Startup","Opticraft is starting up.")
         self.Port = int(self.ConfigValues.GetValue("server","Port","25565"))
         self.Salt = self.GenerateSalt()
-
         self.Name = self.ConfigValues.GetValue("server","Name","An opticraft server")
         self.Motd = self.ConfigValues.GetValue("server","Motd","Powered by opticraft!")
         self.MaxClients = int(self.ConfigValues.GetValue("server","Max","32"))
@@ -343,8 +342,8 @@ class ServerController(object):
         except:
             pass #Wont happen in any real world situation
         SeedChars = string.ascii_letters + string.digits
-        SeedCharLen = len(SeedChars)-1
-        for i in xrange(random.randint(12,16)):
+        SeedCharLen = len(SeedChars) -1 
+        for i in xrange(random.randint(16,32)):
             Salt += SeedChars[random.randint(0,SeedCharLen)]
         return Salt
 
