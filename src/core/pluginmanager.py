@@ -287,7 +287,7 @@ class PluginDict(object):
             Value = TempDict[Key]
             if type(Key) == unicode:
                 Key = str(Key)
-            if Type(Value) == unicode:
+            if type(Value) == unicode:
                 Value = str(Value)
             NewDict[Key] = Value
         return NewDict

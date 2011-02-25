@@ -189,7 +189,11 @@ class ServerController(object):
         Console.SetLogLevel(int(self.ConfigValues.GetValue("logs","ConsoleLogLevel",LOG_LEVEL_DEBUG)))
         Console.SetFileLogging(bool(int(self.ConfigValues.GetValue("logs","ConsoleFileLogs","0"))))
         Console.SetColour(int(self.ConfigValues.GetValue("server","ConsoleColour","1")))
-        Console.Out("Startup","Opticraft is starting up.")
+        self.RawRevision = "$Revision$"
+        self.RawDate = "$Date$"
+        self.Revision = self.RawRevision.split()[1]
+        self.VersionString = "Opticraft-r%s" %self.Revision
+        Console.Out("Startup","%s is starting up." %self.VersionString)
         self.Port = int(self.ConfigValues.GetValue("server","Port","25565"))
         self.Salt = self.GenerateSalt()
         self.Name = self.ConfigValues.GetValue("server","Name","An opticraft server")
@@ -213,9 +217,6 @@ class ServerController(object):
         self.EnableWorldOverflow = bool(int(self.ConfigValues.GetValue("server","EnableWorldOverflow","1")))
         self.LastIdleCheck = time.time()
         self.IdleCheckPeriod = 60
-        self.RawRevision = "$Revision$"
-        self.RawDate = "$Date$"
-        self.Revision = self.RawRevision.split()[1]
         self.EnableBlockLogs = int(self.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
         self.WorldTimeout = int(self.ConfigValues.GetValue("worlds","IdleTimeout","300"))
         self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server","PeriodicAnnounceFrequency","0"))
