@@ -213,7 +213,9 @@ class ServerController(object):
         self.EnableWorldOverflow = bool(int(self.ConfigValues.GetValue("server","EnableWorldOverflow","1")))
         self.LastIdleCheck = time.time()
         self.IdleCheckPeriod = 60
-        self.Revision = "$Revision$"
+        self.RawRevision = "$Revision$"
+        self.RawDate = "$Date$"
+        self.Revision = self.RawRevision.split()[1]
         self.EnableBlockLogs = int(self.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
         self.WorldTimeout = int(self.ConfigValues.GetValue("worlds","IdleTimeout","300"))
         self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server","PeriodicAnnounceFrequency","0"))
