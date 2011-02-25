@@ -221,7 +221,7 @@ class sInfoCmd(CommandObject):
             DistData = platform.linux_distribution()
             System = "%s-%s" %(DistData[0],DistData[1])
         WorldData = pPlayer.ServerControl.GetWorlds()
-        pPlayer.SendMessage("&aThis server is running Opticraft-DEV on &e%s." %System,False)
+        pPlayer.SendMessage("&aThis server is running %s on &e%s." %(pPlayer.ServerControl.VersionString,System),False)
         pPlayer.SendMessage("&aCurrently &e%d &ausers online. Peak online: &e%d" %(pPlayer.ServerControl.NumPlayers,pPlayer.ServerControl.PeakPlayers),False)
         pPlayer.SendMessage("&aTotal worlds: &e%d &a(&e%d &aactive, &e%d &aidle)" %(len(WorldData[0]) + len(WorldData[1]),len(WorldData[0]),len(WorldData[1])),False)
         pPlayer.SendMessage("&aCpu usage in the last minute: &e%.1f%% (us: %.1f%% sys: %.1f%%)" %pPlayer.ServerControl.GetCurrentCpuUsage(),False)
@@ -230,7 +230,7 @@ class sInfoCmd(CommandObject):
 class VersionCmd(CommandObject):
     '''Handler for the /version command. Returns version information'''
     def Run(self,pPlayer,Args,Message):
-        pPlayer.SendMessage("&aThis server is running Opticraft-DEV")
+        pPlayer.SendMessage("&aThis server is running &e%s" %pPlayer.ServerControl.VersionString)
 class CreditsCmd(CommandObject):
     '''Handler for the /credits command. Returns credit information'''
     def Run(self,pPlayer,Args,Message):
