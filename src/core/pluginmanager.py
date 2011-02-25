@@ -250,7 +250,7 @@ class PluginDict(object):
     def __setitem__(self,Key,Value):
         if type(Key) != str:
             raise ValueError("Plugin Data key must be a string")
-        if self.NonJsonValues == false and type(Value) not in self.ValidJsonTypes:
+        if self.NonJsonValues == False and type(Value) not in self.ValidJsonTypes:
             raise ValueError("Values must be json encodeable")
 
         self._dictionary[Key] = Value
