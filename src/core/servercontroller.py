@@ -345,6 +345,11 @@ class ServerController(object):
         SeedCharLen = len(SeedChars) -1 
         for i in xrange(random.randint(16,32)):
             Salt += SeedChars[random.randint(0,SeedCharLen)]
+            if not random.randint(0,3):
+                try:
+                    random.seed(os.urandom(512)) #Change the seed
+                except:
+                    pass
         return Salt
 
     def LoadWorld(self,Name):
