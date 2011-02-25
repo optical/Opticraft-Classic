@@ -27,6 +27,7 @@
 
 '''Plugin support'''
 from core.console import Console
+from core.constants import UnicodeToStr
 import sys
 import json
 
@@ -282,15 +283,7 @@ class PluginDict(object):
     def _FromJSON(JSON):
         '''returns a dictionary, not a plugindict'''
         TempDict = json.loads(JSON)
-        NewDict = dict()
-        for Key in TempDict:
-            Value = TempDict[Key]
-            if type(Key) == unicode:
-                Key = str(Key)
-            if type(Value) == unicode:
-                Value = str(Value)
-            NewDict[Key] = Value
-        return NewDict
+        return UnicodeToStr(TempDict)
 
 
 class PluginData(PluginDict):
