@@ -196,6 +196,12 @@ class ServerController(object):
         Console.Out("Startup","%s is starting up." %self.VersionString)
         self.Port = int(self.ConfigValues.GetValue("server","Port","25565"))
         self.Salt = self.GenerateSalt()
+        self.OldSalt = ''
+        if os.path.isfile("opticraft.salt"):
+            with open("opticraft.salt","r") as fHandle:
+                self.OldSalt = fHandle.read()
+        with open("opticraft.salt","w") as fHandle:
+            fHandle.write(self.Salt)
         self.Name = self.ConfigValues.GetValue("server","Name","An opticraft server")
         self.Motd = self.ConfigValues.GetValue("server","Motd","Powered by opticraft!")
         self.MaxClients = int(self.ConfigValues.GetValue("server","Max","32"))
