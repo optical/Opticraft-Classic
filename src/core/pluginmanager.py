@@ -192,6 +192,8 @@ class PluginManager(object):
             Console.Warning("PluginMgr","Plugin %s tried to remove non-existant hook \"%s\"" %(Plugin,HookName))
 
     def RegisterCommand(self,Plugin,CommandObj):
+        if self.ServerControl.CommandHandle.CommandTable.has_key(CommandObj.Name.lower()):
+            return
         pList = self.Commands.get(Plugin.ModuleName,None)
         if pList == None:
             pList = list()

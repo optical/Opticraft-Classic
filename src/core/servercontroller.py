@@ -240,7 +240,7 @@ class ServerController(object):
         self.RankColours = dict() #Lowercase name of rank -> 2 Characters used for colour prefix
         self._ExampleRanks = str()
         self.LoadRanks()
-        self.LoadPlayerRanks
+        self.LoadPlayerRanks()
         self.AdmincreteRank = self.ConfigValues.GetValue("server","AdmincreteRank",'operator')
         if self.IsValidRank(self.AdmincreteRank) == False:
             Console.Warning("Startup","Admincreterank refers to an unknown rank %s" %self.AdmincreteRank)
