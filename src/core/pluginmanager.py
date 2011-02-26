@@ -26,6 +26,7 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 '''Plugin support'''
+import inspect
 from core.console import Console
 from core.constants import UnicodeToStr
 import sys
@@ -34,6 +35,21 @@ import json
 sys.path.append("plugins")
 
 class PluginBase(object):
+    #These numbers do not include the "self" argument, though all objects need to have this!
+    HookSpecs = {
+    "on_start": 0,
+    "on_connect": 1,
+    "on_disconnect": 1,
+    "on_playerdataloaded": 1,
+    "on_kick": 4,
+    "on_attemptplaceblock": 6,
+    "on_postplaceblock": 6,
+    "on_chat": 2,
+    "on_changeworld": 3,
+    "on_worldload": 1,
+    "on_worldunload": 1,
+    }
+
     def __init__(self,PluginMgr,ServerControl,Name):
         self.PluginMgr = PluginMgr
         self.ServerControl = ServerControl
@@ -60,6 +76,9 @@ class Hook(object):
     def __init__(self,Plugin,Function):
         self.Plugin = Plugin
         self.Function = Function
+
+class PluginException(Exception):
+    pass
 
 class PluginManager(object):
     def __init__(self,ServerControl):
@@ -100,8 +119,12 @@ class PluginManager(object):
                     Console.Out("PluginMgr","Loaded object \"%s\" from plugin \"%s\"" %(Key,PluginFile))
                     self.Plugins.add(pPlugin)
                     pPlugin.OnLoad()
-                except:
+                except Exception as exc:
+                    if pPlugin in self.Plugins:
+                        self.Plugins.remove(pPlugin)
                     Console.Warning("PluginMgr","Error loading plugin object \"%s\" from file \"%s\"" %(Key,PluginFile))
+                    if isinstance(exc,PluginException):
+                        Console.Debug("PluginMgr","Exception: %s" %str(exc))
                     continue
         return True
 
@@ -140,8 +163,18 @@ class PluginManager(object):
             self.Plugins.remove(pPlugin) #Goodbye, cruel world!
         Console.Out("PluginMgr","Successfully unloaded plugin \"%s\"" %PluginName)
         return True
+
     def RegisterHook(self,Plugin,Function,HookName):
         '''Registers the plugin and function for the hook'''
+        NumArgs = PluginBase.HookSpecs.get(HookName,None)
+        if NumArgs == None:
+            raise PluginException("Hook %s does not exist!" %HookName)
+        NumArgs += 1 #Include the 'self' argument
+        FuncArgs = len(inspect.getargspec(Function)[0])
+        if FuncArgs != NumArgs:
+            raise PluginException("Hook %s requires %d arguments. Function %s provides %d" 
+                %(HookName,NumArgs,Function.func_name,FuncArgs))
+
         HookList = self.Hooks.get(HookName.lower(),list())
         HookList.append(Hook(Plugin,Function))
         if HookName.lower() not in self.Hooks:

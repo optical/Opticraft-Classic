@@ -212,11 +212,8 @@ class ServerController(object):
         self.LowLatencyMode = int(self.ConfigValues.GetValue("server", "LowLatencyMode", "0"))
         self.BlockChangeCount = int(self.ConfigValues.GetValue("server","BlockChangeCount","45"))
         self.BlockChangePeriod = int(self.ConfigValues.GetValue("server", "BlockChangePeriod", "5"))
-        self.IPCount = dict()
         self.FloodMessageLimit = int(self.ConfigValues.GetValue("server","FloodCount","6"))
         self.EnableWorldOverflow = bool(int(self.ConfigValues.GetValue("server","EnableWorldOverflow","1")))
-        self.LastIdleCheck = time.time()
-        self.IdleCheckPeriod = 60
         self.ValueColour = "&" + self.ConfigValues.GetValue("server","ValueColour","e")
         self.StaticColour = "&" + self.ConfigValues.GetValue("server","StaticColour","a")
         self.NoticeColour = "&" + self.ConfigValues.GetValue("server","NoticeColour","e")
@@ -243,11 +240,14 @@ class ServerController(object):
         self.RankColours = dict() #Lowercase name of rank -> 2 Characters used for colour prefix
         self._ExampleRanks = str()
         self.LoadRanks()
-        self.LoadPlayerRanks()
+        self.LoadPlayerRanks
         self.AdmincreteRank = self.ConfigValues.GetValue("server","AdmincreteRank",'operator')
         if self.IsValidRank(self.AdmincreteRank) == False:
             Console.Warning("Startup","Admincreterank refers to an unknown rank %s" %self.AdmincreteRank)
             self.AdmincreteRank = 'builder'
+        self.LastIdleCheck = time.time()
+        self.IdleCheckPeriod = 60
+        self.IPCount = dict()
         self.HeartBeatControl = HeartBeatController(self)
         self.SockManager = SocketManager(self)
         self.PlayerSet = set() #All players logged into the server
