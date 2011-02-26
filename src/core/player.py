@@ -87,6 +87,7 @@ class Player(object):
 
     def SendMessage(self,Message,ColourNewLines=True):
         Message = Message.strip()
+        Message = self.ServerControl.ConvertColours(Message)
         if len(Message) > 63:
             self._SlowSendMessage(Message,ColourNewLines)
         else:
@@ -179,11 +180,11 @@ class Player(object):
             self.NewWorld = NewWorld
             self.ServerControl.PluginMgr.OnChangeWorld(self,OldWorld,NewWorld)
             if self.Invisible == False:
-                self.ServerControl.SendJoinMessage("&e%s changed map to %s%s"%(self.Name,self.ServerControl.RankColours[NewWorld.GetMinRank()],NewWorld.Name))
+                self.ServerControl.SendJoinMessage("&N%s changed map to %s%s"%(self.Name,self.ServerControl.RankColours[NewWorld.GetMinRank()],NewWorld.Name))
         else:
             #World couldn't be loaded (Probably because the block-log is still in use)
             #This is a very very rare condition which can occur on slow computers with high load (100+ users etc)
-            self.SendMessage("&4Could not change your world. Try again in a minute")
+            self.SendMessage("&RCould not change your world. Try again in a minute")
 
 
     def SetLocation(self,x,y,z,o,p):
@@ -555,11 +556,11 @@ class Player(object):
             self.HandlePrivateMessage(Contents[1:])
         else:
             if self.IsMuted:
-                self.SendMessage("&4You cannot change, you have been muted!")
+                self.SendMessage("&RYou cannot change, you have been muted!")
                 return
             if self.ServerControl.AllowCaps == False:
                 if Contents == Contents.upper() and len(Contents) >= self.ServerControl.MinCapsLength:
-                    self.SendMessage("&4Do not use caps!")
+                    self.SendMessage("&RDo not use caps!")
                     return
             if self.ServerControl.FloodPeriod:
                 if self.ServerControl.Now - self.FloodPeriodTime >= self.ServerControl.FloodPeriod:
@@ -567,7 +568,7 @@ class Player(object):
                     self.FloodPeriodCount = 0
                 self.FloodPeriodCount += 1
                 if self.FloodPeriodCount > self.ServerControl.FloodMessageLimit:
-                    self.SendMessage("&4You are sending messages too quickly. Slow down!")
+                    self.SendMessage("&RYou are sending messages too quickly. Slow down!")
                     self.FloodPeriodTime = self.ServerControl.Now #reset the count. Stops them spamming.
                     return
             self.ServerControl.PluginMgr.OnChat(self,Contents)
@@ -580,17 +581,17 @@ class Player(object):
 
     def HandlePrivateMessage(self,Message):
         if len(Message) == 0:
-            self.SendMessage("&4Enter in a username to PM!")
+            self.SendMessage("&REnter in a username to PM!")
             return
         Tokens = Message.split()
         Username = Tokens[0]
         Contents = ' '.join(Tokens[1:])
         Reciever = self.ServerControl.GetPlayerFromName(Username)
         if Reciever == None or Reciever.CanBeSeenBy(self) == False:
-            self.SendMessage("&4That user is not online!")
+            self.SendMessage("&RThat user is not online!")
             return
         if len(Contents) == 0:
-            self.SendMessage("&4Enter something to say!")
+            self.SendMessage("&REnter something to say!")
             return
         if self.ServerControl.LogChat:
             TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())

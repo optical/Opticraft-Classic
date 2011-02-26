@@ -217,6 +217,10 @@ class ServerController(object):
         self.EnableWorldOverflow = bool(int(self.ConfigValues.GetValue("server","EnableWorldOverflow","1")))
         self.LastIdleCheck = time.time()
         self.IdleCheckPeriod = 60
+        self.ValueColour = "&" + self.ConfigValues.GetValue("server","ValueColour","e")
+        self.StaticColour = "&" + self.ConfigValues.GetValue("server","StaticColour","a")
+        self.NoticeColour = "&" + self.ConfigValues.GetValue("server","NoticeColour","e")
+        self.ErrorColour = "&" + self.ConfigValues.GetValue("server","ErrorColour","c")
         self.EnableBlockLogs = int(self.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
         self.WorldTimeout = int(self.ConfigValues.GetValue("worlds","IdleTimeout","300"))
         self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server","PeriodicAnnounceFrequency","0"))
@@ -356,6 +360,8 @@ class ServerController(object):
                     pass
         return Salt
 
+    def ConvertColours(self,Message):
+        return Message.replace("&S",self.StaticColour).replace("&V",self.ValueColour).replace("&N",self.NoticeColour).replace("&R",self.ErrorColour)
     def LoadWorld(self,Name):
         '''Name will be a valid world name (case sensitive)'''
         try:
@@ -438,7 +444,7 @@ class ServerController(object):
         self.RankLevels["owner"] = 1000
         self.RankColours["spectator"] = "&f"
         self.RankColours["guest"] = "&f"
-        self.RankColours["builder"] = "&a"
+        self.RankColours["builder"] = "&S"
         self.RankColours["operator"] = "&b"
         self.RankColours["admin"] = "&9"
         self.RankColours["owner"] = "&c"
@@ -562,7 +568,7 @@ class ServerController(object):
             if pPlayer != None:
                 pPlayer.SetRank(Rank)
                 pPlayer.SetRankedBy(Initiator.GetName())
-                pPlayer.SendMessage("&aYour rank has been changed to %s!" %Rank.capitalize())
+                pPlayer.SendMessage("&SYour rank has been changed to %s!" %Rank.capitalize())
         else:
             if Username.lower() in self.RankedPlayers:
                 del self.RankedPlayers[Username.lower()]
@@ -571,7 +577,7 @@ class ServerController(object):
                 if pPlayer != None:
                     pPlayer.SetRank('guest')
                     pPlayer.SetRankedBy(Initiator.GetName())
-                    pPlayer.SendMessage("&aYour rank has been changed to %s!" %Rank.capitalize())
+                    pPlayer.SendMessage("&SYour rank has been changed to %s!" %Rank.capitalize())
             else:
                 return
         with open("ranks.ini","w") as fHandle:
@@ -623,7 +629,7 @@ class ServerController(object):
                 if NewWorld == None:
                     pPlayer.Disconnect("The server is full!")
                 else:
-                    self.SendJoinMessage('&e%s has connected. Joined map %s%s' %(pPlayer.GetName(),
+                    self.SendJoinMessage('&N%s has connected. Joined map %s%s' %(pPlayer.GetName(),
                     self.RankColours[NewWorld.GetMinRank()],NewWorld.Name))
                     NewWorld.AddPlayer(pPlayer)
                     for Line in self.Greeting:
@@ -791,7 +797,7 @@ class ServerController(object):
                 if pPlayer.GetRankLevel() <= self.RankLevels['guest']:
                     pPlayer.Disconnect("You were kicked for being idle")
                     if pPlayer.IsAuthenticated():
-                        self.SendMessageToAll("&e%s has been kicked for being idle" %pPlayer.GetName())
+                        self.SendMessageToAll("&V%s has been kicked for being idle" %pPlayer.GetName())
 
     def AttemptAddPlayer(self,pPlayer):
         if len(self.PlayerSet) == self.MaxClients:
@@ -827,7 +833,7 @@ class ServerController(object):
         if pPlayer in self.AuthPlayers:
             self.AuthPlayers.remove(pPlayer)
         else:
-            self.SendJoinMessage("&e%s has left the server" %pPlayer.GetName())
+            self.SendJoinMessage("&N%s has left the server" %pPlayer.GetName())
             if self.GetPlayerFromName(pPlayer.GetName()) != None:
                 del self.PlayerNames[pPlayer.GetName().lower()]
             if self.EnableIRC:
@@ -850,14 +856,18 @@ class ServerController(object):
 
     def GetPlayerFromSocket(self,Socket):
         return self.SocketToPlayer[Socket]
+
     def SendNotice(self,Message):
         Packet = OptiCraftPacket(SMSG_MESSAGE)
-        Packet.WriteByte(0xFF)
-        Packet.WriteString(Message[:64])
+        Packet.WriteByte(0)
+        Message = self.ConvertColours(("&N" + Message))
+        Packet.WriteString(self.ConvertColours(Message[:64]))
         self.SendPacketToAll(Packet)
+
     def SendJoinMessage(self,Message):
         Packet = OptiCraftPacket(SMSG_MESSAGE)
         Packet.WriteByte(0)
+        Message = self.ConvertColours(Message)
         Packet.WriteString(Message[:64])
         for pPlayer in self.PlayerSet:
             if pPlayer.GetJoinNotifications():
@@ -865,7 +875,8 @@ class ServerController(object):
     def SendMessageToAll(self,Message):
         Packet = OptiCraftPacket(SMSG_MESSAGE)
         Packet.WriteByte(0)
-        Packet.WriteString(Message[:64])
+        Message = self.ConvertColours(Message)
+        Packet.WriteString(Message)
         self.SendPacketToAll(Packet)
     def SendChatMessage(self,From,Message,NewLine = ">",NormalStart = True):
         Words = Message.split()
