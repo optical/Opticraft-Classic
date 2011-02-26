@@ -29,7 +29,7 @@ from core.pluginmanager import PluginBase
 from core.commandhandler import CommandObject
 from core.console import *
 from core.constants import *
-from core.ordereddict import OrderedDict
+
 from core.world import World
 import platform
 import os
@@ -38,7 +38,7 @@ import sqlite3 as dbapi
 import shutil
 import time
 
-class CommandsPlugin(PluginBase):
+class Commands(PluginBase):
     def OnLoad(self):
         self.RegisterCommands()
 
