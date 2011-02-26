@@ -402,7 +402,7 @@ class World(object):
         if val >= BLOCK_END:
             return False #Fake block type...
         if pPlayer.HasPermission(self.GetMinRank()) == False:
-            pPlayer.SendMessage("&4You do not have the required rank to build on this world")
+            pPlayer.SendMessage("&RYou do not have the required rank to build on this world")
             return False
         #Too far away!
         if pPlayer.CalcDistance(x, y, z) > 10 and pPlayer.GetRank() == 'guest':
@@ -415,23 +415,23 @@ class World(object):
             try:
                 BlockInfo = self.GetBlockLogEntry(x,y,z)
             except dbapi.OperationalError:
-                pPlayer.SendMessage("&4Database is busy, try again in a few moments.")
+                pPlayer.SendMessage("&RDatabase is busy, try again in a few moments.")
                 return False
             
             if BlockInfo == None:
-                pPlayer.SendMessage("&aNo information available for this block (No changes made)")
+                pPlayer.SendMessage("&SNo information available for this block (No changes made)")
             else:
                 now = int(time.time())
-                pPlayer.SendMessage("&aThis block was last changed by &e%s" %BlockInfo.Username)
-                pPlayer.SendMessage("&aThe old value for the block was &e%d" %ord(BlockInfo.Value))
-                pPlayer.SendMessage("&aChanged &e%s &aago" %ElapsedTime(now-BlockInfo.Time))
+                pPlayer.SendMessage("&SThis block was last changed by &V%s" %BlockInfo.Username)
+                pPlayer.SendMessage("&SThe old value for the block was &V%d" %ord(BlockInfo.Value))
+                pPlayer.SendMessage("&SChanged &V%s &Sago" %ElapsedTime(now-BlockInfo.Time))
             pPlayer.SetAboutCmd(False)
             return False
         #ZONES!
         if self.CheckZones(pPlayer,x,y,z) == False:
             return False
         if val in DisabledBlocks and pPlayer.GetBlockOverride() not in DisabledBlocks:
-                pPlayer.SendMessage("&4That block is disabled!")
+                pPlayer.SendMessage("&RThat block is disabled!")
                 return False
         if pPlayer.GetTowerCmd() == True and val == 0:
             BadBlock = self.Blocks[self._CalculateOffset(x, y, z)]
@@ -461,14 +461,14 @@ class World(object):
                 zData["Y1"] = y
                 zData["Z1"] = z
                 zData["Phase"] = 2
-                pPlayer.SendMessage("&aNow place the final corner for the zone.")
+                pPlayer.SendMessage("&SNow place the final corner for the zone.")
                 return True
             elif zData["Phase"] == 2:
                 FileName = Zone.Create(zData["Name"], zData["X1"], x, zData["Y1"], y, zData["Z1"]-1, z-1, zData["Height"], zData["Owner"], self.Name)
                 pZone = Zone(FileName,self.ServerControl)
                 self.Zones.append(pZone)
                 self.ServerControl.AddZone(pZone)
-                pPlayer.SendMessage("&aSuccessfully created zone \"%s\"" %zData["Name"])
+                pPlayer.SendMessage("&SSuccessfully created zone \"%s\"" %zData["Name"])
                 #hide the starting block for the zone
                 self.SendBlock(pPlayer, zData["X1"], zData["Y1"], zData["Z1"])
                 pPlayer.FinishCreatingZone()
@@ -495,7 +495,7 @@ class World(object):
         for pZone in self.Zones:
             if pZone.IsInZone(x,y,z):
                 if pZone.CanBuild(pPlayer) == False:
-                    pPlayer.SendMessage("&4You cannot build in zone \"%s\"" %pZone.Name)
+                    pPlayer.SendMessage("&RYou cannot build in zone \"%s\"" %pZone.Name)
                     return False
         return True
     def GetBlock(self,x,y,z):
@@ -646,11 +646,11 @@ class World(object):
                     self.SetBlock(None, x, y, z, Data[i].Value)
                 Initiator = self.ServerControl.GetPlayerFromName(Username)
                 if Initiator:
-                    Initiator.SendMessage("&aFinished reversing %s's actions" %ReversedPlayer)
+                    Initiator.SendMessage("&SFinished reversing %s's actions" %ReversedPlayer)
                 if NumChanged > 0:
                     self.ServerControl.SendNotice("Antigrief: %s's actions have been reversed." %ReversedPlayer)
                 elif Initiator and NumChanged == 0:
-                    Initiator.SendMessage("&4%s had no block history!" %ReversedPlayer)
+                    Initiator.SendMessage("&R%s had no block history!" %ReversedPlayer)
 
         while len(self.JoiningPlayers) > 0:
             pPlayer = self.JoiningPlayers.pop()
@@ -787,14 +787,18 @@ class World(object):
                 Packet.WriteByte(pPlayer.GetOrientation())
                 Packet.WriteByte(pPlayer.GetPitch())
                 Client.SendPacket(Packet)
+
     def SendNotice(self,Message):
         Packet = OptiCraftPacket(SMSG_MESSAGE)
-        Packet.WriteByte(0xFF)
+        Packet.WriteByte(0)
+        Message = self.ServerControl.ConvertColours(("&N" + Message))
         Packet.WriteString(Message)
         self.SendPacketToAll(Packet)
+        
     def SendJoinMessage(self,Message):
         Packet = OptiCraftPacket(SMSG_MESSAGE)
         Packet.WriteByte(0)
+        Message = self.ServerControl.ConvertColours(Message)
         Packet.WriteString(Message[:64])
         for pPlayer in self.Players:
             if pPlayer.GetJoinNotifications():
