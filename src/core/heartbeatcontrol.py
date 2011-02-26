@@ -26,6 +26,7 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import urllib2
+import httplib
 import urllib
 import socket
 import time
@@ -112,6 +113,8 @@ class HeartBeatController(Thread):
             url = 'http://www.minecraft.net/heartbeat.jsp?%s' %urllib.urlencode(data)
             try:
                 self._InitialHeartbeat(url)
+            except httplib.BadStatusLine:
+                return False
             except urllib2.URLError:
                 return False
         else:
