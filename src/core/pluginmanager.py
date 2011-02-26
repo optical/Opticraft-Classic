@@ -114,6 +114,7 @@ class PluginManager(object):
             Value = PluginModule.__dict__[Key]
             if type(Value) == type and issubclass(Value,PluginBase) and Value is not PluginBase:
                 #Make a plugin!
+                pPlugin = None
                 try:
                     pPlugin = Value(self,self.ServerControl,PluginFile)
                     Console.Out("PluginMgr","Loaded object \"%s\" from plugin \"%s\"" %(Key,PluginFile))

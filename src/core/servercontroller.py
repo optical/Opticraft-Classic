@@ -192,7 +192,7 @@ class ServerController(object):
         self.RawRevision = "$Revision$"
         self.RawDate = "$Date$"
         self.Revision = self.RawRevision.split()[1]
-        self.VersionString = "Opticraft-r%s" %self.Revision
+        self.VersionString = "Opticraft v0.2 r%s" %self.Revision
         Console.Out("Startup","%s is starting up." %self.VersionString)
         self.Port = int(self.ConfigValues.GetValue("server","Port","25565"))
         self.Salt = self.GenerateSalt()
