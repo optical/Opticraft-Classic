@@ -195,19 +195,13 @@ class ServerController(object):
         self.VersionString = "Opticraft v0.2 r%s" %self.Revision
         Console.Out("Startup","%s is starting up." %self.VersionString)
         self.Port = int(self.ConfigValues.GetValue("server","Port","25565"))
-        self.Salt = self.GenerateSalt()
-        self.OldSalt = ''
-        if os.path.isfile("opticraft.salt"):
-            with open("opticraft.salt","r") as fHandle:
-                self.OldSalt = fHandle.read()
-        with open("opticraft.salt","w") as fHandle:
-            fHandle.write(self.Salt)
         self.Name = self.ConfigValues.GetValue("server","Name","An opticraft server")
         self.Motd = self.ConfigValues.GetValue("server","Motd","Powered by opticraft!")
         self.MaxClients = int(self.ConfigValues.GetValue("server","Max","32"))
         self.Public = self.ConfigValues.GetValue("server","Public","True")
         self.DumpStats = int(self.ConfigValues.GetValue("server","DumpStats","0"))
         self.LanMode = bool(int(self.ConfigValues.GetValue("server","LanMode","0")))
+        self.ReuseSalt = bool(int(self.ConfigValues.GetValue("server","ReuseSalt","0")))
         self.SendBufferLimit = int(self.ConfigValues.GetValue("server","SendBufferLimit","4194304")) #4MB
         self.IdlePlayerLimit = int(self.ConfigValues.GetValue("server","IdleLimit","3600"))
         self.InstantClose = int(self.ConfigValues.GetValue("server","InstantClose","0"))
@@ -239,6 +233,16 @@ class ServerController(object):
         self.IRCIdentificationMessage = self.ConfigValues.GetValue("irc","IdentifyCommand","NickServ identify")
         if self.EnableIRC:
             self.IRCInterface = RelayBot(self.IRCNick,"Opticraft","Opticraft",self)
+        self.Salt = self.GenerateSalt()
+        self.OldSalt = ''
+        if os.path.isfile("opticraft.salt"):
+            with open("opticraft.salt","r") as fHandle:
+                self.OldSalt = fHandle.read()
+        if self.ReuseSalt == True and self.OldSalt != '':
+            self.Salt = self.OldSalt
+        else:
+            with open("opticraft.salt","w") as fHandle:
+                fHandle.write(self.Salt)
         self.RankedPlayers = dict()
         self.RankNames = list() #Names of all ranks
         self.RankLevels = dict() #Lowercase name of rank -> Rank level (int)
