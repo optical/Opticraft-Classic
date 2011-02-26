@@ -567,6 +567,7 @@ class World(object):
         self.SpawnZ = (self.Z / 2 + 2) * 32 + 51
         self.SpawnOrientation = 0
         self.SpawnPitch = 0
+        self.Blocks = array('c')
         for z in xrange(self.Z):
             if z < SandLevel:
                 Block = chr(BLOCK_ROCK)
@@ -579,6 +580,7 @@ class World(object):
             self.Blocks.fromstring((self.X*self.Y)*Block)
         self.MetaData["hidden"] = '0'
         self.MetaData["minrank"] = "guest"
+        self.IsDirty = True
         self.Save(False)
 
     def SetMetaData(self,Key,Value):
