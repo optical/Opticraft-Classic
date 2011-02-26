@@ -435,17 +435,17 @@ class Player(object):
             self.Disconnect("Your client is incompatible with this server")
             return
 
-        if self.ServerControl.GetPlayerFromName(self.Name) != None:
-            Console.Debug("Player","%s tried to connect but is already online." %self.Name)
-            self.Disconnect("Disconnecting your duplicate login. Please reconnect.")
-            self.ServerControl.GetPlayerFromName(self.Name).Disconnect("Disonnecting for second login")
-            return
         if self.ServerControl.IsBanned(self) == True:
             Console.Debug("Player","Banned player %s tried to connect." %self.Name)
             self.Disconnect("You are banned!")
             return
         
         if CorrectPass == HashedPass or OldPass == HashedPass or self.ServerControl.LanMode == True:
+            if self.ServerControl.GetPlayerFromName(self.Name) != None:
+                Console.Debug("Player","%s tried to connect but is already online." %self.Name)
+                self.Disconnect("Disconnecting your duplicate login. Please reconnect.")
+                self.ServerControl.GetPlayerFromName(self.Name).Disconnect("Disonnecting for second login")
+                return
             Console.Out("Player", "%s connected to the server" %self.Name)
             self.ServerControl.PlayerNames[self.Name.lower()] = self
             self.IsIdentified = True
