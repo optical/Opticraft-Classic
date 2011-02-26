@@ -339,9 +339,12 @@ class World(object):
             fHandle.write(World._MakeLengthString(Key))
             fHandle.write(World._MakeLengthString(self.MetaData[Key]))
         #Block Array
-        gzipHandle = gzip.GzipFile(fileobj=fHandle, mode="wb",compresslevel=self.CompressionLevel)
-        gzipHandle.write(self.Blocks.tostring())
-        gzipHandle.close()
+        if self.IsDirty:
+            gzipHandle = gzip.GzipFile(fileobj=fHandle, mode="wb",compresslevel=self.CompressionLevel)
+            gzipHandle.write(self.Blocks.tostring())
+            gzipHandle.close()
+        else:
+            fHandle.write(self.BlockCache.getvalue())
         fHandle.close()
         try:
             shutil.copy("Worlds/%s.temp" %(self.Name),"Worlds/%s.save" %(self.Name))
