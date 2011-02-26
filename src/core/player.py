@@ -430,6 +430,7 @@ class Player(object):
         self.Name = Packet.GetString()
         HashedPass = Packet.GetString().strip("0")
         CorrectPass = hashlib.md5(self.ServerControl.Salt + self.Name).hexdigest().strip("0")
+        OldPass = hashlib.md5(self.ServerControl.OldSalt + self.Name).hexdigest().strip("0")
         if Version != 7:
             self.Disconnect("Your client is incompatible with this server")
             return
@@ -444,7 +445,7 @@ class Player(object):
             self.Disconnect("You are banned!")
             return
         
-        if CorrectPass == HashedPass or self.ServerControl.LanMode == True:
+        if CorrectPass == HashedPass or OldPass == HashedPass or self.ServerControl.LanMode == True:
             Console.Out("Player", "%s connected to the server" %self.Name)
             self.ServerControl.PlayerNames[self.Name.lower()] = self
             self.IsIdentified = True
