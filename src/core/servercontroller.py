@@ -291,8 +291,6 @@ class ServerController(object):
         self.PeakPlayers = 0
         self.Now = time.time()
         self.CommandHandle = CommandHandler(self)
-        #Override default command permissions from the config file
-        self.LoadCommandOverrides()
         if self.LogChat:
             try:
                 self.ChatLogHandle = open("Logs/chat.log","a")
@@ -322,6 +320,8 @@ class ServerController(object):
 
         self.PluginMgr = PluginManager(self)
         self.PluginMgr.LoadPlugins()
+        #Override default command permissions from the config file
+        self.LoadCommandOverrides()
         self.Rules = list()
         self.LoadRules()
         self.Greeting = list()
