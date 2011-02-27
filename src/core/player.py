@@ -523,7 +523,6 @@ class Player(object):
                     return
 
             if Mode == 0:
-                Block = 0
                 self.IncreaseBlocksErased()
                 if self.GetPaintCmd() == True:
                      if self.BlockOverride != -1:
