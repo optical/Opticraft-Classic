@@ -898,12 +898,11 @@ class ServerController(object):
             if len(Word) >= 60:
                 return #Prevent crazy bugs due to this crappy string system
 
-            if len(OutStr) + len(Words) > 63:
+            if len(OutStr) + len(Word) > 63:
                 self.SendMessageToAll(OutStr)
                 OutStr = NewLine
             OutStr = '%s %s' %(OutStr,Word)
         self.SendMessageToAll(OutStr)
-
     def SendPacketToAll(self,Packet):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
