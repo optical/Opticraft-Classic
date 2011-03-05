@@ -48,36 +48,36 @@ class Player(object):
             PacketSize = PacketSizes[OpCode]
             BufLen = len(RawBuffer) - 1 #Remove one for opcode
             if BufLen >= PacketSize:
-                Packet = OptiCraftPacket(OpCode,RawBuffer[1:PacketSize+1]) #up to and including end of packet
+                Packet = OptiCraftPacket(OpCode, RawBuffer[1:PacketSize + 1]) #up to and including end of packet
                 self.SockBuffer.truncate(0)
-                self.SockBuffer.write(RawBuffer[PacketSize+1:]) #From end of packet on
+                self.SockBuffer.write(RawBuffer[PacketSize + 1:]) #From end of packet on
                 if self.OpcodeHandler.has_key(OpCode):
-                    self.OpcodeHandler[OpCode](self,Packet)
+                    self.OpcodeHandler[OpCode](self, Packet)
             else:
                 ProcessingPackets = False
         #Check to see if we have got too much data in our out buffer.
         #Send Queue exceeded (Default = 4MB of buffered data)
         if self.OutBuffer.tell() > self.ServerControl.SendBufferLimit and self.Disconnecting == False:
-            Console.Debug("Player", "Disconnecting player as their send queue buffer contains %d bytes" %self.OutBuffer.tell())
+            Console.Debug("Player", "Disconnecting player as their send queue buffer contains %d bytes" % self.OutBuffer.tell())
             self.Disconnect()
-    def PushRecvData(self,Data):
+    def PushRecvData(self, Data):
         '''Called by the Socketmanager. Gives us raw data to be processed'''
         self.SockBuffer.write(Data)
 
     def GetOutBuffer(self):
         return self.OutBuffer
-    def SendPacket(self,Packet):
+    def SendPacket(self, Packet):
         '''Appends data to the end of our buffer
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO SendPacketToAll functions!'''
         self.OutBuffer.write(Packet.data.getvalue())
 
     def IsDisconnecting(self):
         return self.Disconnecting
-    def Disconnect(self,Message =''):
+    def Disconnect(self, Message=''):
         if self.Disconnecting == True:
             return
         self.Disconnecting = True
-        Console.Debug("Player","Disconnecting player %s for \"%s\"" %(self.Name,Message))
+        Console.Debug("Player", "Disconnecting player %s for \"%s\"" % (self.Name, Message))
         if Message != '':
             Packet = OptiCraftPacket(SMSG_DISCONNECT)
             Packet.WriteString(Message[:64])
@@ -85,20 +85,20 @@ class Player(object):
         self.ServerControl.SockManager.CloseSocket(self.PlayerSocket)
         self.ServerControl.RemovePlayer(self)
 
-    def SendMessage(self,Message,ColourNewLines=True):
+    def SendMessage(self, Message, ColourNewLines=True):
         Message = Message.strip()
         Message = self.ServerControl.ConvertColours(Message)
         if len(Message) > 63:
-            self._SlowSendMessage(Message,ColourNewLines)
+            self._SlowSendMessage(Message, ColourNewLines)
         else:
             Packet = OptiCraftPacket(SMSG_MESSAGE)
             Packet.WriteByte(0)
-            if Message[-1] in self.ColourCodes and Message[-2] == "&":
+            if len(Message) > 2 and Message[-1] in ColourChars and Message[-2] == "&":
                 Message = Message[:-2].strip() #Any messages ending in a colour control code will crash the client
             Packet.WriteString(Message[:64])
             self.SendPacket(Packet)
 
-    def _SlowSendMessage(self,Message,ColourNewLines=True):
+    def _SlowSendMessage(self, Message, ColourNewLines=True):
         '''Sends a multiline message'''
         Tokens = Message.split()
         if Tokens[0][0] == "&" and ColourNewLines:
@@ -120,11 +120,11 @@ class Player(object):
 
     def GetId(self):
         return self.Id
-    def SetId(self,Id):
+    def SetId(self, Id):
         self.Id = Id
     def GetNewId(self):
         return self.NewId
-    def SetNewId(self,Id):
+    def SetNewId(self, Id):
         self.NewId = Id
     def GetName(self):
         return self.Name
@@ -137,14 +137,14 @@ class Player(object):
 
     def GetWorld(self):
         return self.World
-    def SetWorld(self,pWorld):
+    def SetWorld(self, pWorld):
         self.World = pWorld
         self.NewWorld = None
     def GetNewWorld(self):
         return self.NewWorld
-    def SetNewWorld(self,pWorld):
+    def SetNewWorld(self, pWorld):
         self.NewWorld = pWorld
-    def ChangeWorld(self,Name):
+    def ChangeWorld(self, Name):
         #is this an active world? If so - leave and join
         #else - Boot up new world and then leave/join
         #Leave our world first.
@@ -163,38 +163,38 @@ class Player(object):
             NewWorld = self.ServerControl.LoadWorld(Name)
         if NewWorld != None and NewWorld != False:
             self.UpdateLastWorldChange()
-            self.World.RemovePlayer(self,True)
+            self.World.RemovePlayer(self, True)
             OldWorld = self.World
             self.World = None
             #Send packet telling client were changing the world.
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
             OutPacket.WriteByte(7)
             OutPacket.WriteString(self.ServerControl.GetName())
-            OutPacket.WriteString("Loading world: %s%s" %(self.ServerControl.RankColours[NewWorld.GetMinRank()],NewWorld.Name))
+            OutPacket.WriteString("Loading world: %s%s" % (self.ServerControl.RankColours[NewWorld.GetMinRank()], NewWorld.Name))
             if self.HasPermission(self.ServerControl.AdmincreteRank):
                 OutPacket.WriteByte(0x64)
             else:
                 OutPacket.WriteByte(0x00)
             self.SendPacket(OutPacket)
-            NewWorld.AddPlayer(self,True)
+            NewWorld.AddPlayer(self, True)
             self.NewWorld = NewWorld
-            self.ServerControl.PluginMgr.OnChangeWorld(self,OldWorld,NewWorld)
+            self.ServerControl.PluginMgr.OnChangeWorld(self, OldWorld, NewWorld)
             if self.Invisible == False:
-                self.ServerControl.SendJoinMessage("&N%s changed map to %s%s"%(self.Name,self.ServerControl.RankColours[NewWorld.GetMinRank()],NewWorld.Name))
+                self.ServerControl.SendJoinMessage("&N%s changed map to %s%s" % (self.Name, self.ServerControl.RankColours[NewWorld.GetMinRank()], NewWorld.Name))
         else:
             #World couldn't be loaded (Probably because the block-log is still in use)
             #This is a very very rare condition which can occur on slow computers with high load (100+ users etc)
             self.SendMessage("&RCould not change your world. Try again in a minute")
 
 
-    def SetLocation(self,x,y,z,o,p):
+    def SetLocation(self, x, y, z, o, p):
         '''Stores client position. X Y Z are floats with the fractal bit at position 5'''
         self.X = x
         self.Y = y
         self.Z = z
         self.O = o
         self.P = p
-    def SetSpawnPosition(self,x,y,z,o,p):
+    def SetSpawnPosition(self, x, y, z, o, p):
         '''Stores client position. X Y Z are floats with the fractal bit at position 5'''
         self.SpawnX = x
         self.SpawnY = y
@@ -202,7 +202,7 @@ class Player(object):
         self.SpawnO = o
         self.SpawnP = p
     def GetSpawnPosition(self):
-        return self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnO,self.SpawnP
+        return self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnO, self.SpawnP
     def GetX(self):
         return self.X
     def GetY(self):
@@ -219,33 +219,33 @@ class Player(object):
         return self.Rank
     def GetRankLevel(self):
         return self.RankLevel
-    def SetRank(self,Rank):
+    def SetRank(self, Rank):
         self.Rank = Rank
         self.RankLevel = self.ServerControl.RankLevels[Rank]
-        self.ColouredName = '%s%s' %(self.ServerControl.RankColours[self.Rank],self.Name)
+        self.ColouredName = '%s%s' % (self.ServerControl.RankColours[self.Rank], self.Name)
         Packet = OptiCraftPacket(SMSG_USERTYPE)
         if self.HasPermission(self.ServerControl.AdmincreteRank):
             Packet.WriteByte(0x64)
         else:
             Packet.WriteByte(0x00)
         self.SendPacket(Packet)
-    def HasPermission(self,Permission):
+    def HasPermission(self, Permission):
         return self.RankLevel >= self.ServerControl.GetRankLevel(Permission)
-    def SetBlockOverride(self,Block):
+    def SetBlockOverride(self, Block):
         self.BlockOverride = Block
     def GetBlockOverride(self):
         return self.BlockOverride
     def GetPaintCmd(self):
         return self.PaintCmd
-    def SetPaintCmd(self,Value):
+    def SetPaintCmd(self, Value):
         self.PaintCmd = Value
     def GetAboutCmd(self):
         return self.AboutCmd
-    def SetAboutCmd(self,Value):
+    def SetAboutCmd(self, Value):
         self.AboutCmd = Value
     def GetTowerCmd(self):
         return self.TowerCmd
-    def SetTowerCmd(self,Value):
+    def SetTowerCmd(self, Value):
         self.TowerCmd = Value
     def GetLastAction(self):
         return self.LastAction
@@ -281,9 +281,9 @@ class Player(object):
         return self.LoginCount
     def GetBannedBy(self):
         return self.BannedBy
-    def SetBannedBy(self,Value):
+    def SetBannedBy(self, Value):
         self.BannedBy = Value
-    def SetRankedBy(self,Value):
+    def SetRankedBy(self, Value):
         self.RankedBy = Value
     def GetRankedBy(self):
         return self.RankedBy
@@ -298,25 +298,25 @@ class Player(object):
     def UpdatePlayedTime(self):
         self.TimePlayed += int(self.ServerControl.Now) - self.LastPlayedTimeUpdate
         self.LastPlayedTimeUpdate = int(self.ServerControl.Now)
-    def GetPluginDataDictionary(self,JSON=False):
+    def GetPluginDataDictionary(self, JSON=False):
         '''Returns a reference to the pluginData Dictionary, or a json encoded version of it'''
         if not JSON:
             return self.PermanentPluginData
         else:
             return self.PermanentPluginData.AsJSON()
-    def GetPluginData(self,Key):
+    def GetPluginData(self, Key):
         '''This is used for temporary values being stored by plugins
         Key must be a string. Value may be any type'''
-        return self.TemporaryPluginData.get(Key,None)
-    def SetPluginData(self,Key,Value):
+        return self.TemporaryPluginData.get(Key, None)
+    def SetPluginData(self, Key, Value):
         '''This is used for temporary values being stored by plugins
         Key must be a string. Value may be any type'''
         self.TemporaryPluginData[Key] = Value
-    def GetPermanentPluginData(self,Key):
+    def GetPermanentPluginData(self, Key):
         '''Returns values which persist in the database
         ...Key must be a string, value must be json encodeable'''
-        return self.PermanentPluginData.get(Key,None)
-    def SetPermnanentPluginData(self,Key,Value):
+        return self.PermanentPluginData.get(Key, None)
+    def SetPermnanentPluginData(self, Key, Value):
         '''Sets values which persist in the database
         ...Key must be a string, value must be json encodeable'''
         self.PermanentPluginData[Key] = Value
@@ -347,13 +347,13 @@ class Player(object):
                     pPlayer.SendPacket(Packet)
             self.Invisible = False
 
-    def CanBeSeenBy(self,pPlayer):
+    def CanBeSeenBy(self, pPlayer):
         '''Can i be seen by pPlayer'''
         if self.Invisible and self.RankLevel > pPlayer.GetRankLevel():
             return False
         else:
             return True
-    def LoadData(self,Row):
+    def LoadData(self, Row):
         self.DataIsLoaded = True
         if Row == None:
             #No data found, must be the first login.
@@ -379,11 +379,11 @@ class Player(object):
             #Update the IpLog
             Tokens = self.LastIps.split(",")
             if self.GetIP() not in Tokens:
-                self.LastIps = "%s,%s" %(self.LastIps,self.GetIP())
+                self.LastIps = "%s,%s" % (self.LastIps, self.GetIP())
 
         self.ServerControl.PluginMgr.OnPlayerDataLoaded(self)
 
-    def Teleport(self,x,y,z,o,p):
+    def Teleport(self, x, y, z, o, p):
         '''Teleports the player to X Y Z. These coordinates have the fractal bit at position 5'''
         self.SetLocation(x, y, z, o, p)
         Packet = OptiCraftPacket(SMSG_PLAYERPOS)
@@ -400,7 +400,7 @@ class Player(object):
     def GetZoneData(self):
         return self.ZoneData
 
-    def StartZone(self,Name,Owner,Height):
+    def StartZone(self, Name, Owner, Height):
         self.ZoneData["Name"] = Name
         self.ZoneData["Owner"] = Owner
         self.ZoneData["Height"] = Height
@@ -410,18 +410,18 @@ class Player(object):
         self.zData = dict()
         self.CreatingZone = False
 
-    def SetLastPM(self,Username):
+    def SetLastPM(self, Username):
         self.LastPmUsername = Username
     def GetLastPM(self):
         return self.LastPmUsername
-    def CalcDistance(self,x,y,z):
+    def CalcDistance(self, x, y, z):
         '''Returns the distance to another point in absolute coordinates'''
-        dx = self.X/32 - x
-        dy = self.Y/32 - y
-        dz = self.Z/32 - z
-        return math.sqrt(dx*dx+dy*dy+dz*dz)
+        dx = self.X / 32 - x
+        dy = self.Y / 32 - y
+        dz = self.Z / 32 - z
+        return math.sqrt(dx * dx + dy * dy + dz * dz)
     #Opcode handlers go below this line
-    def HandleIdentify(self,Packet):
+    def HandleIdentify(self, Packet):
         '''Handles the initial packet sent by the client'''
         if self.IsIdentified == True:
             return
@@ -436,17 +436,21 @@ class Player(object):
             return
 
         if self.ServerControl.IsBanned(self) == True:
-            Console.Debug("Player","Banned player %s tried to connect." %self.Name)
+            Console.Debug("Player", "Banned player %s tried to connect." % self.Name)
             self.Disconnect("You are banned!")
             return
         
-        if CorrectPass == HashedPass or OldPass == HashedPass or self.ServerControl.LanMode == True:
+        IpAuthOk = self.ServerControl.RelaxedAuthentication and self.ServerControl.CheckIpCache(self)
+        isAuthenticated = CorrectPass == HashedPass or OldPass == HashedPass or self.ServerControl.LanMode == True or IpAuthOk
+        
+        if isAuthenticated:
+            self.ServerControl.IPCache[self.Name.lower()] = self.GetIP()
             if self.ServerControl.GetPlayerFromName(self.Name) != None:
-                Console.Debug("Player","%s tried to connect but is already online." %self.Name)
+                Console.Debug("Player", "%s tried to connect but is already online." % self.Name)
                 self.Disconnect("Disconnecting your duplicate login. Please reconnect.")
                 self.ServerControl.GetPlayerFromName(self.Name).Disconnect("Disonnecting for second login")
                 return
-            Console.Out("Player", "%s connected to the server" %self.Name)
+            Console.Out("Player", "%s connected to the server" % self.Name)
             self.ServerControl.PlayerNames[self.Name.lower()] = self
             self.IsIdentified = True
             self.SetRank(self.ServerControl.GetRank(self.Name))
@@ -465,14 +469,15 @@ class Player(object):
                 self.ColouredName = "&ao&bp&ft&ai&bc&fa&al&bz&fa"
             if self.ServerControl.EnableIRC:
                 self.ServerControl.IRCInterface.HandleLogin(self.GetName())
-            self.ServerControl.PlayerDBThread.Tasks.put(["GET_PLAYER",self.Name.lower()])
+            self.ServerControl.PlayerDBThread.Tasks.put(["GET_PLAYER", self.Name.lower()])
             self.ServerControl.PluginMgr.OnPlayerConnect(self)
             return
         else:
-            Console.Warning("Player","%s Failed to authenticate. Disconnecting" %self.Name)
+            Console.Warning("Player", "%s Failed to authenticate. Disconnecting" % self.Name)
+            Console.Debug("Player", "Correct mppass: %s. Supplied mppass: %s" % (CorrectPass, HashedPass))
             self.Disconnect("Could not authenticate your username.")
             return
-    def HandleMovement(self,Packet):
+    def HandleMovement(self, Packet):
         #This is sent even when the player isn't moving!
         if self.World is not None:
             Packet.GetByte()
@@ -503,7 +508,7 @@ class Player(object):
             NewPacket.WriteByte(p)
             self.World.SendPacketToAll(NewPacket)
 
-    def HandleBlockChange(self,Packet):
+    def HandleBlockChange(self, Packet):
         if self.World is not None:
             self.LastAction = self.ServerControl.Now
             x = Packet.GetInt16()
@@ -525,33 +530,33 @@ class Player(object):
             if Mode == 0:
                 self.IncreaseBlocksErased()
                 if self.GetPaintCmd() == True:
-                     if self.BlockOverride != -1:
-                         Block = self.BlockOverride
-                     self.World.AttemptSetBlock(self,x,y,z,Block)
-                     Result = False
+                    if self.BlockOverride != -1:
+                        Block = self.BlockOverride
+                    self.World.AttemptSetBlock(self, x, y, z, Block)
+                    Result = False
                 else:
-                    Result = self.World.AttemptSetBlock(self,x,y,z,0)
+                    Result = self.World.AttemptSetBlock(self, x, y, z, 0)
             else:
                 self.IncreaseBlocksMade()
                 if self.BlockOverride != -1:
                     Block = self.BlockOverride
-                Result = self.World.AttemptSetBlock(self,x,y,z,Block)
+                Result = self.World.AttemptSetBlock(self, x, y, z, Block)
 
             if Result != True or self.GetBlockOverride() != -1:
                 if self.World.WithinBounds(x, y, z):
-                    self.World.SendBlock(self,x,y,z)
+                    self.World.SendBlock(self, x, y, z)
             
-    def HandleChatMessage(self,Packet):
+    def HandleChatMessage(self, Packet):
         if self.World == None:
             return
         self.IncreaseChatMessageCount()
         self.LastAction = self.ServerControl.Now
         Packet.GetByte() #junk
-        Contents = Packet.GetString().translate(None,DisabledChars)
+        Contents = Packet.GetString().translate(None, DisabledChars)
         if len(Contents) == 0:
             return
         if Contents[0] == "/":
-            self.ServerControl.CommandHandle.HandleCommand(self,Contents[1:])
+            self.ServerControl.CommandHandle.HandleCommand(self, Contents[1:])
         elif Contents[0] == "@" and self.IsMuted == False:
             self.HandlePrivateMessage(Contents[1:])
         else:
@@ -571,15 +576,15 @@ class Player(object):
                     self.SendMessage("&RYou are sending messages too quickly. Slow down!")
                     self.FloodPeriodTime = self.ServerControl.Now #reset the count. Stops them spamming.
                     return
-            self.ServerControl.PluginMgr.OnChat(self,Contents)
-            self.ServerControl.SendChatMessage(self.GetColouredName(),Contents)
+            self.ServerControl.PluginMgr.OnChat(self, Contents)
+            self.ServerControl.SendChatMessage(self.GetColouredName(), Contents)
             if self.ServerControl.LogChat:
-                TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
-                self.ServerControl.ChatLogHandle.write("%s <%s>: %s\n" %(TimeFormat,self.GetName(),Contents))
+                TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]", time.localtime())
+                self.ServerControl.ChatLogHandle.write("%s <%s>: %s\n" % (TimeFormat, self.GetName(), Contents))
             if self.ServerControl.EnableIRC:
-                self.ServerControl.IRCInterface.HandleIngameMessage(self.GetColouredName(),Contents)
+                self.ServerControl.IRCInterface.HandleIngameMessage(self.GetColouredName(), Contents)
 
-    def HandlePrivateMessage(self,Message):
+    def HandlePrivateMessage(self, Message):
         if len(Message) == 0:
             self.SendMessage("&REnter in a username to PM!")
             return
@@ -594,14 +599,14 @@ class Player(object):
             self.SendMessage("&REnter something to say!")
             return
         if self.ServerControl.LogChat:
-            TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
-            self.ServerControl.PMLogHandle.write("%s <%s> to <%s>: %s\n" %(TimeFormat,self.GetName(),Reciever.GetName(), Contents))
+            TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]", time.localtime())
+            self.ServerControl.PMLogHandle.write("%s <%s> to <%s>: %s\n" % (TimeFormat, self.GetName(), Reciever.GetName(), Contents))
             
-        Reciever.SendMessage('&bfrom %s&b: %s' %(self.GetColouredName(),Contents))
+        Reciever.SendMessage('&bfrom %s&b: %s' % (self.GetColouredName(), Contents))
         Reciever.SetLastPM(self.Name)
-        self.SendMessage('&bto %s&b: %s' %(Reciever.GetColouredName(), Contents))
+        self.SendMessage('&bto %s&b: %s' % (Reciever.GetColouredName(), Contents))
 
-    def __init__(self,PlayerSocket,SockAddress,ServerControl):
+    def __init__(self, PlayerSocket, SockAddress, ServerControl):
         self.PlayerSocket = PlayerSocket
         self.PlayerIP = SockAddress
         self.Name = ''
@@ -646,12 +651,11 @@ class Player(object):
         self.LoginCount = 0
         #This is used for commands such as /lava, /water, and /grass
         self.BlockOverride = -1
-        self.X,self.Y,self.Z,self.O,self.P = -1,-1,-1,-1,-1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
-        self.SpawnX,self.SpawnY,self.SpawnZ,self.SpawnO,self.SpawnP = -1,-1,-1,-1,-1 #Used to spawn at a location when chaning worlds
+        self.X, self.Y, self.Z, self.O, self.P = -1, -1, -1, -1, -1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
+        self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnO, self.SpawnP = -1, -1, -1, -1, -1 #Used to spawn at a location when chaning worlds
         self.OutBuffer = cStringIO.StringIO()
-        Console.Debug("Player","Player object created. IP: %s" %SockAddress[0])
+        Console.Debug("Player", "Player object created. IP: %s" % SockAddress[0])
         self.SockBuffer = cStringIO.StringIO()
-        self.ColourCodes = set(["1","2","3","4","5","6","7","8","9","0","a","b","c","d","e","f"])
         self.TemporaryPluginData = PluginDict() #Destroyed during logout
         self.PermanentPluginData = PluginData() #Loaded and saved to DB.
         self.OpcodeHandler = {
