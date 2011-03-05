@@ -27,10 +27,10 @@
 
 import random
 import time
+import platform
 import os
 import os.path
 import signal
-import platform
 import asyncore
 import sqlite3 as dbapi
 import threading
@@ -202,6 +202,7 @@ class ServerController(object):
         self.DumpStats = int(self.ConfigValues.GetValue("server","DumpStats","0"))
         self.LanMode = bool(int(self.ConfigValues.GetValue("server","LanMode","0")))
         self.ReuseSalt = bool(int(self.ConfigValues.GetValue("server","ReuseSalt","0")))
+        self.RelaxedAuthentication = bool(int(self.ConfigValues.GetValue("server","RelaxedAuth","1")))
         self.SendBufferLimit = int(self.ConfigValues.GetValue("server","SendBufferLimit","4194304")) #4MB
         self.IdlePlayerLimit = int(self.ConfigValues.GetValue("server","IdleLimit","3600"))
         self.InstantClose = int(self.ConfigValues.GetValue("server","InstantClose","0"))
@@ -242,7 +243,7 @@ class ServerController(object):
             self.Salt = self.OldSalt
         else:
             with open("opticraft.salt","w") as fHandle:
-                fHandle.write(self.Salt)
+                fHandle.write(self.Salt)            
         self.RankedPlayers = dict()
         self.RankNames = list() #Names of all ranks
         self.RankLevels = dict() #Lowercase name of rank -> Rank level (int)
@@ -269,7 +270,8 @@ class ServerController(object):
         self.InitialCpuTimes = os.times()
         self.LastCpuTimes = 0
         self.LoadResults = Queue.Queue()
-        self.PlayerDBThread  = PlayerDbThread(self)
+        self.PlayerDBThread = PlayerDbThread(self)
+        self.PlayerDBThread.start()
         self.PlayerDBConnection = dbapi.connect("Player.db")
         self.PlayerDBConnection.text_factory = str
         self.PlayerDBConnection.row_factory = dbapi.Row
@@ -316,8 +318,9 @@ class ServerController(object):
                         Tokens = line.split(":")
                         self.BannedIPs[Tokens[0]] = int(Tokens[1])
             except:
-                Console.Error("ServerControl", "Failed to load banned-ip.txt!")
-
+                Console.Error("ServerControl", "Failed to load banned-ip.txt!")  
+        self.IPCache = dict()
+        self.LoadIPCache()
         self.PluginMgr = PluginManager(self)
         self.PluginMgr.LoadPlugins()
         #Override default command permissions from the config file
@@ -442,7 +445,22 @@ class ServerController(object):
                     Console.Debug("Startup","Successfully set command %s's permission to %s" %(Command,Permission))
             else:
                 Console.Warning("Startup","Unable to override command %s to %s as the rank doesn't exist!" %(Command,Permission))
-
+    
+    def LoadIPCache(self):
+        try:
+            Console.Debug("IPCache","Attempting to load IP Cache")
+            start = time.time()
+            Result = self.PlayerDBConnection.execute("SELECT Username, LastIP from Players")
+            for Row in Result:
+                self.IPCache[Row["username"]] = Row["LastIP"]
+            Console.Debug("IPCache","Loaded IP Cache in %dms" %(time.time() - start))
+        except:
+            #Non-critical
+            Console.Debug("IPCache","Failed to load IPCache")
+            
+    def CheckIpCache(self,pPlayer):
+        return self.IPCache.get(pPlayer.GetName().lower(),None) == pPlayer.GetIP()
+    
     def LoadRanks(self):
         Console.Debug("Startup","Loading ranks")
         #Add defaults incase some newby trys to remove a rank.
@@ -608,7 +626,6 @@ class ServerController(object):
 
         if platform.system() == 'Linux':
             signal.signal(signal.SIGTERM,self.HandleKill)
-        self.PlayerDBThread.start()
         Console.Out("Startup","Startup procedure completed in %.0fms" %((time.time() -self.StartTime)*1000))
         Console.Out("Server","Press Ctrl-C at any time to shutdown the sever safely.")
         self.PluginMgr.OnServerStart()
@@ -635,7 +652,7 @@ class ServerController(object):
                             break
                 else:
                     if self.ActiveWorlds[0].IsFull() == False:
-                        NewWorld = seld.ActiveWorlds[0]
+                        NewWorld = self.ActiveWorlds[0]
                 if NewWorld == None:
                     pPlayer.Disconnect("The server is full!")
                 else:
@@ -888,27 +905,31 @@ class ServerController(object):
         Message = self.ConvertColours(Message)
         Packet.WriteString(Message)
         self.SendPacketToAll(Packet)
+        
     def SendChatMessage(self,From,Message,NewLine = ">",NormalStart = True):
-        Words = Message.split()
         if NormalStart:
-            OutStr = '%s:&f' %From
+            Message = '%s: &f%s' %(From,Message)
         else:
-            OutStr = '%s' %From
+            Message = '%s %s' %(From,Message)
+        Words = Message.split()
+        OutStr = ''
         for Word in Words:
             if len(Word) >= 60:
                 return #Prevent crazy bugs due to this crappy string system
-
             if len(OutStr) + len(Word) > 63:
+                if len(OutStr) > 2 and OutStr[-1] in ColourChars and OutStr[-2] == '&':
+                    OutStr = OutStr[:-2]
                 self.SendMessageToAll(OutStr)
                 OutStr = NewLine
             OutStr = '%s %s' %(OutStr,Word)
+            
         self.SendMessageToAll(OutStr)
     def SendPacketToAll(self,Packet):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
         Data = Packet.GetOutData()
         for pPlayer in self.PlayerSet:
-           pPlayer.OutBuffer.write(Data)
+            pPlayer.OutBuffer.write(Data)
 
     def SaveAllWorlds(self):
         '''This will need to be rewritten come multi-threaded worlds!'''
