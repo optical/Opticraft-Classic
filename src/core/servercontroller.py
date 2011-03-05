@@ -237,7 +237,7 @@ class ServerController(object):
         self.OldSalt = ''
         if os.path.isfile("opticraft.salt"):
             with open("opticraft.salt","r") as fHandle:
-                self.OldSalt = fHandle.read()
+                self.OldSalt = fHandle.readline()
         if self.ReuseSalt == True and self.OldSalt != '':
             self.Salt = self.OldSalt
         else:
