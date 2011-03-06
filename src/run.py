@@ -43,11 +43,11 @@ def Main():
     try:
         ServerControl.Run()
     except:
-        Console.Error("Shutdown","Server is shutting down.")
+        Console.Error("Shutdown", "Server is shutting down.")
         try:
-            fHandle = open("CrashLog.txt","a")
+            fHandle = open("CrashLog.txt", "a")
             fHandle.write("="*30 + "\n")
-            fHandle.write("Crash date: %s\n" %time.strftime("%c", time.gmtime()))
+            fHandle.write("Crash date: %s\n" % time.strftime("%c", time.gmtime()))
             fHandle.write("="*30 + "\n")
             traceback.print_exc(file=fHandle)
             fHandle.close()
@@ -61,16 +61,16 @@ def Main():
         return
 if __name__ == "__main__":
     ProfileRun = False
-    for i in xrange(1,len(sys.argv)):
+    for i in xrange(1, len(sys.argv)):
         if sys.argv[i].lower() == "-profile":
             ProfileRun = True
         elif sys.argv[i].lower() == "-disablegc":
             import gc
             gc.disable()
         else:
-            print "Unable to parse commandline arg: %s" %sys.argv[i]
+            print "Unable to parse commandline arg: %s" % sys.argv[i]
     if ProfileRun:
-        Profile.run('Main()', 'profiler-%s.pstats' %time.strftime("%d-%m-%Y_%H-%M-%S", time.gmtime()))
+        Profile.run('Main()', 'profiler-%s.pstats' % time.strftime("%d-%m-%Y_%H-%M-%S", time.gmtime()))
     else:
         Main()
         

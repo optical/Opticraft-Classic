@@ -44,11 +44,11 @@ class OptiCraftPacket(object):
     def WriteString(self, data):
         self.data.write((data + ((64 - len(data)) * ' ')))
     def WriteInt16(self, data):
-       self.data.write(struct.pack("!h", data))
+        self.data.write(struct.pack("!h", data))
     def WriteInt32(self, data):
         self.data.write(struct.pack("!i", data))
     def WriteKBChunk(self, data):
-       self.data.write((data + ((1024 - len(data)) * '\0')))
+        self.data.write((data + ((1024 - len(data)) * '\0')))
 
     #Getter functions for unpacking data.
     #These are NOT safe - Exceptions will be thrown if you read beyond the buffer length.

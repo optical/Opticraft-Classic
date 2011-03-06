@@ -26,11 +26,9 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os.path
-import os
 import cStringIO
 import gzip
 import struct
-import time
 import random
 import shutil
 import sqlite3 as dbapi
@@ -290,7 +288,7 @@ class World(object):
             if len(self.Blocks) != self.X*self.Y*self.Z:
                 raise Exception()
             try:
-                x = int(self.MetaData["hidden"])
+                int(self.MetaData["hidden"])
             except:
                 self.MetaData["hidden"] = "0"
             try:

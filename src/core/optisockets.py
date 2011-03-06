@@ -31,6 +31,7 @@ from select import select
 from core.player import Player
 from core.opticraftpacket import OptiCraftPacket
 from core.console import *
+from core.constants import SMSG_DISCONNECT
 
 class ListenSocket(object):
     def __init__(self, Host, Port):

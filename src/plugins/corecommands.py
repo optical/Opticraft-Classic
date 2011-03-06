@@ -31,12 +31,9 @@ from core.console import *
 from core.constants import *
 
 from core.world import World
-import platform
-import os
 import os.path
 import sqlite3 as dbapi
 import shutil
-import time
 
 class Commands(PluginBase):
     def OnLoad(self):
@@ -707,7 +704,7 @@ class UndoActionsCmd(CommandObject):
         if Time < 0:
             pPlayer.SendMessage("&RThat is not a valud number of seconds")
             return
-        Result = pPlayer.GetWorld().UndoActions(pPlayer.GetName(), ReversePlayer, Time)
+        pPlayer.GetWorld().UndoActions(pPlayer.GetName(), ReversePlayer, Time)
 
         pPlayer.SendMessage("&S%s actions are being reversed. This may take a few moments" % ReversePlayer)
 
@@ -759,57 +756,57 @@ class SetSpawnCmd(CommandObject):
 class AddIPBanCmd(CommandObject):
     '''Handler for the /ipban command. Bans an IP Address from the server'''
     def Run(self, pPlayer, Args, Message):
-         Arg = Args[0]
-         #Check to see if this is a user...
-         Target = pPlayer.ServerControl.GetPlayerFromName(Arg)
-         if Target != None:
-             if Target.GetRankLevel() >= pPlayer.GetRankLevel():
-                 pPlayer.SendMessage("&RYou may not ban that user.")
-                 return
-             pPlayer.ServerControl.AddBan(pPlayer, Arg, 0)
-             pPlayer.SendMessage("&SSuccessfully added username ban on %s" % Arg)
-             #Set arg to the IP address so we can ban that too.
-             Arg = Target.GetIP()
-         #Check if IP is legit. If so, ban it.
-         Parts = Arg.split(".")
-         if len(Parts) != 4:
-             pPlayer.SendMessage("&RThat is not a valid ip-address!")
-             return
-         try:
-             for Byte in Parts:
-                 if len(Byte) > 3:
-                     raise Exception
-                 Byte = int(Byte)
-                 if Byte < 0 or Byte > 255:
-                     raise Exception
-         except:
-             pPlayer.SendMessage("&RThat is not a valid ip-address!")
-             return
-         #Must be valid
-         pPlayer.ServerControl.AddIPBan(pPlayer, Arg, 0)
-         pPlayer.SendMessage("&SSuccessfully banned ip %s" % Arg)
+        Arg = Args[0]
+        #Check to see if this is a user...
+        Target = pPlayer.ServerControl.GetPlayerFromName(Arg)
+        if Target != None:
+            if Target.GetRankLevel() >= pPlayer.GetRankLevel():
+                pPlayer.SendMessage("&RYou may not ban that user.")
+                return
+            pPlayer.ServerControl.AddBan(pPlayer, Arg, 0)
+            pPlayer.SendMessage("&SSuccessfully added username ban on %s" % Arg)
+            #Set arg to the IP address so we can ban that too.
+            Arg = Target.GetIP()
+            #Check if IP is legit. If so, ban it.
+            Parts = Arg.split(".")
+            if len(Parts) != 4:
+                pPlayer.SendMessage("&RThat is not a valid ip-address!")
+                return
+            try:   
+                for Byte in Parts:
+                    if len(Byte) > 3:
+                        raise Exception
+                    Byte = int(Byte)
+                    if Byte < 0 or Byte > 255:
+                        raise Exception
+            except:
+                pPlayer.SendMessage("&RThat is not a valid ip-address!")
+                return
+            #Must be valid
+            pPlayer.ServerControl.AddIPBan(pPlayer, Arg, 0)
+            pPlayer.SendMessage("&SSuccessfully banned ip %s" % Arg)
 
 class DelIPBanCmd(CommandObject):
     '''Handler for the /delipban command. Removes an IP Address ban'''
     def Run(self, pPlayer, Args, Message):
-         Arg = Args[0]
-         #Verify this is a valid IP.
-         Parts = Arg.split(".")
-         if len(Parts) != 4:
-             pPlayer.SendMessage("&RThat is not a valid ip-address!")
-             return
-         try:
-             for Byte in Parts:
-                 if len(Byte) > 3:
-                     raise Exception
-                 Byte = int(Byte)
-                 if Byte < 0 or Byte > 255:
-                     raise Exception
-         except:
-             pPlayer.SendMessage("&RThat is not a valid ip-address!")
-             return
-         pPlayer.ServerControl.UnbanIP(Arg)
-         pPlayer.SendMessage("&SRemoved ban on ip \"%s\"" % Arg)
+        Arg = Args[0]
+        #Verify this is a valid IP.
+        Parts = Arg.split(".")
+        if len(Parts) != 4:
+            pPlayer.SendMessage("&RThat is not a valid ip-address!")
+            return
+        try:
+            for Byte in Parts:
+                if len(Byte) > 3:
+                    raise Exception
+                Byte = int(Byte)
+                if Byte < 0 or Byte > 255:
+                    raise Exception
+        except:
+            pPlayer.SendMessage("&RThat is not a valid ip-address!")
+            return
+        pPlayer.ServerControl.UnbanIP(Arg)
+        pPlayer.SendMessage("&SRemoved ban on ip \"%s\"" % Arg) #@IndentOk
 
 class WorldSetRankCmd(CommandObject):
     '''Sets the mimimum rank required to build on a world'''
