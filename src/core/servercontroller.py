@@ -52,36 +52,36 @@ class PlayerDbThread(threading.Thread):
     '''This thread performs asynchronous querys on the player databases, specifically for loading
     and saving player data'''
     CURRENT_VERSION = 3
-    def __init__(self,ServerControl):
+    def __init__(self, ServerControl):
         threading.Thread.__init__(self)
         self.ServerControl = ServerControl
         self.Tasks = Queue.Queue()
         self.Connection = None
         self.Running = True
 
-    def SavePlayerData(self,pPlayer):
+    def SavePlayerData(self, pPlayer):
         QueryString = "REPLACE INTO Players Values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
         try:
-            self.Connection.execute(QueryString,(pPlayer.GetName().lower(),pPlayer.GetJoinedTime(),pPlayer.GetLoginTime(),
-                                    pPlayer.GetBlocksMade(),pPlayer.GetBlocksErased(),pPlayer.GetIP(),pPlayer.GetIpLog(),
-                                    pPlayer.GetJoinNotifications(),pPlayer.GetTimePlayed(),pPlayer.GetKickCount(),
-                                    pPlayer.GetChatMessageCount(),pPlayer.GetLoginCount(),pPlayer.GetBannedBy(),
-                                    pPlayer.GetRankedBy(),pPlayer.GetPluginDataDictionary(JSON=True)))
+            self.Connection.execute(QueryString, (pPlayer.GetName().lower(), pPlayer.GetJoinedTime(), pPlayer.GetLoginTime(),
+                                    pPlayer.GetBlocksMade(), pPlayer.GetBlocksErased(), pPlayer.GetIP(), pPlayer.GetIpLog(),
+                                    pPlayer.GetJoinNotifications(), pPlayer.GetTimePlayed(), pPlayer.GetKickCount(),
+                                    pPlayer.GetChatMessageCount(), pPlayer.GetLoginCount(), pPlayer.GetBannedBy(),
+                                    pPlayer.GetRankedBy(), pPlayer.GetPluginDataDictionary(JSON=True)))
             self.Connection.commit()
         except dbapi.OperationalError:
             #Try again later
-            Console.Debug("PlayerDB","Failed to save player %s. Trying again soon" %pPlayer.GetName())
-            self.Tasks.put(["SAVE_PLAYER",pPlayer])
+            Console.Debug("PlayerDB", "Failed to save player %s. Trying again soon" % pPlayer.GetName())
+            self.Tasks.put(["SAVE_PLAYER", pPlayer])
 
     def Initialise(self):
         self.Connection = dbapi.connect("Player.db")
         self.Connection.text_factory = str
         self.Connection.row_factory = dbapi.Row
-        Console.Out("PlayerDB","Successfully connected to Player.db")
+        Console.Out("PlayerDB", "Successfully connected to Player.db")
         Result = self.Connection.execute("SELECT * FROM sqlite_master where name='Server' and type='table'")
         if Result.fetchone() == None:
             #Create the DB
-            Console.Warning("PlayerDB","No data exists in Player.db. Creating Tables")
+            Console.Warning("PlayerDB", "No data exists in Player.db. Creating Tables")
             self.Connection.execute("CREATE TABLE Server (DatabaseVersion INTEGER)")
             CreateQuery = "CREATE TABLE Players (Username TEXT UNIQUE,"
             CreateQuery += "Joined INTEGER, LastLogin INTEGER, BlocksMade INTEGER,"
@@ -97,18 +97,18 @@ class PlayerDbThread(threading.Thread):
             Result = self.Connection.execute("SELECT * from Server")
             Version = Result.fetchone()[0]
             if Version < PlayerDbThread.CURRENT_VERSION:
-                Console.Warning("PlayerDB","Player database is out of date. Updating now...")
+                Console.Warning("PlayerDB", "Player database is out of date. Updating now...")
                 while Version < PlayerDbThread.CURRENT_VERSION:
                     if Version == 1:
                         self._Apply1To2()
                     elif Version == 2:
                         self._Apply2To3()
                     Version += 1
-                    Console.Warning("PlayerDB","Player database now at version %d" %Version)
+                    Console.Warning("PlayerDB", "Player database now at version %d" % Version)
                 self.Connection.execute("DELETE FROM Server")
                 self.Connection.execute("INSERT INTO Server VALUES (?)", (PlayerDbThread.CURRENT_VERSION,))
                 self.Connection.commit()
-                Console.Out("PlayerDB","Player database is now up to date.")
+                Console.Out("PlayerDB", "Player database is now up to date.")
 
     def run(self):
         self.Initialise()
@@ -119,28 +119,28 @@ class PlayerDbThread(threading.Thread):
             elif Task[0] == "SAVE_PLAYER":
                 self.SavePlayerData(Task[1])
             elif Task[0] == "EXECUTE":
-                self.Execute(Task[1],Task[2])
+                self.Execute(Task[1], Task[2])
             elif Task[0] == "SHUTDOWN":
                 self.Connection.commit()
                 self.Running = False
                 self.Connection.close()
 
-    def Execute(self,QueryText,Args):
+    def Execute(self, QueryText, Args):
         '''Executes a query on the database'''
         try:
-            self.Connection.execute(QueryText,Args)
+            self.Connection.execute(QueryText, Args)
             self.Connection.commit()
         except dbapi.OperationalError:
-            self.Tasks.put(["EXECUTE",QueryText,Args])
+            self.Tasks.put(["EXECUTE", QueryText, Args])
             time.sleep(0.05)
 
-    def LoadPlayerData(self,Username):
+    def LoadPlayerData(self, Username):
         try:
             Result = self.Connection.execute("SELECT * FROM Players where Username = ?", (Username,))
             Result = Result.fetchone()
-            self.ServerControl.LoadResults.put((Username,Result))
+            self.ServerControl.LoadResults.put((Username, Result))
         except dbapi.OperationalError:
-            self.Tasks.put(["GET_PLAYER",Username])
+            self.Tasks.put(["GET_PLAYER", Username])
 
     #Version updates..
     #TODO: Clean this mess up.
@@ -152,7 +152,7 @@ class PlayerDbThread(threading.Thread):
                 self.Connection.execute("ALTER TABLE Players ADD COLUMN RankedBy TEXT DEFAULT ''")
                 Success = True
             except dbapi.OperationalError:
-                Console.Warning("PlayerDB","Failed to apply update. Trying again...")
+                Console.Warning("PlayerDB", "Failed to apply update. Trying again...")
                 time.sleep(1)
     def _Apply2To3(self):
         Success = False
@@ -161,7 +161,7 @@ class PlayerDbThread(threading.Thread):
                 self.Connection.execute("ALTER TABLE Players ADD COLUMN PluginData TEXT DEFAULT ''")
                 Success = True
             except dbapi.OperationalError:
-                Console.Warning("PlayerDB","Failed to apply update. Trying again...")
+                Console.Warning("PlayerDB", "Failed to apply update. Trying again...")
                 time.sleep(1)
 
 
@@ -172,7 +172,7 @@ class ServerController(object):
         self.RankStore = ConfigReader()
         self.ConfigValues.read("opticraft.ini")
         self.RankStore.read("ranks.ini")
-        self.Host = self.ConfigValues.GetValue("server","ListenInterface",'0.0.0.0')
+        self.Host = self.ConfigValues.GetValue("server", "ListenInterface", '0.0.0.0')
         if self.Host == '0.0.0.0':
             self.Host = ''
         #Check to see we have required directory's
@@ -186,63 +186,63 @@ class ServerController(object):
             os.mkdir("Logs")
         if os.path.exists("Templates") == False:
             os.mkdir("Templates")
-        Console.SetLogLevel(int(self.ConfigValues.GetValue("logs","ConsoleLogLevel",LOG_LEVEL_DEBUG)))
-        Console.SetFileLogging(bool(int(self.ConfigValues.GetValue("logs","ConsoleFileLogs","0"))))
-        Console.SetColour(int(self.ConfigValues.GetValue("server","ConsoleColour","1")))
+        Console.SetLogLevel(int(self.ConfigValues.GetValue("logs", "ConsoleLogLevel", LOG_LEVEL_DEBUG)))
+        Console.SetFileLogging(bool(int(self.ConfigValues.GetValue("logs", "ConsoleFileLogs", "0"))))
+        Console.SetColour(int(self.ConfigValues.GetValue("server", "ConsoleColour", "1")))
         self.RawRevision = "$Revision$"
         self.RawDate = "$Date$"
         self.Revision = self.RawRevision.split()[1]
-        self.VersionString = "Opticraft v0.2 r%s" %self.Revision
-        Console.Out("Startup","%s is starting up." %self.VersionString)
-        self.Port = int(self.ConfigValues.GetValue("server","Port","25565"))
-        self.Name = self.ConfigValues.GetValue("server","Name","An opticraft server")
-        self.Motd = self.ConfigValues.GetValue("server","Motd","Powered by opticraft!")
-        self.MaxClients = int(self.ConfigValues.GetValue("server","Max","32"))
-        self.Public = self.ConfigValues.GetValue("server","Public","True")
-        self.DumpStats = int(self.ConfigValues.GetValue("server","DumpStats","0"))
-        self.LanMode = bool(int(self.ConfigValues.GetValue("server","LanMode","0")))
-        self.ReuseSalt = bool(int(self.ConfigValues.GetValue("server","ReuseSalt","0")))
-        self.RelaxedAuthentication = bool(int(self.ConfigValues.GetValue("server","RelaxedAuth","1")))
-        self.SendBufferLimit = int(self.ConfigValues.GetValue("server","SendBufferLimit","4194304")) #4MB
-        self.IdlePlayerLimit = int(self.ConfigValues.GetValue("server","IdleLimit","3600"))
-        self.InstantClose = int(self.ConfigValues.GetValue("server","InstantClose","0"))
-        self.AllowCaps = bool(int(self.ConfigValues.GetValue("server","AllowCaps","0")))
-        self.MinCapsLength = int(self.ConfigValues.GetValue("server","MinLength","10"))
-        self.FloodPeriod = int(self.ConfigValues.GetValue("server","FloodPeriod","5"))
-        self.MaxConnectionsPerIP = int(self.ConfigValues.GetValue("server","MaxConnections","6"))
+        self.VersionString = "Opticraft v0.2 r%s" % self.Revision
+        Console.Out("Startup", "%s is starting up." % self.VersionString)
+        self.Port = int(self.ConfigValues.GetValue("server", "Port", "25565"))
+        self.Name = self.ConfigValues.GetValue("server", "Name", "An opticraft server")
+        self.Motd = self.ConfigValues.GetValue("server", "Motd", "Powered by opticraft!")
+        self.MaxClients = int(self.ConfigValues.GetValue("server", "Max", "32"))
+        self.Public = self.ConfigValues.GetValue("server", "Public", "True")
+        self.DumpStats = int(self.ConfigValues.GetValue("server", "DumpStats", "0"))
+        self.LanMode = bool(int(self.ConfigValues.GetValue("server", "LanMode", "0")))
+        self.ReuseSalt = bool(int(self.ConfigValues.GetValue("server", "ReuseSalt", "0")))
+        self.RelaxedAuthentication = bool(int(self.ConfigValues.GetValue("server", "RelaxedAuth", "1")))
+        self.SendBufferLimit = int(self.ConfigValues.GetValue("server", "SendBufferLimit", "4194304")) #4MB
+        self.IdlePlayerLimit = int(self.ConfigValues.GetValue("server", "IdleLimit", "3600"))
+        self.InstantClose = int(self.ConfigValues.GetValue("server", "InstantClose", "0"))
+        self.AllowCaps = bool(int(self.ConfigValues.GetValue("server", "AllowCaps", "0")))
+        self.MinCapsLength = int(self.ConfigValues.GetValue("server", "MinLength", "10"))
+        self.FloodPeriod = int(self.ConfigValues.GetValue("server", "FloodPeriod", "5"))
+        self.MaxConnectionsPerIP = int(self.ConfigValues.GetValue("server", "MaxConnections", "6"))
         self.LowLatencyMode = int(self.ConfigValues.GetValue("server", "LowLatencyMode", "0"))
-        self.BlockChangeCount = int(self.ConfigValues.GetValue("server","BlockChangeCount","45"))
+        self.BlockChangeCount = int(self.ConfigValues.GetValue("server", "BlockChangeCount", "45"))
         self.BlockChangePeriod = int(self.ConfigValues.GetValue("server", "BlockChangePeriod", "5"))
-        self.FloodMessageLimit = int(self.ConfigValues.GetValue("server","FloodCount","6"))
-        self.EnableWorldOverflow = bool(int(self.ConfigValues.GetValue("server","EnableWorldOverflow","1")))
-        self.ValueColour = "&" + self.ConfigValues.GetValue("server","ValueColour","e")
-        self.StaticColour = "&" + self.ConfigValues.GetValue("server","StaticColour","a")
-        self.NoticeColour = "&" + self.ConfigValues.GetValue("server","NoticeColour","e")
-        self.ErrorColour = "&" + self.ConfigValues.GetValue("server","ErrorColour","c")
-        self.EnableBlockLogs = int(self.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
-        self.WorldTimeout = int(self.ConfigValues.GetValue("worlds","IdleTimeout","300"))
-        self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server","PeriodicAnnounceFrequency","0"))
-        self.LogCommands = bool(int(self.ConfigValues.GetValue("logs","CommandLogs","1")))
-        self.LogChat = bool(int(self.ConfigValues.GetValue("logs","ChatLogs ","1")))
-        self.EnableIRC = bool(int(self.ConfigValues.GetValue("irc","EnableIRC","0")))
-        self.IRCServer = self.ConfigValues.GetValue("irc","Server","irc.esper.net")
-        self.IRCPort = int(self.ConfigValues.GetValue("irc","Port","6667"))
-        self.IRCChannel = self.ConfigValues.GetValue("irc","Channel","#a")
-        self.IRCNick = self.ConfigValues.GetValue("irc","Nickname","Optibot")
-        self.IRCGameToIRC = bool(int(self.ConfigValues.GetValue("irc","GameChatRelay","0")))
-        self.IRCIRCToGame = bool(int(self.ConfigValues.GetValue("irc","IrcChatRelay","0")))
-        self.IRCIdentificationMessage = self.ConfigValues.GetValue("irc","IdentifyCommand","NickServ identify")
+        self.FloodMessageLimit = int(self.ConfigValues.GetValue("server", "FloodCount", "6"))
+        self.EnableWorldOverflow = bool(int(self.ConfigValues.GetValue("server", "EnableWorldOverflow", "1")))
+        self.ValueColour = "&" + self.ConfigValues.GetValue("server", "ValueColour", "e")
+        self.StaticColour = "&" + self.ConfigValues.GetValue("server", "StaticColour", "a")
+        self.NoticeColour = "&" + self.ConfigValues.GetValue("server", "NoticeColour", "e")
+        self.ErrorColour = "&" + self.ConfigValues.GetValue("server", "ErrorColour", "c")
+        self.EnableBlockLogs = int(self.ConfigValues.GetValue("worlds", "EnableBlockHistory", 1))
+        self.WorldTimeout = int(self.ConfigValues.GetValue("worlds", "IdleTimeout", "300"))
+        self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server", "PeriodicAnnounceFrequency", "0"))
+        self.LogCommands = bool(int(self.ConfigValues.GetValue("logs", "CommandLogs", "1")))
+        self.LogChat = bool(int(self.ConfigValues.GetValue("logs", "ChatLogs ", "1")))
+        self.EnableIRC = bool(int(self.ConfigValues.GetValue("irc", "EnableIRC", "0")))
+        self.IRCServer = self.ConfigValues.GetValue("irc", "Server", "irc.esper.net")
+        self.IRCPort = int(self.ConfigValues.GetValue("irc", "Port", "6667"))
+        self.IRCChannel = self.ConfigValues.GetValue("irc", "Channel", "#a")
+        self.IRCNick = self.ConfigValues.GetValue("irc", "Nickname", "Optibot")
+        self.IRCGameToIRC = bool(int(self.ConfigValues.GetValue("irc", "GameChatRelay", "0")))
+        self.IRCIRCToGame = bool(int(self.ConfigValues.GetValue("irc", "IrcChatRelay", "0")))
+        self.IRCIdentificationMessage = self.ConfigValues.GetValue("irc", "IdentifyCommand", "NickServ identify")
         if self.EnableIRC:
-            self.IRCInterface = RelayBot(self.IRCNick,"Opticraft","Opticraft",self)
+            self.IRCInterface = RelayBot(self.IRCNick, "Opticraft", "Opticraft", self)
         self.Salt = self.GenerateSalt()
         self.OldSalt = ''
         if os.path.isfile("opticraft.salt"):
-            with open("opticraft.salt","r") as fHandle:
+            with open("opticraft.salt", "r") as fHandle:
                 self.OldSalt = fHandle.readline().strip()
         if self.ReuseSalt == True and self.OldSalt != '':
             self.Salt = self.OldSalt
         else:
-            with open("opticraft.salt","w") as fHandle:
+            with open("opticraft.salt", "w") as fHandle:
                 fHandle.write(self.Salt)            
         self.RankedPlayers = dict()
         self.RankNames = list() #Names of all ranks
@@ -252,9 +252,9 @@ class ServerController(object):
         self._ExampleRanks = str()
         self.LoadRanks()
         self.LoadPlayerRanks()
-        self.AdmincreteRank = self.ConfigValues.GetValue("server","AdmincreteRank",'operator')
+        self.AdmincreteRank = self.ConfigValues.GetValue("server", "AdmincreteRank", 'operator')
         if self.IsValidRank(self.AdmincreteRank) == False:
-            Console.Warning("Startup","Admincreterank refers to an unknown rank %s" %self.AdmincreteRank)
+            Console.Warning("Startup", "Admincreterank refers to an unknown rank %s" % self.AdmincreteRank)
             self.AdmincreteRank = 'builder'
         self.LastIdleCheck = time.time()
         self.IdleCheckPeriod = 60
@@ -295,8 +295,8 @@ class ServerController(object):
         self.CommandHandle = CommandHandler(self)
         if self.LogChat:
             try:
-                self.ChatLogHandle = open("Logs/chat.log","a")
-                self.PMLogHandle = open("Logs/pm.log","a")
+                self.ChatLogHandle = open("Logs/chat.log", "a")
+                self.PMLogHandle = open("Logs/pm.log", "a")
             except IOError:
                 self.ChatLogHandle = self.PMLogHandle = None
         else:
@@ -304,16 +304,16 @@ class ServerController(object):
         #Load up banned usernames.
         if os.path.isfile("banned.txt"):
             try:
-                with open("banned.txt","r") as fHandle:
+                with open("banned.txt", "r") as fHandle:
                     for line in fHandle:
                         Tokens = line.split(":")
                         self.BannedUsers[Tokens[0]] = int(Tokens[1])
             except:
-                Console.Error("ServerControl","Failed to load banned.txt!")
+                Console.Error("ServerControl", "Failed to load banned.txt!")
         #Load up banned IP's
         if os.path.isfile("banned-ip.txt"):
             try:
-                with open("banned-ip.txt","r") as fHandle:
+                with open("banned-ip.txt", "r") as fHandle:
                     for line in fHandle:
                         Tokens = line.split(":")
                         self.BannedIPs[Tokens[0]] = int(Tokens[1])
@@ -338,20 +338,20 @@ class ServerController(object):
             if FileName[-5:] != ".save":
                 continue
             WorldName = FileName[:-5]
-            self.WorldRankCache[WorldName.lower()], self.WorldHideCache[WorldName.lower()] = World.GetCacheValues(WorldName,self)
-            if WorldName == self.ConfigValues.GetValue("worlds","DefaultName","Main"):
+            self.WorldRankCache[WorldName.lower()], self.WorldHideCache[WorldName.lower()] = World.GetCacheValues(WorldName, self)
+            if WorldName == self.ConfigValues.GetValue("worlds", "DefaultName", "Main"):
                 #The default world is always loaded
                 continue
             self.IdleWorlds.append(WorldName)
-        self.ActiveWorlds.append(World(self,self.ConfigValues.GetValue("worlds","DefaultName","Main")))
+        self.ActiveWorlds.append(World(self, self.ConfigValues.GetValue("worlds", "DefaultName", "Main")))
         self.ActiveWorlds[0].SetIdleTimeout(0) #0 - never becomes idle
         #write out pid to opticraft.pid
         try:
-            pidHandle = open("opticraft.pid","w")
+            pidHandle = open("opticraft.pid", "w")
             pidHandle.write(str(os.getpid()))
             pidHandle.close()
         except IOError:
-            Console.Warning("Startup","Failed to write process id to opticraft.pid")
+            Console.Warning("Startup", "Failed to write process id to opticraft.pid")
 
         self.LastKeepAlive = -1
 
@@ -363,22 +363,22 @@ class ServerController(object):
         except:
             pass #Wont happen in any real world situation
         SeedChars = string.ascii_letters + string.digits
-        SeedCharLen = len(SeedChars) -1 
-        for i in xrange(random.randint(16,32)):
-            Salt += SeedChars[random.randint(0,SeedCharLen)]
-            if not random.randint(0,3):
+        SeedCharLen = len(SeedChars) - 1 
+        for i in xrange(random.randint(16, 32)):
+            Salt += SeedChars[random.randint(0, SeedCharLen)]
+            if not random.randint(0, 3):
                 try:
                     random.seed(os.urandom(512)) #Change the seed
                 except:
                     pass
         return Salt
 
-    def ConvertColours(self,Message):
-        return Message.replace("&S",self.StaticColour).replace("&V",self.ValueColour).replace("&N",self.NoticeColour).replace("&R",self.ErrorColour)
-    def LoadWorld(self,Name):
+    def ConvertColours(self, Message):
+        return Message.replace("&S", self.StaticColour).replace("&V", self.ValueColour).replace("&N", self.NoticeColour).replace("&R", self.ErrorColour)
+    def LoadWorld(self, Name):
         '''Name will be a valid world name (case sensitive)'''
         try:
-            pWorld = World(self,Name)
+            pWorld = World(self, Name)
         except WorldLoadFailedException:
             return False
         self.ActiveWorlds.append(pWorld)
@@ -386,24 +386,24 @@ class ServerController(object):
         pWorld.SetIdleTimeout(self.WorldTimeout)
         return pWorld
 
-    def UnloadWorld(self,pWorld):
+    def UnloadWorld(self, pWorld):
         self.ActiveWorlds.remove(pWorld)
         self.IdleWorlds.append(pWorld.Name)
-        Console.Out("World","World %s has been unloaded." %pWorld.Name)
+        Console.Out("World", "World %s has been unloaded." % pWorld.Name)
     def GetWorlds(self):
         '''Returns a tuple of lists. First element is a list of active World pointers
         ...Second element is a list of inactive World names'''
         ActiveWorlds = [pWorld for pWorld in self.ActiveWorlds]
         InactiveWorlds = [Name for Name in self.IdleWorlds]
-        return (ActiveWorlds,InactiveWorlds)
-    def GetActiveWorld(self,WorldName):
+        return (ActiveWorlds, InactiveWorlds)
+    def GetActiveWorld(self, WorldName):
         '''Returns a pointer to an active world with name WorldName'''
         WorldName = WorldName.lower()
         for pWorld in self.ActiveWorlds:
             if pWorld.Name.lower() == WorldName:
                 return pWorld
         return None
-    def WorldExists(self,Name):
+    def WorldExists(self, Name):
         Name = Name.lower()
         for pWorld in self.ActiveWorlds:
             if pWorld.Name.lower() == Name:
@@ -412,57 +412,57 @@ class ServerController(object):
             if WorldName.lower() == Name:
                 return True
         return False
-    def SetDefaultWorld(self,pWorld):
+    def SetDefaultWorld(self, pWorld):
         self.ActiveWorlds.remove(pWorld)
         self.ActiveWorlds[0].SetIdleTimeout(self.WorldTimeout)
-        self.ActiveWorlds.insert(0,pWorld)
+        self.ActiveWorlds.insert(0, pWorld)
         pWorld.SetIdleTimeout(0)
-        self.ConfigValues.set("worlds","DefaultName",pWorld.Name)
+        self.ConfigValues.set("worlds", "DefaultName", pWorld.Name)
         try:
-            fHandle = open("opticraft.ini","w")
+            fHandle = open("opticraft.ini", "w")
             self.ConfigValues.write(fHandle)
             fHandle.close()
         except:
             pass
-    def IsWorldHidden(self,Name):
+    def IsWorldHidden(self, Name):
         return self.WorldHideCache[Name.lower()]
-    def SetWorldHidden(self,Name,Value):
+    def SetWorldHidden(self, Name, Value):
         self.WorldHideCache[Name.lower()] = Value
-    def GetWorldRank(self,Name):
+    def GetWorldRank(self, Name):
         return self.WorldRankCache[Name.lower()]
-    def SetWorldRank(self,Name,Rank):
+    def SetWorldRank(self, Name, Rank):
         self.WorldRankCache[Name.lower()] = Rank
     def LoadCommandOverrides(self):
         Items = self.ConfigValues.GetItems("commandoverrides")
-        Console.Debug("Startup","Loading command overrides")
+        Console.Debug("Startup", "Loading command overrides")
         for Item in Items:
             Command = Item[0]
             Permission = Item[1]
             if self.IsValidRank(Permission):
                 if self.CommandHandle.OverrideCommandPermissions(Command, Permission) == False:
-                    Console.Warning("Startup","Unable to override command %s as it does not exist!" %Command)
+                    Console.Warning("Startup", "Unable to override command %s as it does not exist!" % Command)
                 else:
-                    Console.Debug("Startup","Successfully set command %s's permission to %s" %(Command,Permission))
+                    Console.Debug("Startup", "Successfully set command %s's permission to %s" % (Command, Permission))
             else:
-                Console.Warning("Startup","Unable to override command %s to %s as the rank doesn't exist!" %(Command,Permission))
+                Console.Warning("Startup", "Unable to override command %s to %s as the rank doesn't exist!" % (Command, Permission))
     
     def LoadIPCache(self):
         try:
-            Console.Debug("IPCache","Attempting to load IP Cache")
+            Console.Debug("IPCache", "Attempting to load IP Cache")
             start = time.time()
             Result = self.PlayerDBConnection.execute("SELECT Username, LastIP from Players")
             for Row in Result:
                 self.IPCache[Row["username"]] = Row["LastIP"]
-            Console.Debug("IPCache","Loaded IP Cache in %dms" %(time.time() - start))
+            Console.Debug("IPCache", "Loaded IP Cache in %dms" % (time.time() - start))
         except:
             #Non-critical
-            Console.Debug("IPCache","Failed to load IPCache")
+            Console.Debug("IPCache", "Failed to load IPCache")
             
-    def CheckIpCache(self,pPlayer):
-        return self.IPCache.get(pPlayer.GetName().lower(),None) == pPlayer.GetIP()
+    def CheckIpCache(self, pPlayer):
+        return self.IPCache.get(pPlayer.GetName().lower(), None) == pPlayer.GetIP()
     
     def LoadRanks(self):
-        Console.Debug("Startup","Loading ranks")
+        Console.Debug("Startup", "Loading ranks")
         #Add defaults incase some newby trys to remove a rank.
         self.RankLevels["spectator"] = 5
         self.RankLevels["guest"] = 10
@@ -488,7 +488,7 @@ class ServerController(object):
         for Item in Items:
             self.RankDescriptions[Item[0].lower()] = Item[1]
 
-        RankNames = ["Spectator","Guest","Builder","Operator","Admin","Owner"]
+        RankNames = ["Spectator", "Guest", "Builder", "Operator", "Admin", "Owner"]
         
         ToAdd = list()
         for Rank in RankNames:
@@ -496,7 +496,7 @@ class ServerController(object):
                 ToAdd.append(Rank)
         while len(ToAdd) > 0:
             self.RankNames.append(ToAdd.pop())
-        self.RankNames.sort(key = lambda rank: self.RankLevels[rank.lower()])
+        self.RankNames.sort(key=lambda rank: self.RankLevels[rank.lower()])
         ExampleRanks = list()
         for Rank in self.RankNames:
             if Rank.lower() in self.RankDescriptions.iterkeys():
@@ -509,15 +509,15 @@ class ServerController(object):
         except:
             return
         IsDirty = False
-        for Username,Rank in Items:
+        for Username, Rank in Items:
             if Rank.capitalize() not in self.RankNames:
                 IsDirty = True
-                Console.Warning("Ranks","Player %s has an unknown rank, '%s'" %(Username.capitalize(),Rank.capitalize()))
-                self.RankStore.remove_option("ranks",Username)
+                Console.Warning("Ranks", "Player %s has an unknown rank, '%s'" % (Username.capitalize(), Rank.capitalize()))
+                self.RankStore.remove_option("ranks", Username)
                 continue
             self.RankedPlayers[Username.lower()] = Rank.lower()
         if IsDirty:
-            with open("ranks.ini","w") as fHandle:
+            with open("ranks.ini", "w") as fHandle:
                 self.RankStore.write(fHandle)
 
     def LoadZones(self):
@@ -528,28 +528,28 @@ class ServerController(object):
                 continue
             if File[-3:] != "ini":
                 continue
-            pZone = Zone(File,self)
+            pZone = Zone(File, self)
             self.Zones.append(pZone)
-    def AddZone(self,pZone):
+    def AddZone(self, pZone):
         self.Zones.append(pZone)
-    def AddWorld(self,WorldName):
+    def AddWorld(self, WorldName):
         self.IdleWorlds.append(WorldName)
-        self.WorldRankCache[WorldName.lower()], self.WorldHideCache[WorldName.lower()] = World.GetCacheValues(WorldName,self)
-    def InsertZones(self,pWorld):
+        self.WorldRankCache[WorldName.lower()], self.WorldHideCache[WorldName.lower()] = World.GetCacheValues(WorldName, self)
+    def InsertZones(self, pWorld):
         '''Gives the world all its zones to worry about'''
         for pZone in self.Zones:
             if pZone.Map == pWorld.Name:
                 pWorld.InsertZone(pZone)
     def GetZones(self):
         return self.Zones
-    def DeleteZone(self,pZone):
+    def DeleteZone(self, pZone):
         '''if pZone is a new zone it wont be in our list'''
         if pZone in self.Zones:
             self.Zones.remove(pZone)
 
     def LoadAnnouncements(self):
         Items = self.ConfigValues.GetItems("announcements")
-        Items.sort(key= lambda item: item[0])
+        Items.sort(key=lambda item: item[0])
         if len(Items) == 0:
             self.PeriodicAnnounceFrequency = 0
             return
@@ -557,61 +557,61 @@ class ServerController(object):
             self.PeriodicNotices.append(Item[1])
     def LoadRules(self):
         Items = self.ConfigValues.GetItems("rules")
-        Items.sort(key= lambda item: item[0])
+        Items.sort(key=lambda item: item[0])
         for Item in Items:
             self.Rules.append(Item[1])
     def LoadGreeting(self):
         Items = self.ConfigValues.GetItems("greeting")
-        Items.sort(key= lambda item: item[0])
+        Items.sort(key=lambda item: item[0])
         for Item in Items:
             self.Greeting.append(Item[1])
     def GetCurrentCpuUsage(self):
         '''Returns the last 60 seconds of cpu usage in a tuple of (Total,user,system)'''
         if self.LastCpuTimes == 0:
-            return(0.0,0.0,0.0)
-        User = (self.CurrentCpuTimes[0]-self.LastCpuTimes[0])/60.0 *100.0
-        System = (self.CurrentCpuTimes[1]-self.LastCpuTimes[1])/60.0 *100.0
-        return (User+System,User,System)
+            return(0.0, 0.0, 0.0)
+        User = (self.CurrentCpuTimes[0] - self.LastCpuTimes[0]) / 60.0 * 100.0
+        System = (self.CurrentCpuTimes[1] - self.LastCpuTimes[1]) / 60.0 * 100.0
+        return (User + System, User, System)
     def GetTotalCpuUsage(self):
         '''Returns the average cpu usage since startup in a tuple of (Total,user,system)'''
-        User = (os.times()[0]-self.InitialCpuTimes[0])/(self.Now - self.StartTime) *100.0
-        System = (os.times()[1]-self.InitialCpuTimes[1])/(self.Now - self.StartTime) *100.0
-        return (User+System,User,System)
+        User = (os.times()[0] - self.InitialCpuTimes[0]) / (self.Now - self.StartTime) * 100.0
+        System = (os.times()[1] - self.InitialCpuTimes[1]) / (self.Now - self.StartTime) * 100.0
+        return (User + System, User, System)
 
-    def GetRank(self,Username):
-        return self.RankedPlayers.get(Username.lower(),'guest')
-    def GetRankLevel(self,Rank):
+    def GetRank(self, Username):
+        return self.RankedPlayers.get(Username.lower(), 'guest')
+    def GetRankLevel(self, Rank):
         return self.RankLevels[Rank.lower()]
-    def IsValidRank(self,Rank):
+    def IsValidRank(self, Rank):
         return Rank.lower() in self.RankLevels
     def GetExampleRanks(self):
         '''This returns a string of Ranks with valid descriptions'''
         return self._ExampleRanks
 
-    def SetRank(self,Initiator,Username,Rank):
+    def SetRank(self, Initiator, Username, Rank):
         if Rank != 'guest':
             self.RankedPlayers[Username.lower()] = Rank.lower()
-            self.RankStore.set("ranks",Username,Rank)
+            self.RankStore.set("ranks", Username, Rank)
             pPlayer = self.GetPlayerFromName(Username)
             if pPlayer != None:
                 pPlayer.SetRank(Rank)
                 pPlayer.SetRankedBy(Initiator.GetName())
-                pPlayer.SendMessage("&SYour rank has been changed to %s!" %Rank.capitalize())
+                pPlayer.SendMessage("&SYour rank has been changed to %s!" % Rank.capitalize())
         else:
             if Username.lower() in self.RankedPlayers:
                 del self.RankedPlayers[Username.lower()]
-                self.RankStore.remove_option("ranks",Username)
+                self.RankStore.remove_option("ranks", Username)
                 pPlayer = self.GetPlayerFromName(Username)
                 if pPlayer != None:
                     pPlayer.SetRank('guest')
                     pPlayer.SetRankedBy(Initiator.GetName())
-                    pPlayer.SendMessage("&SYour rank has been changed to %s!" %Rank.capitalize())
+                    pPlayer.SendMessage("&SYour rank has been changed to %s!" % Rank.capitalize())
             else:
                 return
-        with open("ranks.ini","w") as fHandle:
+        with open("ranks.ini", "w") as fHandle:
             self.RankStore.write(fHandle)
-        self.PlayerDBThread.Tasks.put(["EXECUTE","Update Players set RankedBy = ? where Username = ?",(Initiator.GetName(),Username.lower())])
-    def HandleKill(self,SignalNumber,Frame):
+        self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set RankedBy = ? where Username = ?", (Initiator.GetName(), Username.lower())])
+    def HandleKill(self, SignalNumber, Frame):
         raise SigkillException()
     def Run(self):
         '''Main Thread from the application. Runs The sockets and worlds'''
@@ -625,9 +625,9 @@ class ServerController(object):
                 pass
 
         if platform.system() == 'Linux':
-            signal.signal(signal.SIGTERM,self.HandleKill)
-        Console.Out("Startup","Startup procedure completed in %.0fms" %((time.time() -self.StartTime)*1000))
-        Console.Out("Server","Press Ctrl-C at any time to shutdown the sever safely.")
+            signal.signal(signal.SIGTERM, self.HandleKill)
+        Console.Out("Startup", "Startup procedure completed in %.0fms" % ((time.time() - self.StartTime) * 1000))
+        Console.Out("Server", "Press Ctrl-C at any time to shutdown the sever safely.")
         self.PluginMgr.OnServerStart()
         while self.Running == True:
             self.Now = time.time()
@@ -656,8 +656,8 @@ class ServerController(object):
                 if NewWorld == None:
                     pPlayer.Disconnect("The server is full!")
                 else:
-                    self.SendJoinMessage('&N%s has connected. Joined map %s%s' %(pPlayer.GetName(),
-                    self.RankColours[NewWorld.GetMinRank()],NewWorld.Name))
+                    self.SendJoinMessage('&N%s has connected. Joined map %s%s' % (pPlayer.GetName(),
+                    self.RankColours[NewWorld.GetMinRank()], NewWorld.Name))
                     NewWorld.AddPlayer(pPlayer)
                     for Line in self.Greeting:
                         pPlayer.SendMessage(Line)
@@ -678,13 +678,13 @@ class ServerController(object):
 
             if self.PeriodicAnnounceFrequency:
                 if self.LastAnnounce + self.PeriodicAnnounceFrequency < self.Now:
-                    Message = self.PeriodicNotices[random.randint(0,len(self.PeriodicNotices)-1)]
+                    Message = self.PeriodicNotices[random.randint(0, len(self.PeriodicNotices) - 1)]
                     self.SendMessageToAll(Message)
                     self.LastAnnounce = self.Now
 
             #Run the IRC Bot if enabled
             if self.EnableIRC:
-                asyncore.loop(count=1,timeout=0.001)
+                asyncore.loop(count=1, timeout=0.001)
             #Remove idle players
             if self.IdlePlayerLimit != 0:
                 if self.LastIdleCheck + self.IdleCheckPeriod < self.Now:
@@ -706,7 +706,7 @@ class ServerController(object):
             SleepTime = 0.05 - (time.time() - self.Now)
             if 0 < SleepTime:
                 time.sleep(SleepTime)
-    def Shutdown(self,Crash):
+    def Shutdown(self, Crash):
         '''Starts shutting down the server. If crash is true it only saves what is needed'''
         self.ShuttingDown = True
         self.HeartBeatControl.Running = False
@@ -720,7 +720,7 @@ class ServerController(object):
         self.PlayerDBThread.Tasks.put(["SHUTDOWN"])
         if self.EnableIRC:
             self.IRCInterface.OnShutdown(Crash)
-            asyncore.loop(timeout=0.01,count=1)
+            asyncore.loop(timeout=0.01, count=1)
     def GetName(self):
         return self.Name
     def GetMotd(self):
@@ -728,12 +728,12 @@ class ServerController(object):
     def GetUptimeStr(self):
         return ElapsedTime((int(self.Now)) - int(self.StartTime))
 
-    def GetPlayerFromName(self,Username):
+    def GetPlayerFromName(self, Username):
         '''Returns a player pointer if the user is logged else.
         ...Otherwise returns none if player is not on'''
-        return self.PlayerNames.get(Username.lower(),None)
+        return self.PlayerNames.get(Username.lower(), None)
 
-    def IsBanned(self,pPlayer):
+    def IsBanned(self, pPlayer):
         '''Checks if a player is banned. Also erases any expired bans!'''
         if self.BannedUsers.has_key(pPlayer.GetName().lower()):
             ExpiryTime = self.BannedUsers[pPlayer.GetName().lower()]
@@ -756,7 +756,7 @@ class ServerController(object):
 
     def FlushBans(self):
         try:
-            fHandle = open("banned.txt","w")
+            fHandle = open("banned.txt", "w")
             for key in self.BannedUsers:
                 fHandle.write(key + ":" + str(self.BannedUsers[key]) + "\r\n")
             fHandle.close()
@@ -764,14 +764,14 @@ class ServerController(object):
             pass
     def FlushIPBans(self):
         try:
-            fHandle = open("banned-ip.txt","w")
+            fHandle = open("banned-ip.txt", "w")
             for key in self.BannedIPs:
                 fHandle.write(key + ":" + str(self.BannedIPs[key]) + "\r\n")
             fHandle.close()
         except:
             pass
         
-    def AddBan(self,Initiator,Username,Expiry):
+    def AddBan(self, Initiator, Username, Expiry):
         self.BannedUsers[Username.lower()] = Expiry
         self.FlushBans()
         pPlayer = self.GetPlayerFromName(Username)
@@ -782,26 +782,26 @@ class ServerController(object):
             pPlayer.Disconnect("You are banned from this server")
             return True
         else:
-            self.PlayerDBThread.Tasks.put(["EXECUTE","Update Players set BannedBy = ? where Username = ?",(Initiator.GetName(),Username.lower())])
+            self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set BannedBy = ? where Username = ?", (Initiator.GetName(), Username.lower())])
             return False
-    def AddIPBan(self,Admin,IP,Expiry):
+    def AddIPBan(self, Admin, IP, Expiry):
         self.BannedIPs[IP] = Expiry
         self.FlushIPBans()
         for pPlayer in self.PlayerSet:
             if pPlayer.GetIP() == IP:
                 pPlayer.IncreaseKickCount()
-                self.PluginMgr.OnKick(pPlayer,Admin,'Ip ban', True)
+                self.PluginMgr.OnKick(pPlayer, Admin, 'Ip ban', True)
                 pPlayer.Disconnect("You are ip-banned from this server")
-                self.SendNotice("%s has been ip-banned by %s" %(pPlayer.GetName(),Admin.GetName()))
-    def Unban(self,Username):
+                self.SendNotice("%s has been ip-banned by %s" % (pPlayer.GetName(), Admin.GetName()))
+    def Unban(self, Username):
         if self.BannedUsers.has_key(Username.lower()) == True:
             del self.BannedUsers[Username.lower()]
             self.FlushBans()
-            self.PlayerDBThread.Tasks.put(["EXECUTE","Update Players set BannedBy = '' where Username = ?",(Username.lower(),)])
+            self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set BannedBy = '' where Username = ?", (Username.lower(),)])
             return True
         else:
             return False
-    def UnbanIP(self,IP):
+    def UnbanIP(self, IP):
         if self.BannedIPs.has_key(IP) == True:
             del self.BannedIPs[IP]
             self.FlushIPBans()
@@ -809,13 +809,13 @@ class ServerController(object):
         else:
             return False
 
-    def Kick(self,Operator,Username,Reason):
+    def Kick(self, Operator, Username, Reason):
         pPlayer = self.GetPlayerFromName(Username)
         if pPlayer != None:
             pPlayer.IncreaseKickCount()
             self.PluginMgr.OnKick(pPlayer, Operator, Reason, False)
-            self.SendNotice("%s was kicked by %s. Reason: %s" %(Username,Operator.GetName(),Reason))
-            pPlayer.Disconnect("You were kicked by %s. Reason: %s" %(Operator.GetName(),Reason))
+            self.SendNotice("%s was kicked by %s. Reason: %s" % (Username, Operator.GetName(), Reason))
+            pPlayer.Disconnect("You were kicked by %s. Reason: %s" % (Operator.GetName(), Reason))
             return True
         return False
     def RemoveIdlePlayers(self):
@@ -824,13 +824,13 @@ class ServerController(object):
                 if pPlayer.GetRankLevel() <= self.RankLevels['guest']:
                     pPlayer.Disconnect("You were kicked for being idle")
                     if pPlayer.IsAuthenticated():
-                        self.SendMessageToAll("&V%s has been kicked for being idle" %pPlayer.GetName())
+                        self.SendNotice("%s has been kicked for being idle" % pPlayer.GetName())
 
-    def AttemptAddPlayer(self,pPlayer):
+    def AttemptAddPlayer(self, pPlayer):
         if len(self.PlayerSet) == self.MaxClients:
             return False, 'Server is full!'
         else:
-            ConnectionCount = self.IPCount.get(pPlayer.GetIP(),0) + 1
+            ConnectionCount = self.IPCount.get(pPlayer.GetIP(), 0) + 1
             if self.MaxConnectionsPerIP and ConnectionCount > self.MaxConnectionsPerIP:
                 return False, "Too many connections from your ip-address"
             else:
@@ -843,15 +843,15 @@ class ServerController(object):
             self.NumPlayers += 1
             if self.NumPlayers > self.PeakPlayers:
                 self.PeakPlayers = self.NumPlayers
-            return True,''
+            return True, ''
 
-    def RemovePlayer(self,pPlayer):
+    def RemovePlayer(self, pPlayer):
         self.PlayersPendingRemoval.add(pPlayer)
         
-    def _RemovePlayer(self,pPlayer):
+    def _RemovePlayer(self, pPlayer):
         '''Internally removes a player
         Note:Player poiner may not neccessarily exist in our storage'''
-        Console.Out("Player","Player %s has left the server" %pPlayer.GetName())
+        Console.Out("Player", "Player %s has left the server" % pPlayer.GetName())
         self.PluginMgr.OnDisconnect(pPlayer)
         if pPlayer in self.PlayerSet:
             self.PlayerSet.remove(pPlayer)
@@ -860,7 +860,7 @@ class ServerController(object):
         if pPlayer in self.AuthPlayers:
             self.AuthPlayers.remove(pPlayer)
         else:
-            self.SendJoinMessage("&N%s has left the server" %pPlayer.GetName())
+            self.SendJoinMessage("&N%s has left the server" % pPlayer.GetName())
             if self.GetPlayerFromName(pPlayer.GetName()) != None:
                 del self.PlayerNames[pPlayer.GetName().lower()]
             if self.EnableIRC:
@@ -876,22 +876,22 @@ class ServerController(object):
         if pPlayer.IsDataLoaded():
             #Update the played time.
             pPlayer.UpdatePlayedTime()
-            self.PlayerDBThread.Tasks.put(["SAVE_PLAYER",pPlayer])
+            self.PlayerDBThread.Tasks.put(["SAVE_PLAYER", pPlayer])
         pPlayer.SetWorld(None)
         self.HeartBeatControl.DecreaseClients()
         self.NumPlayers -= 1
 
-    def GetPlayerFromSocket(self,Socket):
+    def GetPlayerFromSocket(self, Socket):
         return self.SocketToPlayer[Socket]
 
-    def SendNotice(self,Message):
+    def SendNotice(self, Message):
         Packet = OptiCraftPacket(SMSG_MESSAGE)
         Packet.WriteByte(0)
         Message = self.ConvertColours(("&N" + Message))
         Packet.WriteString(self.ConvertColours(Message[:64]))
         self.SendPacketToAll(Packet)
 
-    def SendJoinMessage(self,Message):
+    def SendJoinMessage(self, Message):
         Packet = OptiCraftPacket(SMSG_MESSAGE)
         Packet.WriteByte(0)
         Message = self.ConvertColours(Message)
@@ -899,18 +899,18 @@ class ServerController(object):
         for pPlayer in self.PlayerSet:
             if pPlayer.GetJoinNotifications():
                 pPlayer.SendPacket(Packet)
-    def SendMessageToAll(self,Message):
+    def SendMessageToAll(self, Message):
         Packet = OptiCraftPacket(SMSG_MESSAGE)
         Packet.WriteByte(0)
         Message = self.ConvertColours(Message)
         Packet.WriteString(Message)
         self.SendPacketToAll(Packet)
         
-    def SendChatMessage(self,From,Message,NewLine = ">",NormalStart = True):
+    def SendChatMessage(self, From, Message, NewLine=">", NormalStart=True):
         if NormalStart:
-            Message = '%s: &f%s' %(From,Message)
+            Message = '%s: &f%s' % (From, Message)
         else:
-            Message = '%s %s' %(From,Message)
+            Message = '%s %s' % (From, Message)
         Words = Message.split()
         OutStr = ''
         for Word in Words:
@@ -921,10 +921,10 @@ class ServerController(object):
                     OutStr = OutStr[:-2]
                 self.SendMessageToAll(OutStr)
                 OutStr = NewLine
-            OutStr = '%s %s' %(OutStr,Word)
+            OutStr = '%s %s' % (OutStr, Word)
             
         self.SendMessageToAll(OutStr)
-    def SendPacketToAll(self,Packet):
+    def SendPacketToAll(self, Packet):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
         Data = Packet.GetOutData()
