@@ -50,7 +50,7 @@ class PluginBase(object):
     "on_worldunload": 1,
     }
 
-    def __init__(self,PluginMgr,ServerControl,Name):
+    def __init__(self, PluginMgr, ServerControl, Name):
         self.PluginMgr = PluginMgr
         self.ServerControl = ServerControl
         self.ModuleName = Name
@@ -68,12 +68,12 @@ class PluginBase(object):
         ...Besides hooks and commands (PluginMgr will handle them)'''
         pass
 
-    def AddCommand(self,Command,CmdObj,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias=False):
-         self.PluginMgr.RegisterCommand(self, CmdObj(self,Permissions,HelpMsg,ErrorMsg,MinArgs,Command,Alias))
+    def AddCommand(self, Command, CmdObj, Permissions, HelpMsg, ErrorMsg, MinArgs, Alias=False):
+         self.PluginMgr.RegisterCommand(self, CmdObj(self, Permissions, HelpMsg, ErrorMsg, MinArgs, Command, Alias))
 
 class Hook(object):
     '''Simple struct to store Hook info'''
-    def __init__(self,Plugin,Function):
+    def __init__(self, Plugin, Function):
         self.Plugin = Plugin
         self.Function = Function
 
@@ -81,55 +81,55 @@ class PluginException(Exception):
     pass
 
 class PluginManager(object):
-    def __init__(self,ServerControl):
+    def __init__(self, ServerControl):
         self.ServerControl = ServerControl
         self.Hooks = dict() #Value is a list, Key is a lower case string
         self.Commands = dict() #Key is string (PluginModule), value is list of commandobjects
         self.Plugins = set() # A set of PluginBase Objects.
         self.PluginModules = list() #List of loaded plugin names
 
-    def _GetHooks(self,Name):
-        return self.Hooks.get(Name,list())
+    def _GetHooks(self, Name):
+        return self.Hooks.get(Name, list())
 
     def LoadPlugins(self):
         Plugins = self.ServerControl.ConfigValues.GetItems("plugins")
-        Console.Out("PluginMgr","Loading plugins...")
+        Console.Out("PluginMgr", "Loading plugins...")
         for PluginField in Plugins:
             PluginFile = PluginField[0]
             Enabled = PluginField[1]
             if Enabled != False:
                 self.LoadPlugin(PluginFile)
-        Console.Out("PluginMgr","Finished loading plugins...")
+        Console.Out("PluginMgr", "Finished loading plugins...")
 
-    def LoadPlugin(self,PluginFile):
+    def LoadPlugin(self, PluginFile):
         try:
-            PluginModule = __import__("%s" %PluginFile)
+            PluginModule = __import__("%s" % PluginFile)
             reload(PluginModule) #Ensure the most up to date version from disk is loaded
         except ImportError:
-            Console.Warning("PluginMgr","Plugin file %s could not be imported" %PluginFile)
+            Console.Warning("PluginMgr", "Plugin file %s could not be imported" % PluginFile)
             return False
         self.PluginModules.append(PluginFile.lower())
         #Search for PluginBase objects to instantiate
         for Key in PluginModule.__dict__:
             Value = PluginModule.__dict__[Key]
-            if type(Value) == type and issubclass(Value,PluginBase) and Value is not PluginBase:
+            if type(Value) == type and issubclass(Value, PluginBase) and Value is not PluginBase:
                 #Make a plugin!
                 pPlugin = None
                 try:
-                    pPlugin = Value(self,self.ServerControl,PluginFile)
-                    Console.Out("PluginMgr","Loaded object \"%s\" from plugin \"%s\"" %(Key,PluginFile))
+                    pPlugin = Value(self, self.ServerControl, PluginFile)
+                    Console.Out("PluginMgr", "Loaded object \"%s\" from plugin \"%s\"" % (Key, PluginFile))
                     self.Plugins.add(pPlugin)
                     pPlugin.OnLoad()
                 except Exception as exc:
                     if pPlugin in self.Plugins:
                         self.Plugins.remove(pPlugin)
-                    Console.Warning("PluginMgr","Error loading plugin object \"%s\" from file \"%s\"" %(Key,PluginFile))
-                    if isinstance(exc,PluginException):
-                        Console.Debug("PluginMgr","Exception: %s" %str(exc))
+                    Console.Warning("PluginMgr", "Error loading plugin object \"%s\" from file \"%s\"" % (Key, PluginFile))
+                    if isinstance(exc, PluginException):
+                        Console.Debug("PluginMgr", "Exception: %s" % str(exc))
                     continue
         return True
 
-    def UnloadPlugin(self,PluginName):
+    def UnloadPlugin(self, PluginName):
         '''Unloads all pluginbase objects in module pluginname'''
         PluginName = PluginName.lower()
         if PluginName in self.PluginModules:
@@ -162,26 +162,26 @@ class PluginManager(object):
             #TODO: Commands! >:)
             pPlugin.OnUnload()
             self.Plugins.remove(pPlugin) #Goodbye, cruel world!
-        Console.Out("PluginMgr","Successfully unloaded plugin \"%s\"" %PluginName)
+        Console.Out("PluginMgr", "Successfully unloaded plugin \"%s\"" % PluginName)
         return True
 
-    def RegisterHook(self,Plugin,Function,HookName):
+    def RegisterHook(self, Plugin, Function, HookName):
         '''Registers the plugin and function for the hook'''
-        NumArgs = PluginBase.HookSpecs.get(HookName,None)
+        NumArgs = PluginBase.HookSpecs.get(HookName, None)
         if NumArgs == None:
-            raise PluginException("Hook %s does not exist!" %HookName)
+            raise PluginException("Hook %s does not exist!" % HookName)
         NumArgs += 1 #Include the 'self' argument
         FuncArgs = len(inspect.getargspec(Function)[0])
         if FuncArgs != NumArgs:
             raise PluginException("Hook %s requires %d arguments. Function %s provides %d" 
-                %(HookName,NumArgs,Function.func_name,FuncArgs))
+                % (HookName, NumArgs, Function.func_name, FuncArgs))
 
-        HookList = self.Hooks.get(HookName.lower(),list())
-        HookList.append(Hook(Plugin,Function))
+        HookList = self.Hooks.get(HookName.lower(), list())
+        HookList.append(Hook(Plugin, Function))
         if HookName.lower() not in self.Hooks:
             self.Hooks[HookName.lower()] = HookList
 
-    def RemoveHook(self,Plugin,HookName):
+    def RemoveHook(self, Plugin, HookName):
         HookList = self.Hooks[HookName.lower()]
         FoundHook = False
         for Hook in HookList:
@@ -190,12 +190,12 @@ class PluginManager(object):
                 FoundHook = True
                 break
         if FoundHook == False:
-            Console.Warning("PluginMgr","Plugin %s tried to remove non-existant hook \"%s\"" %(Plugin,HookName))
+            Console.Warning("PluginMgr", "Plugin %s tried to remove non-existant hook \"%s\"" % (Plugin, HookName))
 
-    def RegisterCommand(self,Plugin,CommandObj):
+    def RegisterCommand(self, Plugin, CommandObj):
         if self.ServerControl.CommandHandle.CommandTable.has_key(CommandObj.Name.lower()):
             return
-        pList = self.Commands.get(Plugin.ModuleName,None)
+        pList = self.Commands.get(Plugin.ModuleName, None)
         if pList == None:
             pList = list()
             self.Commands[Plugin.ModuleName] = pList
@@ -211,60 +211,60 @@ class PluginManager(object):
         for Hook in self._GetHooks("on_start"):
             Hook.Function()
 
-    def OnPlayerConnect(self,pPlayer):
+    def OnPlayerConnect(self, pPlayer):
         '''Called when a player successfully authenticates with the server.
         ...At this stage they will not be on a world nor have any data loaded'''
         for Hook in self._GetHooks("on_connect"):
             Hook.Function(pPlayer)
-    def OnPlayerDataLoaded(self,pPlayer):
+    def OnPlayerDataLoaded(self, pPlayer):
         '''Called when a players data is loaded from the database'''
         for Hook in self._GetHooks("on_playerdataloaded"):
             Hook.Function(pPlayer)
 
-    def OnDisconnect(self,pPlayer):
+    def OnDisconnect(self, pPlayer):
         '''Called when a player leaves the server for whatever reason (Kick,Ban,Quit,etc)'''
         for Hook in self._GetHooks("on_disconnect"):
             Hook.Function(pPlayer)
 
-    def OnKick(self,pPlayer,Initiator,Reason,Ban):
+    def OnKick(self, pPlayer, Initiator, Reason, Ban):
         '''Called when a player is kicked or banned. Ban is true when it is a Ban (D'oh!)'''
         for Hook in self._GetHooks("on_kick"):
-            Hook.Function(pPlayer,Initiator,Reason,Ban)
+            Hook.Function(pPlayer, Initiator, Reason, Ban)
 
-    def OnAttemptPlaceBlock(self,pWorld,pPlayer,BlockValue,x,y,z):
+    def OnAttemptPlaceBlock(self, pWorld, pPlayer, BlockValue, x, y, z):
         '''Plugins may return false to disallow the block placement'''
         Allowed = True
         for Hook in self._GetHooks("on_attemptplaceblock"):
-            Result = Hook.Function(pWorld,pPlayer,BlockValue,x,y,z)
+            Result = Hook.Function(pWorld, pPlayer, BlockValue, x, y, z)
             if Result == False:
                 Allowed = False
         return Allowed
 
-    def OnPostPlaceBlock(self,pWorld,pPlayer,BlockValue,x,y,z):
+    def OnPostPlaceBlock(self, pWorld, pPlayer, BlockValue, x, y, z):
         '''Called when a block is changed on the map.
         ...IMPORTANT: The pPlayer reference may be null in the event
         ...of an automated (non-player) block change!'''
         for Hook in self._GetHooks("on_postplaceblock"):
-            Hook.Function(pWorld,pPlayer,BlockValue,x,y,z)
+            Hook.Function(pWorld, pPlayer, BlockValue, x, y, z)
 
-    def OnChat(self,pPlayer,ChatMessage):
+    def OnChat(self, pPlayer, ChatMessage):
         '''Called when a player types a message
         ...This fires for any message besides slash "/" commands and PM's'''
         for Hook in self._GetHooks("on_chat"):
-            Hook.Function(pPlayer,ChatMessage)
+            Hook.Function(pPlayer, ChatMessage)
 
-    def OnChangeWorld(self,pPlayer,OldWorld,NewWorld):
+    def OnChangeWorld(self, pPlayer, OldWorld, NewWorld):
         '''Called when a player changes world, be it via
         .../join, /tp, /summon, or any other means'''
         for Hook in self._GetHooks("on_changeworld"):
-            Hook.Function(pPlayer,OldWorld,NewWorld)
+            Hook.Function(pPlayer, OldWorld, NewWorld)
 
-    def OnWorldLoad(self,pWorld):
+    def OnWorldLoad(self, pWorld):
         '''Called when a world object is created'''
         for Hook in self._GetHooks("on_worldload"):
             Hook.Function(pWorld)
 
-    def OnWorldUnload(self,pWorld):
+    def OnWorldUnload(self, pWorld):
         '''Called when a world is unloaded'''
         for Hook in self._GetHooks("on_worldunload"):
             Hook.Function(pWorld)
@@ -273,28 +273,28 @@ class PluginManager(object):
 class PluginDict(object):
     '''Dictionary wrapper which ensures that key is always of type string
     ...Optionally can alse ensure all values can be encoded to a json type'''
-    def __init__(self, NonJsonValues = True):
+    def __init__(self, NonJsonValues=True):
         self._dictionary = dict()
         #Nasty piece of code.
         self.NonJsonValues = NonJsonValues
-        self.ValidJsonTypes = set([str,int,long,bool,dict,list,None,float])
+        self.ValidJsonTypes = set([str, int, long, bool, dict, list, None, float])
 
-    def __getitem__(self,Key):
+    def __getitem__(self, Key):
         if type(Key) != str:
             raise ValueError("Plugin Data key must be a string")
         return self._dictionary[Key]
 
-    def __setitem__(self,Key,Value):
+    def __setitem__(self, Key, Value):
         if type(Key) != str:
             raise ValueError("Plugin Data key must be a string")
         if self.NonJsonValues == False and type(Value) not in self.ValidJsonTypes:
             raise ValueError("Values must be json encodeable")
 
         self._dictionary[Key] = Value
-    def __delitem__(self,Key):
+    def __delitem__(self, Key):
         del self._dictionary[Key]
 
-    def __contains__(self,Value):
+    def __contains__(self, Value):
         return Value in self._dictionary
     def __iter__(self):
         return self._dictionary.__iter__()
@@ -302,12 +302,12 @@ class PluginDict(object):
         return self._dictionary.__reversed__()
     def __len__(self):
         return self._dictionary.__len__()
-    def get(self,Key,Default):
-        return self._dictionary.get(Key,Default)
+    def get(self, Key, Default):
+        return self._dictionary.get(Key, Default)
 
     def AsJSON(self):
         assert(self.NonJsonValues == False)
-        return json.dumps(self._dictionary,ensure_ascii=True)
+        return json.dumps(self._dictionary, ensure_ascii=True)
 
     @staticmethod
     def FromJSON(JSON):
@@ -324,7 +324,7 @@ class PluginDict(object):
 
 class PluginData(PluginDict):
     def __init__(self):
-        PluginDict.__init__(self,NonJsonValues = False)
+        PluginDict.__init__(self, NonJsonValues=False)
 
     @staticmethod
     def FromJSON(JSON):

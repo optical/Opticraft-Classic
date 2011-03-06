@@ -28,7 +28,7 @@
 import asynchat
 import socket
 class IRCChannel(object):
-    def __init__(self,Name):
+    def __init__(self, Name):
         self.Users = set()
         self.Topic = ''
         self.Modes = ''
@@ -45,9 +45,9 @@ class IRCChannel(object):
         User = self.GetUser(Nickname)
         if User:
             self.Users.remove(User)
-    def HasUser(self,NickName):
+    def HasUser(self, NickName):
         return self.GetUser(NickName) != None
-    def RenameUser(self,OldNick,NewNick):
+    def RenameUser(self, OldNick, NewNick):
         self.GetUser(OldNick).SetName(NewNick)
     def GetName(self):
         return self.Name
@@ -56,17 +56,17 @@ class IRCChannel(object):
 
 class IRCUser(object):
     '''Per-Channel user instance'''
-    def __init__(self,Name,Mode):
+    def __init__(self, Name, Mode):
         self.Name = Name
         self.Mode = Mode
         self.Modes = set()
     def GetName(self):
         return self.Name
-    def SetName(self,NewNick):
+    def SetName(self, NewNick):
         self.Name = NewNick
 
 class IRCClient(asynchat.async_chat):
-    def __init__(self,Nick,Email,RealName):
+    def __init__(self, Nick, Email, RealName):
         asynchat.async_chat.__init__(self)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.Buffer = []
@@ -85,24 +85,24 @@ class IRCClient(asynchat.async_chat):
 
 
     def _populate_handlers(self):
-        self.AddPacketHandler("353",self._OnNames)
-        self.AddPacketHandler("JOIN",self._OnJoin)
-        self.AddPacketHandler("PART",self._OnPart)
-        self.AddPacketHandler("NICK",self._OnNickChange)
-        self.AddPacketHandler("QUIT",self._OnQuit)
+        self.AddPacketHandler("353", self._OnNames)
+        self.AddPacketHandler("JOIN", self._OnJoin)
+        self.AddPacketHandler("PART", self._OnPart)
+        self.AddPacketHandler("NICK", self._OnNickChange)
+        self.AddPacketHandler("QUIT", self._OnQuit)
 
-    def AddPacketHandler(self,Packet,Function):
-        PackList = self.PacketHandlers.get(Packet.lower(),None)
+    def AddPacketHandler(self, Packet, Function):
+        PackList = self.PacketHandlers.get(Packet.lower(), None)
         if PackList == None:
             self.PacketHandlers[Packet.lower()] = list()
             PackList = self.PacketHandlers[Packet.lower()]
         PackList.append(Function)
 
-    def Connect(self,Host,Port):
+    def Connect(self, Host, Port):
         self.Host = Host
         self.Port = Port
-        self.connect((Host,Port))
-    def SetMaxReconnectAttempts(self,Attempts):
+        self.connect((Host, Port))
+    def SetMaxReconnectAttempts(self, Attempts):
         self.MaxReconnectAttempts = Attempts
 
     def collect_incoming_data(self, data):
@@ -113,21 +113,21 @@ class IRCClient(asynchat.async_chat):
         self.Buffer = list()
         Tokens = Packet.strip().split()
         if Tokens[0] == "PING":
-            self.Write("PONG %s" %Tokens[1])
+            self.Write("PONG %s" % Tokens[1])
             return
-        Handler = self.PacketHandlers.get(Tokens[1].lower(),None)
+        Handler = self.PacketHandlers.get(Tokens[1].lower(), None)
         if Handler != None:
             for Function in Handler:
                 Function(Packet)
 
     def handle_connect(self):
-        self.Write('NICK %s' %self.Nick)
-        self.Write('USER %s "" "%s" :%s' %(self.Email,self.Host,self.RealName))
+        self.Write('NICK %s' % self.Nick)
+        self.Write('USER %s "" "%s" :%s' % (self.Email, self.Host, self.RealName))
     def handle_close(self):
         if self.Host != '' and self.ReconnectAttempts < self.MaxReconnectAttempts:
             self.ReconnectAttempts += 1
             try:
-                self.connect((self.Host,self.Port))
+                self.connect((self.Host, self.Port))
             except:
                 pass
             else:
@@ -135,26 +135,26 @@ class IRCClient(asynchat.async_chat):
         else:
             self.close()
 
-    def Write(self,Data):
-        self.push('%s\r\n' %(Data))
+    def Write(self, Data):
+        self.push('%s\r\n' % (Data))
 
-    def JoinChannel(self,Channel):
-        self.Write("JOIN %s" %Channel)
-    def PartChannel(self,Channel):
-        self.Write("PART %s" %Channel)
-    def SendMessage(self,Destination,Message):
-        self.Write("PRIVMSG %s :%s" %(Destination,Message))
+    def JoinChannel(self, Channel):
+        self.Write("JOIN %s" % Channel)
+    def PartChannel(self, Channel):
+        self.Write("PART %s" % Channel)
+    def SendMessage(self, Destination, Message):
+        self.Write("PRIVMSG %s :%s" % (Destination, Message))
 
 
-    def GetChannel(self,ChannelName):
+    def GetChannel(self, ChannelName):
         for Channel in self.Channels:
             if Channel.GetName() == ChannelName:
                 return Channel
         return None
-    def InChannel(self,ChannelName):
+    def InChannel(self, ChannelName):
         return self.GetChannel(ChannelName) != None
 
-    def _OnJoin(self,Data):
+    def _OnJoin(self, Data):
         Tokens = Data.split()
         Username = Tokens[0][1:].split("!")[0]
         Channel = Tokens[2]
@@ -166,13 +166,13 @@ class IRCClient(asynchat.async_chat):
                 pass
             else:
                 pChannel = IRCChannel(Channel)
-                pChannel.AddUser(IRCUser(self.Nick,''))
+                pChannel.AddUser(IRCUser(self.Nick, ''))
                 self.Channels.append(pChannel)
         else:
             pChannel = self.GetChannel(Channel)
-            pChannel.AddUser(IRCUser(Username,''))
+            pChannel.AddUser(IRCUser(Username, ''))
 
-    def _OnNames(self,Data):
+    def _OnNames(self, Data):
         Tokens = Data.split()
         if Tokens[2] != self.Nick:
             return
@@ -185,15 +185,15 @@ class IRCClient(asynchat.async_chat):
             return
         Nicks[0] = Nicks[0][1:]
         for Nick in Nicks:
-            if Nick[0] in ['+','@','%','&','~']:
+            if Nick[0] in ['+', '@', '%', '&', '~']:
                 Mode = Nick[0]
                 Nick = Nick[1:]
             else:
                 Mode = ''
-            pChannel.AddUser(IRCUser(Nick,Mode))
+            pChannel.AddUser(IRCUser(Nick, Mode))
 
 
-    def _OnPart(self,Data):
+    def _OnPart(self, Data):
         Tokens = Data.split()
         Username = Tokens[0][1:].split("!")[0]
         Channel = Tokens[2]
@@ -204,7 +204,7 @@ class IRCClient(asynchat.async_chat):
         else:
             self.GetChannel(Channel).RemoveUser(Username)
 
-    def _OnNickChange(self,Data):
+    def _OnNickChange(self, Data):
         Tokens = Data.split()
         Username = Tokens[0][1:].split("!")[0]
         NewNick = Tokens[2][1:]
@@ -212,8 +212,8 @@ class IRCClient(asynchat.async_chat):
             self.Nick = NewNick
         for Channel in self.Channels:
             if Channel.HasUser(Username):
-                Channel.RenameUser(Username,NewNick)
-    def _OnQuit(self,Data):
+                Channel.RenameUser(Username, NewNick)
+    def _OnQuit(self, Data):
         Tokens = Data.split()
         Username = Tokens[0][1:].split("!")[0]
         Reason = ' '.join(Tokens[2:])

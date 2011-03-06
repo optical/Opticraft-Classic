@@ -33,18 +33,18 @@ from core.opticraftpacket import OptiCraftPacket
 from core.console import *
 
 class ListenSocket(object):
-    def __init__(self,Host,Port):
+    def __init__(self, Host, Port):
         self.Socket = socket.socket()
         #This allows the server to restart instantly instead of waiting around
-        self.Socket.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEADDR, 1 )
+        self.Socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.port = Port
         #Bind our socket to an interface
         try:
-            self.Socket.bind((Host,Port))
+            self.Socket.bind((Host, Port))
             self.Socket.listen(5)
             self.Socket.setblocking(0)
         except:
-            Console.Error("ListenSocket","Critical error - could not bind socket to port %d on interface \"%s\"" %(Port,Host))
+            Console.Error("ListenSocket", "Critical error - could not bind socket to port %d on interface \"%s\"" % (Port, Host))
             exit(1)
 
     def Accept(self):
@@ -62,14 +62,14 @@ class ListenSocket(object):
         del self.Socket
 
 class SocketManager(object):
-    def __init__(self,ServerControl):
-        self.ListenSock = ListenSocket(ServerControl.Host,ServerControl.Port)
+    def __init__(self, ServerControl):
+        self.ListenSock = ListenSocket(ServerControl.Host, ServerControl.Port)
         self.PlayerSockets = list() #Used for reading
         self.ClosingSockets = set() #Sockets which need to be terminated.
         self.ClosingPlayers = dict()
         self.ServerControl = ServerControl
 
-    def Terminate(self,Crash):
+    def Terminate(self, Crash):
         '''Stop the listening socket'''
         self.ListenSock.Terminate()
         
@@ -86,8 +86,8 @@ class SocketManager(object):
             if self.ServerControl.LowLatencyMode == False:
                 PlayerSock.setsockopt(0x06, socket.TCP_NODELAY, 0)
             self.PlayerSockets.append(PlayerSock)
-            pPlayer = Player(PlayerSock,SockAddress,self.ServerControl)
-            Result,Message = self.ServerControl.AttemptAddPlayer(pPlayer)
+            pPlayer = Player(PlayerSock, SockAddress, self.ServerControl)
+            Result, Message = self.ServerControl.AttemptAddPlayer(pPlayer)
             if Result == False:
                 #Server is full
                 try:
@@ -107,7 +107,7 @@ class SocketManager(object):
         #Shutdown any sockets we need to.
         if len(self.ClosingSockets) > 0:
             #Send any last packets to the client. This allows us to show them the kick message
-            WriteableSockets = select([],self.ClosingSockets,[],0.01)
+            WriteableSockets = select([], self.ClosingSockets, [], 0.01)
             WriteableSockets = WriteableSockets[1]
             for wSocket in WriteableSockets:
                 pPlayer = self.ClosingPlayers[wSocket]
@@ -129,7 +129,7 @@ class SocketManager(object):
         #Finished that. Now to see what our sockets are up to...
         if len(self.PlayerSockets) == 0:
             return #calling select() on windows with 3 empty lists results in an exception.
-        rlist, wlist, xlist = select(self.PlayerSockets,self.PlayerSockets,[],0.100) #100ms timeout
+        rlist, wlist, xlist = select(self.PlayerSockets, self.PlayerSockets, [], 0.100) #100ms timeout
         for Socket in rlist:
             try:
                 data = Socket.recv(4096)
@@ -167,11 +167,11 @@ class SocketManager(object):
             Buffer.truncate(0)
             Buffer.write(ToSend[result:])
 
-    def CloseSocket(self,Socket):
+    def CloseSocket(self, Socket):
         self.ClosingSockets.add(Socket)
         self.ClosingPlayers[Socket] = self.ServerControl.GetPlayerFromSocket(Socket)
 
-    def _RemoveSocket(self,Socket):
+    def _RemoveSocket(self, Socket):
         #this function can be called twice in a row.
         #This occurs when the socket is returned in both the rlist and wlist
         #... after the select() is called, and both the read() and write()
