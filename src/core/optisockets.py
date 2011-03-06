@@ -33,8 +33,10 @@ from core.opticraftpacket import OptiCraftPacket
 from core.console import *
 from core.constants import SMSG_DISCONNECT
 
+class SocketBindFailException(Exception):
+    pass
 class ListenSocket(object):
-    def __init__(self, Host, Port):
+    def __init__(self, Host, Port, BackLog = 5):
         self.Socket = socket.socket()
         #This allows the server to restart instantly instead of waiting around
         self.Socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -42,11 +44,10 @@ class ListenSocket(object):
         #Bind our socket to an interface
         try:
             self.Socket.bind((Host, Port))
-            self.Socket.listen(5)
+            self.Socket.listen(BackLog)
             self.Socket.setblocking(0)
         except:
-            Console.Error("ListenSocket", "Critical error - could not bind socket to port %d on interface \"%s\"" % (Port, Host))
-            exit(1)
+            raise SocketBindFailException("Could not bind to host '%s' on port %d" %(Host,Port))
 
     def Accept(self):
         try:
@@ -64,7 +65,11 @@ class ListenSocket(object):
 
 class SocketManager(object):
     def __init__(self, ServerControl):
-        self.ListenSock = ListenSocket(ServerControl.Host, ServerControl.Port)
+        try:
+            self.ListenSock = ListenSocket(ServerControl.Host, ServerControl.Port)
+        except SocketBindFailException, e:
+            Console.Error("ListenSocket", str(e))
+            raise e
         self.PlayerSockets = list() #Used for reading
         self.ClosingSockets = set() #Sockets which need to be terminated.
         self.ClosingPlayers = dict()

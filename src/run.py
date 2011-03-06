@@ -39,8 +39,9 @@ except ImportError:
 from core.console import *
 
 def Main():
-    ServerControl = ServerController()
+    ServerControl = None
     try:
+        ServerControl = ServerController()
         ServerControl.Run()
     except:
         Console.Error("Shutdown", "Server is shutting down.")
@@ -53,11 +54,12 @@ def Main():
             fHandle.close()
         except IOError:
             traceback.print_exc()
-        ServerControl.Shutdown(True)
         if os.path.isfile("opticraft.pid"):
-            os.remove("opticraft.pid")
-        if ServerControl.InstantClose == 0:
-            raw_input("\nPress enter to terminate ")
+            os.remove("opticraft.pid")            
+        if ServerControl != None:
+            ServerControl.Shutdown(True)
+            if ServerControl.InstantClose == 0:
+                raw_input("\nPress enter to terminate ")
         return
 if __name__ == "__main__":
     ProfileRun = False
