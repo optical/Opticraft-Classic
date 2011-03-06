@@ -57,7 +57,7 @@ class ListenSocket(object):
                 return None, None
             else:
                 #Critical error
-                raise socket.error
+                raise socket.error(error_no, error_msg)
 
     def Terminate(self):
         self.Socket.close()
@@ -65,11 +65,16 @@ class ListenSocket(object):
 
 class SocketManager(object):
     def __init__(self, ServerControl):
-        try:
-            self.ListenSock = ListenSocket(ServerControl.Host, ServerControl.Port)
-        except SocketBindFailException, e:
-            Console.Error("ListenSocket", str(e))
-            raise e
+        self.ListenSockets = []
+        assert(len(ServerControl.Port.split(',')) > 0)
+        for Port in ServerControl.Port.split(','):
+            #Undocumented feature: Opticraft supports listening on multiple ports
+            try:
+                ListenSock = ListenSocket(ServerControl.Host, int(Port))
+                self.ListenSockets.append(ListenSock)
+            except SocketBindFailException, e:
+                Console.Error("ListenSocket", str(e))
+                raise e
         self.PlayerSockets = list() #Used for reading
         self.ClosingSockets = set() #Sockets which need to be terminated.
         self.ClosingPlayers = dict()
@@ -77,14 +82,25 @@ class SocketManager(object):
 
     def Terminate(self, Crash):
         '''Stop the listening socket'''
-        self.ListenSock.Terminate()
+        for ListenSock in self.ListenSockets:
+            ListenSock.Terminate()
+        
+    def AcceptConnection(self):
+        '''None blocking call. Returns Tuple of Socket, IP or None,None if would block'''
+        for ListenSock in self.ListenSockets:
+            PlayerSock, PlayerIP = ListenSock.Accept()
+            if PlayerSock != None:
+                return PlayerSock, PlayerIP
+            else:
+                continue
+        return None, None
         
     def Run(self):
         '''Runs a cycle. Accept sockets from our listen socket, and then perform jobs
         ...on our Playersockets, such as reading and writing'''
 
         #Pop a socket off the stack
-        PlayerSock, SockAddress = self.ListenSock.Accept()
+        PlayerSock, SockAddress = self.AcceptConnection()
         while PlayerSock != None and SockAddress != None:
             PlayerSock.setblocking(0)
             #This enables socket buffering through the nagle algorithmn
@@ -108,7 +124,7 @@ class SocketManager(object):
                 except:
                     pass
 
-            PlayerSock, SockAddress = self.ListenSock.Accept()
+            PlayerSock, SockAddress = self.AcceptConnection()
 
         #Shutdown any sockets we need to.
         if len(self.ClosingSockets) > 0:
