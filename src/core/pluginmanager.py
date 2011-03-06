@@ -69,7 +69,7 @@ class PluginBase(object):
         pass
 
     def AddCommand(self, Command, CmdObj, Permissions, HelpMsg, ErrorMsg, MinArgs, Alias=False):
-         self.PluginMgr.RegisterCommand(self, CmdObj(self, Permissions, HelpMsg, ErrorMsg, MinArgs, Command, Alias))
+        self.PluginMgr.RegisterCommand(self, CmdObj(self, Permissions, HelpMsg, ErrorMsg, MinArgs, Command, Alias))
 
 class Hook(object):
     '''Simple struct to store Hook info'''
