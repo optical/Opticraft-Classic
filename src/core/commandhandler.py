@@ -34,7 +34,7 @@ from core.console import *
 class CommandObject(object):
     '''Parents class for all commands'''
     '''Abstract'''
-    def __init__(self,CmdHandler,Permissions,HelpMsg,ErrorMsg,MinArgs,Name,Alias = False):
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Alias=False):
         self.Permissions = Permissions
         self.PermissionLevel = CmdHandler.ServerControl.GetRankLevel(Permissions)
         self.Name = Name
@@ -44,7 +44,7 @@ class CommandObject(object):
         self.CmdHandler = CmdHandler
         self.IsAlias = Alias
 
-    def Execute(self,pPlayer,Message):
+    def Execute(self, pPlayer, Message):
         '''Checks player has correct permissions and number of arguments'''
         if self.Permissions != '':
             if pPlayer.HasPermission(self.Permissions) == False:
@@ -53,34 +53,34 @@ class CommandObject(object):
         Tokens = Message.split()[1:]
         Args = len(Tokens)
         if Args < self.MinArgs:
-            pPlayer.SendMessage('%s%s' %('&R',self.ErrorMsg))
+            pPlayer.SendMessage('%s%s' % ('&R', self.ErrorMsg))
             return
         else:
-            self.Run(pPlayer,Tokens,Message)
+            self.Run(pPlayer, Tokens, Message)
             if self.CmdHandler.LogFile != None and self.PermissionLevel >= self.CmdHandler.ServerControl.GetRankLevel('operator'):
                 #Log all operator+ commands
                 self.LogCommand(pPlayer, self.Name, Tokens)
-    def LogCommand(self,pPlayer,Command, Args):
-        TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]",time.localtime())
-        OutStr = "%s User %s (%s) used command %s with args: %s\n" %(TimeFormat,pPlayer.GetName(),pPlayer.GetIP(), Command, ' '.join(Args))
+    def LogCommand(self, pPlayer, Command, Args):
+        TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]", time.localtime())
+        OutStr = "%s User %s (%s) used command %s with args: %s\n" % (TimeFormat, pPlayer.GetName(), pPlayer.GetIP(), Command, ' '.join(Args))
         self.CmdHandler.LogFile.write(OutStr)
-    def Run(self,pPlayer,Args,Message):
+    def Run(self, pPlayer, Args, Message):
         '''Subclasses will perform their work here'''
         pass
 
 class CommandHandler(object):
     '''Stores all the commands avaliable on opticraft and processes any command messages'''
-    def __init__(self,ServerControl):
+    def __init__(self, ServerControl):
         self.CommandTable = OrderedDict()
         self.ServerControl = ServerControl
         self.LogFile = None
         if ServerControl.LogCommands:
             try:
-                self.LogFile = open("Logs/commands.log","a")
+                self.LogFile = open("Logs/commands.log", "a")
             except IOError:
-                Console.Warning("Logging","Unable to open file \"Logs/commands.log\" - logging disabled")
+                Console.Warning("Logging", "Unable to open file \"Logs/commands.log\" - logging disabled")
 
-    def HandleCommand(self,pPlayer,Message):
+    def HandleCommand(self, pPlayer, Message):
         '''Called when a player types a slash command'''
         if Message == '':
             pPlayer.SendMessage("&RPlease enter in a command!")
@@ -92,18 +92,18 @@ class CommandHandler(object):
             return
         else:
             CommandObj = self.CommandTable[Command]
-            CommandObj.Execute(pPlayer,Message)
+            CommandObj.Execute(pPlayer, Message)
 
-    def AddCommand(self,Command,CmdObj,Permissions,HelpMsg,ErrorMsg,MinArgs,Alias=False):
-        self.CommandTable[Command.lower()] = CmdObj(self,Permissions,HelpMsg,ErrorMsg,MinArgs,Command,Alias)
+    def AddCommand(self, Command, CmdObj, Permissions, HelpMsg, ErrorMsg, MinArgs, Alias=False):
+        self.CommandTable[Command.lower()] = CmdObj(self, Permissions, HelpMsg, ErrorMsg, MinArgs, Command, Alias)
 
-    def AddCommandObj(self,CmdObj):
+    def AddCommandObj(self, CmdObj):
         self.CommandTable[CmdObj.Name.lower()] = CmdObj
-    def RemoveCommand(self,CmdObj):
+    def RemoveCommand(self, CmdObj):
         del self.CommandTable[CmdObj.Name.lower()]
 
-    def OverrideCommandPermissions(self,Command,NewPermission):
-        CmdObj = self.CommandTable.get(Command.lower(),None)
+    def OverrideCommandPermissions(self, Command, NewPermission):
+        CmdObj = self.CommandTable.get(Command.lower(), None)
         if CmdObj != None:
             CmdObj.Permissions = NewPermission.lower()
             CmdObj.PermissionLevel = self.ServerControl.GetRankLevel(NewPermission.lower())

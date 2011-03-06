@@ -32,8 +32,8 @@ from core.ircclient import IRCClient
 
 class RelayBot(IRCClient):
     COLOUR_CODE = chr(0x03)
-    def __init__(self,Nick,Email,RealName,ServerControl):
-        IRCClient.__init__(self,Nick,Email,RealName)
+    def __init__(self, Nick, Email, RealName, ServerControl):
+        IRCClient.__init__(self, Nick, Email, RealName)
         self.AddPacketHandler("001", self.OnConnection)
         self.ServerControl = ServerControl
         self.Channel = self.ServerControl.IRCChannel.lower()
@@ -46,11 +46,11 @@ class RelayBot(IRCClient):
         self.PopulateColourMap()
         self.FloodControl = dict()
         if self.IRCToGame:
-            self.AddPacketHandler("PRIVMSG",self.HandlePrivMsg)
+            self.AddPacketHandler("PRIVMSG", self.HandlePrivMsg)
             self.AddPacketHandler("PART", self.OnPart)
             self.AddPacketHandler("QUIT", self.OnQuit)
             self.AddPacketHandler("NICK", self.OnPart)
-    def HandlePrivMsg(self,Data):
+    def HandlePrivMsg(self, Data):
         if self.IRCToGame:
             Tokens = Data.split()
             if Tokens[2].lower() == self.Channel:
@@ -73,37 +73,37 @@ class RelayBot(IRCClient):
                                 return
                     else:
                         #Add them to the map
-                        self.FloodControl[Username] = [self.ServerControl.Now,1]
+                        self.FloodControl[Username] = [self.ServerControl.Now, 1]
                 Message = ' '.join(Tokens[3:])[1:]
-                Message = Message.translate(None,DisabledChars)
+                Message = Message.translate(None, DisabledChars)
                 if Message[0:6] != "ACTION":
-                    self.ServerControl.SendChatMessage('&3[IRC]&f-%s' %Username,Message)
+                    self.ServerControl.SendChatMessage('&3[IRC]&f-%s' % Username, Message)
                 else:
-                    self.ServerControl.SendChatMessage('&3[IRC]&5 *%s' %Username, Message[6:],NewLine="&5",NormalStart=False)
+                    self.ServerControl.SendChatMessage('&3[IRC]&5 *%s' % Username, Message[6:], NewLine="&5", NormalStart=False)
     def Connect(self):
-        Console.Out("IRC","Connecting to irc server %s on port %d" %(self.Host,self.Port))
-        self.connect((self.Host,self.Port))
-    def OnConnection(self,Data):
-        Console.Out("IRC","Attmpting to join channel %s" %self.Channel)
-        self.Write("JOIN %s" %self.Channel)
+        Console.Out("IRC", "Connecting to irc server %s on port %d" % (self.Host, self.Port))
+        self.connect((self.Host, self.Port))
+    def OnConnection(self, Data):
+        Console.Out("IRC", "Attmpting to join channel %s" % self.Channel)
+        self.Write("JOIN %s" % self.Channel)
         Tokens = self.IdentificationMessage.split()
         self.SendMessage(Tokens[0], ' '.join(Tokens[1:]))
-    def HandleIngameMessage(self,From,Message):
+    def HandleIngameMessage(self, From, Message):
         if self.GameToIrc:
             for Key in self.ColourMap:
-                From = From.replace(Key,self.ColourMap[Key])
-            self.SendMessage(self.Channel, '(%s%s): %s' %(From,RelayBot.COLOUR_CODE,Message))
-    def HandleEmote(self,From,Message):
+                From = From.replace(Key, self.ColourMap[Key])
+            self.SendMessage(self.Channel, '(%s%s): %s' % (From, RelayBot.COLOUR_CODE, Message))
+    def HandleEmote(self, From, Message):
         if self.GameToIrc:
-            self.SendMessage(self.Channel, '*%s6%s %s' %(RelayBot.COLOUR_CODE,From,Message))
-    def HandleLogin(self,Name):
+            self.SendMessage(self.Channel, '*%s6%s %s' % (RelayBot.COLOUR_CODE, From, Message))
+    def HandleLogin(self, Name):
         if self.GameToIrc:
-            self.SendMessage(self.Channel,'%s connected to the server' %Name)
-    def HandleLogout(self,Name):
+            self.SendMessage(self.Channel, '%s connected to the server' % Name)
+    def HandleLogout(self, Name):
         if self.GameToIrc and self.ServerControl.ShuttingDown == False:
-            self.SendMessage(self.Channel, '%s left the server' %Name)
+            self.SendMessage(self.Channel, '%s left the server' % Name)
 
-    def OnPart(self,Data):
+    def OnPart(self, Data):
         Tokens = Data.split()
         Username = Tokens[0][1:].split("!")[0]
         Channel = Tokens[2]
@@ -114,7 +114,7 @@ class RelayBot(IRCClient):
                 del self.FloodControl[Username]
             except:
                 pass
-    def OnNickChange(self,Data):
+    def OnNickChange(self, Data):
         Tokens = Data.split()
         Username = Tokens[0][1:].split("!")[0]
         NewNick = Tokens[2][1:]
@@ -123,30 +123,30 @@ class RelayBot(IRCClient):
             del self.FloodControl[Username]
         except:
             pass
-    def OnQuit(self,Data):
+    def OnQuit(self, Data):
         Tokens = Data.split()
         Username = Tokens[0][1:].split("!")[0]
         try:
             del self.FloodControl[Username]
         except:
             pass
-    def OnShutdown(self,Crash):
+    def OnShutdown(self, Crash):
         self.Write("QUIT :Server is shutting down")
 
     def PopulateColourMap(self):
         self.ColourMap["&0"] = '' #Black
-        self.ColourMap["&1"] = '%s2' %RelayBot.COLOUR_CODE
-        self.ColourMap["&2"] = '%s3' %RelayBot.COLOUR_CODE #Dark Blue
-        self.ColourMap["&3"] = '%s10' %RelayBot.COLOUR_CODE #Dark Teal
-        self.ColourMap["&4"] = '%s4' %RelayBot.COLOUR_CODE #Dark red
-        self.ColourMap["&5"] = '%s6' %RelayBot.COLOUR_CODE #Purple
-        self.ColourMap["&6"] = '%s8' %RelayBot.COLOUR_CODE #gold
-        self.ColourMap["&7"] = '%s14' %RelayBot.COLOUR_CODE #Grey
-        self.ColourMap["&8"] = '%s14' %RelayBot.COLOUR_CODE #Dark Grey
-        self.ColourMap["&9"] = '%s12' %RelayBot.COLOUR_CODE #blue
-        self.ColourMap["&a"] = '%s3' %RelayBot.COLOUR_CODE #Green
-        self.ColourMap["&b"] = '%s10' %RelayBot.COLOUR_CODE #Teal
-        self.ColourMap["&c"] = '%s4' %RelayBot.COLOUR_CODE  #Red
-        self.ColourMap["&d"] = '%s13' %RelayBot.COLOUR_CODE #Pink
-        self.ColourMap["&e"] = '%s8' %RelayBot.COLOUR_CODE #Yellow
+        self.ColourMap["&1"] = '%s2' % RelayBot.COLOUR_CODE
+        self.ColourMap["&2"] = '%s3' % RelayBot.COLOUR_CODE #Dark Blue
+        self.ColourMap["&3"] = '%s10' % RelayBot.COLOUR_CODE #Dark Teal
+        self.ColourMap["&4"] = '%s4' % RelayBot.COLOUR_CODE #Dark red
+        self.ColourMap["&5"] = '%s6' % RelayBot.COLOUR_CODE #Purple
+        self.ColourMap["&6"] = '%s8' % RelayBot.COLOUR_CODE #gold
+        self.ColourMap["&7"] = '%s14' % RelayBot.COLOUR_CODE #Grey
+        self.ColourMap["&8"] = '%s14' % RelayBot.COLOUR_CODE #Dark Grey
+        self.ColourMap["&9"] = '%s12' % RelayBot.COLOUR_CODE #blue
+        self.ColourMap["&a"] = '%s3' % RelayBot.COLOUR_CODE #Green
+        self.ColourMap["&b"] = '%s10' % RelayBot.COLOUR_CODE #Teal
+        self.ColourMap["&c"] = '%s4' % RelayBot.COLOUR_CODE  #Red
+        self.ColourMap["&d"] = '%s13' % RelayBot.COLOUR_CODE #Pink
+        self.ColourMap["&e"] = '%s8' % RelayBot.COLOUR_CODE #Yellow
         self.ColourMap["&f"] = '' #white

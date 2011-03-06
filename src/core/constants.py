@@ -116,7 +116,7 @@ def UnicodeToStr(obj):
         return [UnicodeToStr(x) for x in obj]
     elif type(obj) == dict:
         NewDict = {}
-        for Key,Value in obj.iteritems():
+        for Key, Value in obj.iteritems():
             Key = UnicodeToStr(Key)
             Value = UnicodeToStr(Value)
             NewDict[Key] = Value
@@ -126,11 +126,11 @@ def UnicodeToStr(obj):
 
 
 import string
-DisabledBlocks = set([BLOCK_WATER,BLOCK_STILLWATER,BLOCK_LAVA,BLOCK_STILLLAVA,BLOCK_HARDROCK])
+DisabledBlocks = set([BLOCK_WATER, BLOCK_STILLWATER, BLOCK_LAVA, BLOCK_STILLLAVA, BLOCK_HARDROCK])
 DisabledChars = ''.join([c for c in map(chr, range(256)) if c not in string.ascii_letters + string.digits + string.punctuation + string.whitespace]) + '&\r\n'
 ColourChars = frozenset('1234567890abcedfABCEDF')
 #Taken from http://snipplr.com/view/5713/python-elapsedtime-human-readable-time-span-given-total-seconds/
-def ElapsedTime(seconds, suffixes=[' year',' week',' day',' hour',' minute',' second'], add_s=True, separator=' '):
+def ElapsedTime(seconds, suffixes=[' year', ' week', ' day', ' hour', ' minute', ' second'], add_s=True, separator=' '):
 	"""
 	Takes an amount of seconds and turns it into a human-readable amount of time.
 	"""

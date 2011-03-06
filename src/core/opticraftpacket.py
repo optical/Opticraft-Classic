@@ -28,7 +28,7 @@
 import struct
 import cStringIO
 class OptiCraftPacket(object):
-    def __init__(self,OpCode,data = ''):
+    def __init__(self, OpCode, data=''):
         self.OpCode = OpCode
         self.data = cStringIO.StringIO()
         self.data.write(chr(OpCode))
@@ -39,16 +39,16 @@ class OptiCraftPacket(object):
 
         #Writing functions - Appends data in a format to the buffer.
         #Once again - these are NOT safe. Passing an argument of the incorrect type will throw exceptions.
-    def WriteByte(self,data):
-        self.data.write(struct.pack("B",data))
-    def WriteString(self,data):
-        self.data.write((data + ((64 - len(data)) *' ')))
-    def WriteInt16(self,data):
+    def WriteByte(self, data):
+        self.data.write(struct.pack("B", data))
+    def WriteString(self, data):
+        self.data.write((data + ((64 - len(data)) * ' ')))
+    def WriteInt16(self, data):
        self.data.write(struct.pack("!h", data))
-    def WriteInt32(self,data):
+    def WriteInt32(self, data):
         self.data.write(struct.pack("!i", data))
-    def WriteKBChunk(self,data):
-       self.data.write((data + ((1024 - len(data)) *'\0')))
+    def WriteKBChunk(self, data):
+       self.data.write((data + ((1024 - len(data)) * '\0')))
 
     #Getter functions for unpacking data.
     #These are NOT safe - Exceptions will be thrown if you read beyond the buffer length.
