@@ -194,7 +194,7 @@ class ServerController(object):
         self.Revision = self.RawRevision.split()[1]
         self.VersionString = "Opticraft v0.2 r%s" % self.Revision
         Console.Out("Startup", "%s is starting up." % self.VersionString)
-        self.Port = int(self.ConfigValues.GetValue("server", "Port", "25565"))
+        self.Port = self.ConfigValues.GetValue("server", "Port", "25565")
         self.Name = self.ConfigValues.GetValue("server", "Name", "An opticraft server")
         self.Motd = self.ConfigValues.GetValue("server", "Motd", "Powered by opticraft!")
         self.MaxClients = int(self.ConfigValues.GetValue("server", "Max", "32"))

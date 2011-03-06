@@ -42,7 +42,7 @@ class HeartBeatController(Thread):
         self.Name = ServerControl.Name
         self.Public = ServerControl.Public
         self.Salt = ServerControl.Salt
-        self.Port = ServerControl.Port
+        self.Port = int(ServerControl.Port.split(",")[0])
         self.DumpStats = ServerControl.DumpStats
         self.LanMode = ServerControl.LanMode
         self.Peak = 0
