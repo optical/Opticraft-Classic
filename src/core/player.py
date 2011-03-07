@@ -490,6 +490,8 @@ class Player(object):
             if x == self.X and y == self.Y and z == self.Z and o == self.O and p == self.P:
                 return #Saves bandwidth. No need to redistribute something we just sent..
             if self.IsFrozen:
+                if self.CalcDistance(x/32, y/32, z/32) < 2:
+                    return
                 NewPacket = OptiCraftPacket(SMSG_PLAYERPOS)
                 NewPacket.WriteByte(0xFF)
                 NewPacket.WriteInt16(self.X)
