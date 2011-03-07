@@ -774,24 +774,24 @@ class AddIPBanCmd(CommandObject):
             pPlayer.SendMessage("&SSuccessfully added username ban on %s" % Arg)
             #Set arg to the IP address so we can ban that too.
             Arg = Target.GetIP()
-            #Check if IP is legit. If so, ban it.
-            Parts = Arg.split(".")
-            if len(Parts) != 4:
-                pPlayer.SendMessage("&RThat is not a valid ip-address!")
-                return
-            try:   
-                for Byte in Parts:
-                    if len(Byte) > 3:
-                        raise Exception
-                    Byte = int(Byte)
-                    if Byte < 0 or Byte > 255:
-                        raise Exception
-            except:
-                pPlayer.SendMessage("&RThat is not a valid ip-address!")
-                return
-            #Must be valid
-            pPlayer.ServerControl.AddIPBan(pPlayer, Arg, 0)
-            pPlayer.SendMessage("&SSuccessfully banned ip %s" % Arg)
+        #Check if IP is legit. If so, ban it.
+        Parts = Arg.split(".")
+        if len(Parts) != 4:
+            pPlayer.SendMessage("&RThat is not a valid ip-address!")
+            return
+        try:   
+            for Byte in Parts:
+                if len(Byte) > 3:
+                    raise Exception
+                Byte = int(Byte)
+                if Byte < 0 or Byte > 255:
+                    raise Exception
+        except:
+            pPlayer.SendMessage("&RThat is not a valid ip-address!")
+            return
+        #Must be valid
+        pPlayer.ServerControl.AddIPBan(pPlayer, Arg, 0)
+        pPlayer.SendMessage("&SSuccessfully banned ip %s" % Arg)
 
 class DelIPBanCmd(CommandObject):
     '''Handler for the /delipban command. Removes an IP Address ban'''
