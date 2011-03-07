@@ -366,7 +366,7 @@ class PlayerListCmd(CommandObject):
                 OutStr += ' '
                 OutStr += oPlayer.GetColouredName()
             else:
-                pPlayer.SendMessage(OutStr)
+                pPlayer.SendMessage(str(OutStr))
                 OutStr = bytearray(oPlayer.GetColouredName())
         OutStr = str(OutStr)
         if OutStr != '':
@@ -838,7 +838,7 @@ class TempOpCmd(CommandObject):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
         if Target == None:
-            pPlayer.SendMessage("&RTahat player is not online!")
+            pPlayer.SendMessage("&RThat player is not online!")
             return
         if Target.GetRankLevel() > pPlayer.ServerControl.GetRankLevel('operator'):
             pPlayer.SendMessage("&RYou may not set that players rank!")
