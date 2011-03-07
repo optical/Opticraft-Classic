@@ -231,17 +231,21 @@ class WorldsCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         ActiveWorlds, IdleWorlds = pPlayer.ServerControl.GetWorlds()
         All = len(Args) > 0
-        OutString = str()
+        OutString = bytearray()
         if All:
             pPlayer.SendMessage("&SDisplaying all worlds")
         pPlayer.SendMessage("&SThe following worlds are available:")
         for pWorld in ActiveWorlds:
             if pWorld.IsHidden() == 0 or All:
-                OutString = '%s%s%s ' % (OutString, pPlayer.ServerControl.RankColours[pWorld.GetMinRank()], pWorld.Name)
+                OutString += pPlayer.ServerControl.RankColours[pWorld.GetMinRank()]
+                OutString += pWorld.Name
+                OutString += ' '
         for WorldName in IdleWorlds:
             if pPlayer.ServerControl.IsWorldHidden(WorldName) == 0 or All:
-                OutString = OutString = '%s%s%s ' % (OutString, pPlayer.ServerControl.RankColours[pPlayer.ServerControl.GetWorldRank(WorldName)], WorldName)
-        pPlayer.SendMessage(OutString, False)
+                OutString += pPlayer.ServerControl.RankColours[pPlayer.ServerControl.GetWorldRank(WorldName)]
+                OutString += WorldName
+                OutString += ' '
+        pPlayer.SendMessage(str(OutString), False)
         if not All:
             pPlayer.SendMessage("&STo see all worlds, type /worlds all.")
 
@@ -349,8 +353,9 @@ class PlayerListCmd(CommandObject):
     '''Handler for the /players command. Lists all online players'''
     def Run(self, pPlayer, Args, Message):
         pPlayer.SendMessage("&SThe following players are online:")
-        OutStr = ''
+        OutStr = bytearray()
         PlayerList = sorted(pPlayer.ServerControl.PlayerSet, key=lambda player: player.GetName().lower())
+        PlayerList.sort(key = lambda player: player.GetRankLevel())
         for oPlayer in PlayerList:
             if oPlayer.IsAuthenticated() == False:
                 continue
@@ -358,10 +363,12 @@ class PlayerListCmd(CommandObject):
                 continue
             #1 = space
             if len(oPlayer.GetColouredName()) + 1 + len(OutStr) < 63:
-                OutStr = '%s %s' % (OutStr, oPlayer.GetColouredName())
+                OutStr += ' '
+                OutStr += oPlayer.GetColouredName()
             else:
                 pPlayer.SendMessage(OutStr)
-                OutStr = '%s' % (oPlayer.GetColouredName())
+                OutStr = bytearray(oPlayer.GetColouredName())
+        OutStr = str(OutStr)
         if OutStr != '':
             pPlayer.SendMessage(OutStr)
 
@@ -939,14 +946,17 @@ class LoadTemplateCmd(CommandObject):
 class ShowTemplatesCmd(CommandObject):
     '''Handler for the /showtemplates command'''
     def Run(self, pPlayer, Args, Message):
-        OutStr = ''
+        OutStr = bytearray()
         for File in os.listdir("Templates"):
             if len(File) < 5:
                 continue
             if File[-5:] != ".save":
                 continue
             TemplateName = File[:-5]
-            OutStr = '%s%s ' % (OutStr, TemplateName)
+            OutStr += TemplateName
+            OutStr += ' '
+            
+        OutStr = str(OutStr)
         if OutStr != '':
             pPlayer.SendMessage("&SThe following templates exist:")
             pPlayer.SendMessage("&S%s" % OutStr)
