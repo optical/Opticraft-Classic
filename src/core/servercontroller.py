@@ -907,23 +907,25 @@ class ServerController(object):
         self.SendPacketToAll(Packet)
         
     def SendChatMessage(self, From, Message, NewLine=">", NormalStart=True):
+        LocalColourchars = ColourChars #Bring it into the local scope
         if NormalStart:
             Message = '%s: &f%s' % (From, Message)
         else:
             Message = '%s %s' % (From, Message)
         Words = Message.split()
-        OutStr = ''
+        OutStr = bytearray()
         for Word in Words:
             if len(Word) >= 60:
                 return #Prevent crazy bugs due to this crappy string system
             if len(OutStr) + len(Word) > 63:
-                if len(OutStr) > 2 and OutStr[-1] in ColourChars and OutStr[-2] == '&':
+                if len(OutStr) > 2 and OutStr[-1] in LocalColourchars and OutStr[-2] == '&':
                     OutStr = OutStr[:-2]
-                self.SendMessageToAll(OutStr)
-                OutStr = NewLine
-            OutStr = '%s %s' % (OutStr, Word)
+                self.SendMessageToAll(str(OutStr))
+                OutStr = bytearray(NewLine)
+            OutStr += ' '
+            OutStr += Word
             
-        self.SendMessageToAll(OutStr)
+        self.SendMessageToAll(str(OutStr))
     def SendPacketToAll(self, Packet):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''

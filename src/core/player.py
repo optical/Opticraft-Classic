@@ -69,7 +69,7 @@ class Player(object):
     def SendPacket(self, Packet):
         '''Appends data to the end of our buffer
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO SendPacketToAll functions!'''
-        self.OutBuffer.write(Packet.data.getvalue())
+        self.OutBuffer.write(Packet.data)
 
     def IsDisconnecting(self):
         return self.Disconnecting
@@ -86,6 +86,7 @@ class Player(object):
         self.ServerControl.RemovePlayer(self)
 
     def SendMessage(self, Message, ColourNewLines=True):
+        '''Message must be of type str'''
         Message = Message.strip()
         Message = self.ServerControl.ConvertColours(Message)
         if len(Message) > 63:
