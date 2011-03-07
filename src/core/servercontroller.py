@@ -58,6 +58,19 @@ class PlayerDbThread(threading.Thread):
         self.Tasks = Queue.Queue()
         self.Connection = None
         self.Running = True
+        self.Lock = threading.Lock()
+        self.ShuttingDown = False
+    
+    def IsShuttingDown(self):
+        self.Lock.acquire()
+        Result = self.ShuttingDown
+        self.Lock.release()
+        return Result
+    
+    def InitiateShutdown(self):
+        self.Lock.acquire()
+        self.ShuttingDown = True
+        self.Lock.release()
 
     def SavePlayerData(self, pPlayer):
         QueryString = "REPLACE INTO Players Values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
@@ -67,7 +80,8 @@ class PlayerDbThread(threading.Thread):
                                     pPlayer.GetJoinNotifications(), pPlayer.GetTimePlayed(), pPlayer.GetKickCount(),
                                     pPlayer.GetChatMessageCount(), pPlayer.GetLoginCount(), pPlayer.GetBannedBy(),
                                     pPlayer.GetRankedBy(), pPlayer.GetPluginDataDictionary(JSON=True)))
-            self.Connection.commit()
+            if self.IsShuttingDown() == False:
+                self.Connection.commit()
         except dbapi.OperationalError:
             #Try again later
             Console.Debug("PlayerDB", "Failed to save player %s. Trying again soon" % pPlayer.GetName())
@@ -715,6 +729,7 @@ class ServerController(object):
             pWorld.Shutdown(True)
         self.Running = False
         ToRemove = list(self.PlayerSet)
+        self.PlayerDBThread.InitiateShutdown()
         for pPlayer in ToRemove:
             self._RemovePlayer(pPlayer)
         self.PlayerDBThread.Tasks.put(["SHUTDOWN"])
