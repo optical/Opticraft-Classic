@@ -781,11 +781,8 @@ class AddIPBanCmd(CommandObject):
             return
         try:   
             for Byte in Parts:
-                if len(Byte) > 3:
-                    raise Exception
                 Byte = int(Byte)
-                if Byte < 0 or Byte > 255:
-                    raise Exception
+                assert(Byte >= 0 and Byte <= 255)
         except:
             pPlayer.SendMessage("&RThat is not a valid ip-address!")
             return
@@ -804,11 +801,8 @@ class DelIPBanCmd(CommandObject):
             return
         try:
             for Byte in Parts:
-                if len(Byte) > 3:
-                    raise Exception
                 Byte = int(Byte)
-                if Byte < 0 or Byte > 255:
-                    raise Exception
+                assert(Byte >= 0 and Byte <= 255)
         except:
             pPlayer.SendMessage("&RThat is not a valid ip-address!")
             return

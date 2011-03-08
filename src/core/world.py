@@ -285,8 +285,7 @@ class World(object):
             fHandle.close()
             Console.Out("World", "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
             #Ensure the data is not corrupt in some way
-            if len(self.Blocks) != self.X*self.Y*self.Z:
-                raise Exception()
+            assert(len(self.Blocks) == self.X*self.Y*self.Z)
             try:
                 int(self.MetaData["hidden"])
             except:
