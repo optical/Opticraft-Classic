@@ -650,7 +650,7 @@ class MuteCmd(CommandObject):
         if Target != None:
             if Target.IsMuted == False:
                 Target.IsMuted = True
-                Target.SendMessage("&SYou have been temporarily muted \"&V%s&S\"" % pPlayer.GetName())
+                Target.SendMessage("&SYou have been temporarily muted")
                 pPlayer.SendMessage("&SYou have temporarily muted \"&V%s&S\"" % Target.GetName())
             else:
                 Target.IsMuted = False
@@ -892,7 +892,7 @@ class CreateWorldCmd(CommandObject):
             if X <= 0 or Y <= 0 or Z <= 0:
                 raise Exception()
         except:
-            pPlayer.SendMessage("&RPlease enter a valid length, width, and height coordinates!")
+            pPlayer.SendMessage("&RPlease enter valid length, width, and height coordinates!")
             return
         try:
             assert(X % 16 == 0)

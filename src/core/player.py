@@ -502,14 +502,9 @@ class Player(object):
                 self.SendPacket(NewPacket)
                 return
             self.SetLocation(x, y, z, o, p)
-            NewPacket = OptiCraftPacket(SMSG_PLAYERPOS)
-            NewPacket.WriteByte(self.GetId())
-            NewPacket.WriteInt16(x)
-            NewPacket.WriteInt16(z)
-            NewPacket.WriteInt16(y)
-            NewPacket.WriteByte(o)
-            NewPacket.WriteByte(p)
-            self.World.SendPacketToAll(NewPacket)
+            #cheaper to just reuse packet, even though bad practice
+            Packet.data = Packet.data[0] + chr(self.Id) + Packet.data[2:]
+            self.World.SendPacketToAll(Packet)
 
     def HandleBlockChange(self, Packet):
         if self.World is not None:
