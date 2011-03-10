@@ -68,9 +68,8 @@ class PluginBase(object):
         ...Besides hooks and commands (PluginMgr will handle them)'''
         pass
 
-    def AddCommand(self, Command, CmdObj, Permissions, HelpMsg, ErrorMsg, MinArgs, Alias=False):
-        self.PluginMgr.RegisterCommand(self, CmdObj(self, Permissions, HelpMsg, ErrorMsg, MinArgs, Command, Alias))
-
+    def AddCommand(self, Command, CmdObj, Permissions, HelpMsg, ErrorMsg, MinArgs, Alias = False):
+        self.PluginMgr.RegisterCommand(self, CmdObj(self.ServerControl.CommandHandle, Permissions, HelpMsg, ErrorMsg, MinArgs, Command, Alias))
 class Hook(object):
     '''Simple struct to store Hook info'''
     def __init__(self, Plugin, Function):
@@ -124,8 +123,7 @@ class PluginManager(object):
                     if pPlugin in self.Plugins:
                         self.Plugins.remove(pPlugin)
                     Console.Warning("PluginMgr", "Error loading plugin object \"%s\" from file \"%s\"" % (Key, PluginFile))
-                    if isinstance(exc, PluginException):
-                        Console.Debug("PluginMgr", "Exception: %s" % str(exc))
+                    Console.Debug("PluginMgr", "Exception: %s" % str(exc))
                     continue
         return True
 
@@ -273,7 +271,7 @@ class PluginManager(object):
 class PluginDict(object):
     '''Dictionary wrapper which ensures that key is always of type string
     ...Optionally can alse ensure all values can be encoded to a json type'''
-    def __init__(self, NonJsonValues=True):
+    def __init__(self, NonJsonValues = True):
         self._dictionary = dict()
         #Nasty piece of code.
         self.NonJsonValues = NonJsonValues
@@ -307,7 +305,7 @@ class PluginDict(object):
 
     def AsJSON(self):
         assert(self.NonJsonValues == False)
-        return json.dumps(self._dictionary, ensure_ascii=True)
+        return json.dumps(self._dictionary, ensure_ascii = True)
 
     @staticmethod
     def FromJSON(JSON):
@@ -324,7 +322,7 @@ class PluginDict(object):
 
 class PluginData(PluginDict):
     def __init__(self):
-        PluginDict.__init__(self, NonJsonValues=False)
+        PluginDict.__init__(self, NonJsonValues = False)
 
     @staticmethod
     def FromJSON(JSON):

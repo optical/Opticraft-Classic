@@ -58,7 +58,7 @@ BLOCK_AIR = 0
 BLOCK_ROCK = 1
 BLOCK_GRASS = 2
 BLOCK_DIRT = 3
-BLOCK_STONE = 4
+BLOCK_COBBLESTONE = 4
 BLOCK_WOOD = 5
 BLOCK_PLANK = 5
 BLOCK_PLANT = 6
@@ -93,6 +93,7 @@ BLOCK_DARKGREY = 34
 BLOCK_BLACK = 34
 BLOCK_GREY = 35
 BLOCK_WHITE = 36
+BLOCK_YELLOWFLOWER = 37
 BLOCK_REDFLOWER = 38
 BLOCK_MUSHROOM = 39
 BLOCK_RED_MUSHROOM = 40
@@ -107,6 +108,122 @@ BLOCK_BOOKCASE = 47
 BLOCK_MOSSYROCK = 48
 BLOCK_OBSIDIAN = 49
 BLOCK_END = 50
+BlockNamesToID = {
+                  "air": BLOCK_AIR,
+                  "blank": BLOCK_AIR,
+                  "stone": BLOCK_ROCK,
+                  "rock": BLOCK_ROCK,
+                  "grass": BLOCK_GRASS,
+                  "dirt": BLOCK_DIRT,
+                  "cobblestone": BLOCK_COBBLESTONE,
+                  "wood": BLOCK_WOOD,
+                  "plant": BLOCK_PLANT,
+                  "sappling": BLOCK_PLANT,
+                  "tree": BLOCK_PLANT,
+                  "hardrock": BLOCK_HARDROCK,
+                  "adminium": BLOCK_HARDROCK,
+                  "adminite": BLOCK_HARDROCK,
+                  "water": BLOCK_STILLWATER,
+                  "lava": BLOCK_STILLLAVA,
+                  "sand": BLOCK_SAND,
+                  "gravel": BLOCK_GRAVEL,
+                  "gold": BLOCK_GOLD,
+                  "goldore": BLOCK_GOLD,
+                  "iron": BLOCK_IRON,
+                  "ironore": BLOCK_IRON,
+                  "coal": BLOCK_COALORE,
+                  "coalore": BLOCK_COALORE,
+                  "log": BLOCK_LOG,
+                  "leaves": BLOCK_LEAVES,
+                  "sponge": BLOCK_SPONGE,
+                  "glass": BLOCK_GLASS,
+                  "red": BLOCK_RED_CLOTH,
+                  "red cloth": BLOCK_RED_CLOTH,
+                  "red wool": BLOCK_RED_CLOTH,
+                  "orange": BLOCK_ORANGE,
+                  "orange cloth": BLOCK_ORANGE,
+                  "orange wool": BLOCK_ORANGE,
+                  "yellow": BLOCK_YELLOW,
+                  "yeollow cloth": BLOCK_YELLOW,
+                  "yellow wool": BLOCK_YELLOW,
+                  "lightgreen": BLOCK_LIME,
+                  "lightgreen wool": BLOCK_LIME,
+                  "lightgreen cloth": BLOCK_LIME,
+                  "lime": BLOCK_LIME,
+                  "limecloth": BLOCK_LIME,
+                  "limewool": BLOCK_LIME,
+                  "green": BLOCK_GREEN,
+                  "greencloth": BLOCK_GREEN,
+                  "greenwool": BLOCK_GREEN,
+                  "aqua": BLOCK_TEAL,
+                  "aquacloth": BLOCK_TEAL,
+                  "aquawool": BLOCK_TEAL,
+                  "teal": BLOCK_TEAL,
+                  "tealwool": BLOCK_TEAL,
+                  "tealcloth": BLOCK_TEAL,
+                  "cyan": BLOCK_CYAN,
+                  "cyanwool": BLOCK_CYAN,
+                  "cyancloth": BLOCK_CYAN,
+                  "blue": BLOCK_BLUE,
+                  "blue wool": BLOCK_BLUE,
+                  "blue cloth": BLOCK_BLUE,
+                  "purple": BLOCK_PURPLE,
+                  "purple wool": BLOCK_PURPLE,
+                  "purple cloth": BLOCK_PURPLE,
+                  "indigo": BLOCK_INDIGO,
+                  "indigo cloth": BLOCK_INDIGO,
+                  "indigo wool": BLOCK_INDIGO,
+                  "violet": BLOCK_VIOLET,
+                  "violet wool": BLOCK_VIOLET,
+                  "violet cloth": BLOCK_VIOLET,
+                  "magenta": BLOCK_MAGENTA,
+                  "magenta wool": BLOCK_MAGENTA,
+                  "magenta cloth": BLOCK_MAGENTA,
+                  "pink": BLOCK_PINK,
+                  "pink wool": BLOCK_PINK,
+                  "pink cloth": BLOCK_PINK,
+                  "black": BLOCK_BLACK,
+                  "black wool": BLOCK_BLACK,
+                  "black cloth": BLOCK_BLACK,
+                  "grey": BLOCK_GREY,
+                  "grey wool": BLOCK_GREY,
+                  "grey cloth": BLOCK_GREY,
+                  "white": BLOCK_WHITE,
+                  "white cloth": BLOCK_WHITE,
+                  "white wool": BLOCK_WHITE,
+                  "yellow flower": BLOCK_YELLOWFLOWER,
+                  "rose": BLOCK_REDFLOWER,
+                  "red flower": BLOCK_REDFLOWER,
+                  "red rose": BLOCK_REDFLOWER,
+                  "red mushroom": BLOCK_RED_MUSHROOM,
+                  "brown mushroom": BLOCK_MUSHROOM,
+                  "gold block": BLOCK_GOLD,
+                  "iron block": BLOCK_IRON,
+                  "step": BLOCK_STEP,
+                  "doublestep": BLOCK_DOUBLESTEP,
+                  "stair": BLOCK_STEP,
+                  "brick": BLOCK_BRICK,
+                  "tnt": BLOCK_TNT,
+                  "bookcase": BLOCK_BOOKCASE,
+                  "book": BLOCK_BOOKCASE,
+                  "books": BLOCK_BOOKCASE,
+                  "mossy cobblestone": BLOCK_MOSSYROCK,
+                  "mossyrock": BLOCK_MOSSYROCK,
+                  "mossy rock": BLOCK_MOSSYROCK,
+                  "green cobblestone": BLOCK_MOSSYROCK,
+                  "obsidian": BLOCK_OBSIDIAN       
+}
+def GetBlockIDFromName(Name):
+    return BlockNamesToID.get(Name.lower(), None)
+def InvertDictionary(Dictionary):
+    NewDict = dict()
+    for key in Dictionary.iterkeys():
+        if Dictionary[key] not in NewDict:
+            NewDict[Dictionary[key]] = key
+    return NewDict
+IDFromName = InvertDictionary(BlockNamesToID)
+def GetBlockNameFromID(ID):
+    return IDFromName.get(ID, None)
 
 def UnicodeToStr(obj):
     '''Terrible function for json decoding'''
@@ -130,7 +247,7 @@ DisabledBlocks = set([BLOCK_WATER, BLOCK_STILLWATER, BLOCK_LAVA, BLOCK_STILLLAVA
 DisabledChars = ''.join([c for c in map(chr, range(256)) if c not in string.ascii_letters + string.digits + string.punctuation + string.whitespace]) + '&\r\n'
 ColourChars = frozenset('1234567890abcedfABCEDF')
 #Taken from http://snipplr.com/view/5713/python-elapsedtime-human-readable-time-span-given-total-seconds/
-def ElapsedTime(seconds, suffixes=[' year', ' week', ' day', ' hour', ' minute', ' second'], add_s=True, separator=' '):
+def ElapsedTime(seconds, suffixes = [' year', ' week', ' day', ' hour', ' minute', ' second'], add_s = True, separator = ' '):
     """
 	Takes an amount of seconds and turns it into a human-readable amount of time.
 	"""
