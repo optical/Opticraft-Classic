@@ -47,27 +47,27 @@ class Commands(PluginBase):
         self.AddCommand("rules", RulesCmd, 'guest', 'Displays a list of rules for this server', '', 0)
         self.AddCommand("about", AboutCmd, 'guest', 'Displays history of a block when you destroy/create one', '', 0)
         self.AddCommand("cmdlist", CmdListCmd, 'guest', 'Lists all commands available to you', '', 0)
-        self.AddCommand("commands", CmdListCmd, 'guest', 'Lists all commands available to you', '', 0, Alias=True)
+        self.AddCommand("commands", CmdListCmd, 'guest', 'Lists all commands available to you', '', 0, Alias = True)
         self.AddCommand("help", HelpCmd, 'guest', 'Gives help on a specific command. Usage: /help <cmd>', 'Incorrect syntax! Usage: /help <cmd>. /cmdlist for a list of commands', 1)
         self.AddCommand("worlds", WorldsCmd, 'guest', 'Lists all available worlds', '', 0)
-        self.AddCommand("maps", WorldsCmd, 'guest', 'Lists all available worlds', '', 0, Alias=True)
+        self.AddCommand("maps", WorldsCmd, 'guest', 'Lists all available worlds', '', 0, Alias = True)
         self.AddCommand("join", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1)
-        self.AddCommand("j", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1, Alias=True)
-        self.AddCommand("warp", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1, Alias=True)
-        self.AddCommand("goto", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1, Alias=True)
+        self.AddCommand("j", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1, Alias = True)
+        self.AddCommand("warp", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1, Alias = True)
+        self.AddCommand("goto", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1, Alias = True)
         self.AddCommand("grass", GrassCmd, 'guest', 'Allows you to place grass', '', 0)
         self.AddCommand("paint", PaintCmd, 'guest', 'When you destroy a block it will be replaced by what you are currently holding', '', 0)
         self.AddCommand("sinfo", sInfoCmd, 'guest', 'Displays information about the server', '', 0)
-        self.AddCommand("info", sInfoCmd, 'guest', 'Displays information about the server', '', 0, Alias=True)
-        self.AddCommand("version", VersionCmd, 'guest', 'Displays information about the server', '', 0, Alias=True) #Hidden
-        self.AddCommand("credits", CreditsCmd, 'guest', 'Displays information about the server', '', 0, Alias=True) #Hidden
+        self.AddCommand("info", sInfoCmd, 'guest', 'Displays information about the server', '', 0, Alias = True)
+        self.AddCommand("version", VersionCmd, 'guest', 'Displays information about the server', '', 0, Alias = True) #Hidden
+        self.AddCommand("credits", CreditsCmd, 'guest', 'Displays information about the server', '', 0, Alias = True) #Hidden
         self.AddCommand("stats", StatsCmd, 'guest', 'Displays a players statistics. Usage: /stats [Username]', '', 0)
         self.AddCommand("togglenotifications", ToggleNotificationsCmd, 'guest', 'Turns join/leave messages on or off', '', 0)
         self.AddCommand("ranks", RanksCmd, 'guest', 'Displays information on all the ranks', '', 0)
         self.AddCommand("whois", PlayerInfoCmd, 'guest', 'Returns information on a player', 'Incorrect syntax! Usage: /whois <username>', 1)
         self.AddCommand("players", PlayerListCmd, 'guest', 'Lists all online players', '', 0)
         self.AddCommand("me", EmoteCmd, 'guest', 'Emotes an aceiont', 'Incorrect syntax! Usage: /me <message>', 1)
-        self.AddCommand("emote", EmoteCmd, 'guest', 'Emotes an aceiont', 'Incorrect syntax! Usage: /emote <message>', 1, Alias=True)
+        self.AddCommand("emote", EmoteCmd, 'guest', 'Emotes an aceiont', 'Incorrect syntax! Usage: /emote <message>', 1, Alias = True)
         self.AddCommand("r", ReplyCmd, 'guest', 'Replys to the last person who sent you a PM', 'Incorrect syntax! Usage: /reply <Message>', 1)
         #Zone commands
         self.AddCommand("zinfo", ZoneInfoCmd, 'guest', 'Returns information on a zone.', 'Incorrect syntax! Usage: /zinfo <zone>', 1)
@@ -84,7 +84,7 @@ class Commands(PluginBase):
         self.AddCommand("water", WaterCmd, 'builder', 'Allows you to place water', '', 0)
         self.AddCommand("lava", LavaCmd, 'builder', 'Allows you to place lava', '', 0)
         self.AddCommand("appear", AppearCmd, 'builder', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1)
-        self.AddCommand("tp", AppearCmd, 'builder', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1, Alias=True)
+        self.AddCommand("tp", AppearCmd, 'builder', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1, Alias = True)
         #########################
         #OPERATOR COMMANDS HERE #
         #########################
@@ -93,21 +93,21 @@ class Commands(PluginBase):
         self.AddCommand("unban", UnbanCmd, 'operator', 'Unbans a player from the server', 'Incorrect syntax! Usage: /unban <username>', 1)
         self.AddCommand("kick", KickCmd, 'operator', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)
         self.AddCommand("freeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1)
-        self.AddCommand("unfreeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1, Alias=True)
-        self.AddCommand("defreeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1, Alias=True)
+        self.AddCommand("unfreeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1, Alias = True)
+        self.AddCommand("defreeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1, Alias = True)
         self.AddCommand("mute", MuteCmd, 'operator', 'Mutes and unmutes a player, temporarily preventing them from talking', 'Incorrect syntax! Usage: /mute <username>', 1)
-        self.AddCommand("unmute", MuteCmd, 'operator', 'Mutes and unmutes a player, temporarily preventing them from talking', 'Incorrect syntax! Usage: /mute <username>', 1, Alias=True)
-        self.AddCommand("playerinfo", PlayerInfoCmd, 'operator', 'Returns information on a player', 'Incorrect syntax! Usage: /playerinfo <username>', 1, Alias=True)
+        self.AddCommand("unmute", MuteCmd, 'operator', 'Mutes and unmutes a player, temporarily preventing them from talking', 'Incorrect syntax! Usage: /mute <username>', 1, Alias = True)
+        self.AddCommand("playerinfo", PlayerInfoCmd, 'operator', 'Returns information on a player', 'Incorrect syntax! Usage: /playerinfo <username>', 1, Alias = True)
         self.AddCommand("summon", SummonCmd, 'operator', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
         self.AddCommand("undoactions", UndoActionsCmd, 'operator', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>', 2)
         self.AddCommand("invisible", InvisibleCmd, 'operator', "Makes you invisible to other players", "", 0)
-        self.AddCommand("destroytower", DestroyTowerCmd, 'operator', 'Destroys a vertical tower of shit', '', 0, Alias=True) #Hidden command
+        self.AddCommand("destroytower", DestroyTowerCmd, 'operator', 'Destroys a vertical tower of shit', '', 0, Alias = True) #Hidden command
         self.AddCommand("ModifyRank", ModifyRankCmd, 'operator', 'Modify\'s a players rank.', 'Incorrect syntax. Usage: /addrank <username> <rank>', 2)
         ######################
         #ADMIN COMMANDS HERE #
         ######################
         self.AddCommand("addipban", AddIPBanCmd, 'admin', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username>', 1)
-        self.AddCommand("ipban", AddIPBanCmd, 'admin', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username>', 1, Alias=True)
+        self.AddCommand("ipban", AddIPBanCmd, 'admin', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username>', 1, Alias = True)
         self.AddCommand("delipban", DelIPBanCmd, 'admin', 'Removes an IP ban', 'Incorrect syntax! Usage: /delipban <ip/username>', 1)
         self.AddCommand("save", SaveCmd, 'admin', 'Saves all actively running worlds', '', 0)
         self.AddCommand("backup", BackupCmd, 'admin', 'Backs up all actively running worlds', '', 0)
@@ -131,9 +131,6 @@ class Commands(PluginBase):
         self.AddCommand("flushblocklog", FlushBlockLogCmd, 'owner', 'Flushes the worlds blocklog to disk', '', 0)
         self.AddCommand("removeworld", DeleteWorldCmd, 'owner', 'Deletes a world from the server', 'Incorrect syntax! Usage: /removeworld <worldname>', 1)
 
-    def AddCommand(self, Command, CmdObj, Permissions, HelpMsg, ErrorMsg, MinArgs, Alias=False):
-        TheCommand = CmdObj(self.PluginMgr.ServerControl.CommandHandle, Permissions, HelpMsg, ErrorMsg, MinArgs, Command, Alias)
-        self.PluginMgr.RegisterCommand(self, TheCommand)
 
 ######################
 #PUBLIC COMMANDS HERE#
@@ -354,7 +351,7 @@ class PlayerListCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         pPlayer.SendMessage("&SThe following players are online:")
         OutStr = bytearray()
-        PlayerList = sorted(pPlayer.ServerControl.PlayerSet, key=lambda player: player.GetName().lower())
+        PlayerList = sorted(pPlayer.ServerControl.PlayerSet, key = lambda player: player.GetName().lower())
         PlayerList.sort(key = lambda player: player.GetRankLevel())
         for oPlayer in PlayerList:
             if oPlayer.IsAuthenticated() == False:

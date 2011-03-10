@@ -41,20 +41,20 @@ from core.zones import Zone
 from core.console import *
 class BlockLog(object):
     '''Stores the history of a block'''
-    def __init__(self,Username,Time,Value):
+    def __init__(self, Username, Time, Value):
         self.Username = Username
         self.Time = Time
         self.Value = Value
 class BlockChange(object):
     '''Used between threads IOThread creates these and sends them to the World thread
     in order for changes to be made in a thread-safe manner'''
-    def __init__(self,Offset,Value):
+    def __init__(self, Offset, Value):
         self.Offset = Offset
         self.Value = Value
 class AsynchronousIOThread(threading.Thread):
     '''Performs operations on the sqlite DB asynchronously to avoid long blocking
     ...waits for the disk'''
-    def __init__(self,pWorld):
+    def __init__(self, pWorld):
         threading.Thread.__init__(self)
         self.daemon = True
         self.Lock = threading.Lock()
@@ -64,9 +64,9 @@ class AsynchronousIOThread(threading.Thread):
         self.DBConnection = None
         self.Running = True
         self.Tasks = Queue.Queue()
-        self.Tasks.put(["CONNECT",self.WorldName])
+        self.Tasks.put(["CONNECT", self.WorldName])
 
-    def SetWorldName(self,Name):
+    def SetWorldName(self, Name):
         self.Lock.acquire()
         self.OldName = self.WorldName
         self.WorldName = Name
@@ -98,33 +98,33 @@ class AsynchronousIOThread(threading.Thread):
                 #Connect/Reconnect to the DB.
                 self._ConnectTask()
 
-    def _ExecuteTask(self,Query,Parameters):
+    def _ExecuteTask(self, Query, Parameters):
         try:
-            self.DBConnection.execute(Query,Parameters)
+            self.DBConnection.execute(Query, Parameters)
             self.DBConnection.commit()
         except dbapi.OperationalError:
-            Console.Warning("IOThread","Failed to execute Query. Trying again soon")
-            self.Tasks.put(["EXECUTE",Query,Parameters])
+            Console.Warning("IOThread", "Failed to execute Query. Trying again soon")
+            self.Tasks.put(["EXECUTE", Query, Parameters])
     def _ConnectTask(self):
         self.Lock.acquire()
         if self.DBConnection != None:
             #Shut it off + erase it
             self.DBConnection.close()
             self.DBConnection = None
-            os.remove("Worlds/BlockLogs/%s.db" %self.OldName)
+            os.remove("Worlds/BlockLogs/%s.db" % self.OldName)
 
-        self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" %self.WorldName)
+        self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" % self.WorldName)
         self.DBConnection.text_factory = str
         self.Lock.release()
 
-    def _FlushBlocksTask(self,Data):
+    def _FlushBlocksTask(self, Data):
         start = time.time()
         for key in Data:
             SuccessfulQuery = False
             while SuccessfulQuery != True:
                 try:
                     BlockInfo = Data[key]
-                    self.DBConnection.execute("REPLACE INTO Blocklogs VALUES(?,?,?,?)", (key,BlockInfo.Username,BlockInfo.Time,ord(BlockInfo.Value)))
+                    self.DBConnection.execute("REPLACE INTO Blocklogs VALUES(?,?,?,?)", (key, BlockInfo.Username, BlockInfo.Time, ord(BlockInfo.Value)))
                 except dbapi.OperationalError:
                     time.sleep(0.05) #Tiny sleep to prevent slamming the DB while its locked.
                     continue
@@ -132,38 +132,38 @@ class AsynchronousIOThread(threading.Thread):
                     SuccessfulQuery = True
 
         self.DBConnection.commit()
-        Console.Debug("IOThread","Flushing took %.3f seconds!" %(time.time()-start))
+        Console.Debug("IOThread", "Flushing took %.3f seconds!" % (time.time() - start))
         
-    def _UndoActionsTask(self,Username,ReverseName,Time):
+    def _UndoActionsTask(self, Username, ReverseName, Time):
         now = time.time()
         try:
-            SQLResult = self.DBConnection.execute("SELECT Offset,OldValue from Blocklogs where Username = ? and Time > ?", (ReverseName,now-Time))
+            SQLResult = self.DBConnection.execute("SELECT Offset,OldValue from Blocklogs where Username = ? and Time > ?", (ReverseName, now - Time))
         except dbapi.OperationalError:
-            Console.Debug("IOThread","Failed to Execute undoactions. Trying again later")
-            self.Tasks.put(["UNDO_ACTIONS",Username,ReverseName,Time])
+            Console.Debug("IOThread", "Failed to Execute undoactions. Trying again later")
+            self.Tasks.put(["UNDO_ACTIONS", Username, ReverseName, Time])
             return
         Row = SQLResult.fetchone()
-        BlockChangeList = [Username,ReverseName,0]
+        BlockChangeList = [Username, ReverseName, 0]
         NumChanged = 0
         while Row != None:
-            BlockChangeList.append(BlockChange(Row[0],Row[1]))
+            BlockChangeList.append(BlockChange(Row[0], Row[1]))
             NumChanged += 1
             Row = SQLResult.fetchone()
         BlockChangeList[2] = NumChanged
         self.World.AddBlockChanges(BlockChangeList)
         try:
-            Console.Debug("IOThread","Failed to clean up undoactions. Trying again later.")
-            self.DBConnection.execute("DELETE FROM Blocklogs where Username = ? and Time > ?",(ReverseName,now-Time))
+            Console.Debug("IOThread", "Failed to clean up undoactions. Trying again later.")
+            self.DBConnection.execute("DELETE FROM Blocklogs where Username = ? and Time > ?", (ReverseName, now - Time))
             self.DBConnection.commit()
         except dbapi.OperationalError:
-            self.Tasks.put(["EXECUTE"],"DELETE FROM Blocklogs where Username = ? and Time > ?",(ReverseName,now-Time))
-        Console.Debug("IOThread","%s reversed %s's actions. %d changed in %f seconds" %(Username,ReverseName,NumChanged,time.time()-now))
-    def Shutdown(self,Crash):
+            self.Tasks.put(["EXECUTE"], "DELETE FROM Blocklogs where Username = ? and Time > ?", (ReverseName, now - Time))
+        Console.Debug("IOThread", "%s reversed %s's actions. %d changed in %f seconds" % (Username, ReverseName, NumChanged, time.time() - now))
+    def Shutdown(self, Crash):
         self.Tasks.put(["SHUTDOWN"])
 class WorldLoadFailedException(Exception):
     pass
 class World(object):
-    def __init__(self,ServerControl,Name,NewMap=False,NewX=-1,NewY=-1,NewZ=-1):
+    def __init__(self, ServerControl, Name, NewMap = False, NewX = -1, NewY = -1, NewZ = -1):
         self.Blocks = array("c")
         self.BlockCache = cStringIO.StringIO()
         self.IsDirty = True
@@ -171,24 +171,24 @@ class World(object):
         self.TransferringPlayers = list()
         self.JoiningPlayers = list()
         self.Name = Name
-        self.X, self.Y, self.Z = -1,-1,-1
-        self.SpawnX,self.SpawnY,self.SpawnZ = -1,-1,-1
+        self.X, self.Y, self.Z = -1, -1, -1
+        self.SpawnX, self.SpawnY, self.SpawnZ = -1, -1, -1
         self.SpawnOrientation, self.SpawnPitch = 0, 0
         self.MetaData = dict()
         self.ServerControl = ServerControl
         self.BlockHistory = dict()
         self.PlayerIDs = range(127)
         #Config values
-        self.DefaultX = int(self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeX","256"))
-        self.DefaultY = int(self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeY","256"))
-        self.DefaultZ = int(self.ServerControl.ConfigValues.GetValue("worlds","DefaultSizeZ","96"))
-        self.LastSave = self.ServerControl.Now + random.randrange(0,30)
-        self.SaveInterval = int(self.ServerControl.ConfigValues.GetValue("worlds","SaveTime","300"))
-        self.LastBackup = self.ServerControl.Now + random.randrange(0,30)
-        self.BackupInterval = int(self.ServerControl.ConfigValues.GetValue("worlds","BackupTime","3600"))
-        self.CompressionLevel = int(self.ServerControl.ConfigValues.GetValue("worlds","CompressionLevel",1))
-        self.LogBlocks = int(self.ServerControl.ConfigValues.GetValue("worlds","EnableBlockHistory",1))
-        self.LogFlushThreshold = int(self.ServerControl.ConfigValues.GetValue("worlds","LogFlushThreshold",20000))
+        self.DefaultX = int(self.ServerControl.ConfigValues.GetValue("worlds", "DefaultSizeX", "256"))
+        self.DefaultY = int(self.ServerControl.ConfigValues.GetValue("worlds", "DefaultSizeY", "256"))
+        self.DefaultZ = int(self.ServerControl.ConfigValues.GetValue("worlds", "DefaultSizeZ", "96"))
+        self.LastSave = self.ServerControl.Now + random.randrange(0, 30)
+        self.SaveInterval = int(self.ServerControl.ConfigValues.GetValue("worlds", "SaveTime", "300"))
+        self.LastBackup = self.ServerControl.Now + random.randrange(0, 30)
+        self.BackupInterval = int(self.ServerControl.ConfigValues.GetValue("worlds", "BackupTime", "3600"))
+        self.CompressionLevel = int(self.ServerControl.ConfigValues.GetValue("worlds", "CompressionLevel", 1))
+        self.LogBlocks = int(self.ServerControl.ConfigValues.GetValue("worlds", "EnableBlockHistory", 1))
+        self.LogFlushThreshold = int(self.ServerControl.ConfigValues.GetValue("worlds", "LogFlushThreshold", 20000))
         self.IOThread = None
         self.AsyncBlockChanges = Queue.Queue()
         self.IdleTimeout = 0 #How long must the world be unoccupied until it unloads itself from memory
@@ -200,7 +200,7 @@ class World(object):
             if os.path.exists("Worlds/BlockLogs") == False:
                 os.mkdir("Worlds/BlockLogs")
             #Setup the DB connections
-            self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" %self.Name)
+            self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" % self.Name)
             self.DBConnection.text_factory = str
             self.DBCursor = self.DBConnection.cursor()
             try:
@@ -216,17 +216,17 @@ class World(object):
             self.IOThread = AsynchronousIOThread(self)
             self.IOThread.start()
 
-        if os.path.isfile("Worlds/"+ self.Name + '.save'):
+        if os.path.isfile("Worlds/" + self.Name + '.save'):
             LoadResult = self.Load()
             if LoadResult == False:
-                Console.Warning("World","Generating new world for map '%s' - Load a backup if you wish to preserve your data!" %self.Name)
-                self.GenerateGenericWorld(self.DefaultX,self.DefaultY,self.DefaultZ)
+                Console.Warning("World", "Generating new world for map '%s' - Load a backup if you wish to preserve your data!" % self.Name)
+                self.GenerateGenericWorld(self.DefaultX, self.DefaultY, self.DefaultZ)
         else:
             if not NewMap:
-                self.GenerateGenericWorld(self.DefaultX,self.DefaultY,self.DefaultZ)
+                self.GenerateGenericWorld(self.DefaultX, self.DefaultY, self.DefaultZ)
             else:
-                self.GenerateGenericWorld(NewX,NewY,NewZ)
-        self.NetworkSize = struct.pack("!i", self.X*self.Y*self.Z)
+                self.GenerateGenericWorld(NewX, NewY, NewZ)
+        self.NetworkSize = struct.pack("!i", self.X * self.Y * self.Z)
 
         self.Zones = list()
         self.ServerControl.InsertZones(self) #Servercontrol manages all the zones
@@ -238,7 +238,7 @@ class World(object):
         return FileHandle.read(Val)
     @staticmethod
     def _MakeLengthString(String):
-        return struct.pack("i",len(String)) + String
+        return struct.pack("i", len(String)) + String
     
     def Load(self):
         '''The map file is a file of the following format:
@@ -257,35 +257,35 @@ class World(object):
         '''
         start = time.time()
         try:
-            fHandle = open("Worlds/" +self.Name + '.save','rb')
+            fHandle = open("Worlds/" + self.Name + '.save', 'rb')
         except:
-            Console.Warning("World","Failed to open up save file for world %s!" %self.Name)
+            Console.Warning("World", "Failed to open up save file for world %s!" % self.Name)
             return False
         try:
             Version = struct.unpack("h", fHandle.read(2))[0] #Unused for now
             if Version != 1:
-                Console.Error("World","Unknown map version %d found on world %s. Unable to load." %(Version,self.Name))
+                Console.Error("World", "Unknown map version %d found on world %s. Unable to load." % (Version, self.Name))
                 return False
-            self.X = struct.unpack("h",fHandle.read(2))[0]
-            self.Y = struct.unpack("h",fHandle.read(2))[0]
-            self.Z = struct.unpack("h",fHandle.read(2))[0]
-            self.SpawnX = struct.unpack("h",fHandle.read(2))[0]
-            self.SpawnY = struct.unpack("h",fHandle.read(2))[0]
-            self.SpawnZ = struct.unpack("h",fHandle.read(2))[0]
-            self.SpawnOrientation = struct.unpack("h",fHandle.read(2))[0]
-            self.SpawnPitch = struct.unpack("h",fHandle.read(2))[0]
-            MetaLength = struct.unpack("i",fHandle.read(4))[0]
+            self.X = struct.unpack("h", fHandle.read(2))[0]
+            self.Y = struct.unpack("h", fHandle.read(2))[0]
+            self.Z = struct.unpack("h", fHandle.read(2))[0]
+            self.SpawnX = struct.unpack("h", fHandle.read(2))[0]
+            self.SpawnY = struct.unpack("h", fHandle.read(2))[0]
+            self.SpawnZ = struct.unpack("h", fHandle.read(2))[0]
+            self.SpawnOrientation = struct.unpack("h", fHandle.read(2))[0]
+            self.SpawnPitch = struct.unpack("h", fHandle.read(2))[0]
+            MetaLength = struct.unpack("i", fHandle.read(4))[0]
             for i in xrange(MetaLength):
                 Key = World._ReadLengthString(fHandle)
                 Value = World._ReadLengthString(fHandle)
                 self.MetaData[Key] = Value
-            gzipHandle = gzip.GzipFile(fileobj=fHandle, mode="rb")
+            gzipHandle = gzip.GzipFile(fileobj = fHandle, mode = "rb")
             self.Blocks.fromstring(gzipHandle.read())
             gzipHandle.close()                
             fHandle.close()
-            Console.Out("World", "Loaded world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
+            Console.Out("World", "Loaded world %s in %dms" % (self.Name, int((time.time() - start) * 1000)))
             #Ensure the data is not corrupt in some way
-            assert(len(self.Blocks) == self.X*self.Y*self.Z)
+            assert(len(self.Blocks) == self.X * self.Y * self.Z)
             try:
                 int(self.MetaData["hidden"])
             except:
@@ -296,7 +296,7 @@ class World(object):
             except:
                 self.MetaData["minrank"] = "guest"
         except:
-            Console.Warning("World","Failed to load map '%s'.save The save file is out of date or corrupt." %self.Name)
+            Console.Warning("World", "Failed to load map '%s'.save The save file is out of date or corrupt." % self.Name)
             return False
     
     def Save(self, Verbose = True):
@@ -318,39 +318,39 @@ class World(object):
         try:
             #Save to a temp file. Then copy it over. (If we crash during this, the old save is unchanged)
             #...Crashes may occur if we run out of memory, so do not change this!
-            fHandle = open("Worlds/%s.temp" %(self.Name),'wb')
+            fHandle = open("Worlds/%s.temp" % (self.Name), 'wb')
         except:
-            Console.Error("World","Failed to saved world %s to disk." %self.Name)
-        fHandle.write(struct.pack("h",1)) #Map version number
-        fHandle.write(struct.pack("h",self.X))
-        fHandle.write(struct.pack("h",self.Y))
-        fHandle.write(struct.pack("h",self.Z))
-        fHandle.write(struct.pack("h",self.SpawnX))
-        fHandle.write(struct.pack("h",self.SpawnY))
-        fHandle.write(struct.pack("h",self.SpawnZ))
-        fHandle.write(struct.pack("h",self.SpawnOrientation))
-        fHandle.write(struct.pack("h",self.SpawnPitch))
+            Console.Error("World", "Failed to saved world %s to disk." % self.Name)
+        fHandle.write(struct.pack("h", 1)) #Map version number
+        fHandle.write(struct.pack("h", self.X))
+        fHandle.write(struct.pack("h", self.Y))
+        fHandle.write(struct.pack("h", self.Z))
+        fHandle.write(struct.pack("h", self.SpawnX))
+        fHandle.write(struct.pack("h", self.SpawnY))
+        fHandle.write(struct.pack("h", self.SpawnZ))
+        fHandle.write(struct.pack("h", self.SpawnOrientation))
+        fHandle.write(struct.pack("h", self.SpawnPitch))
         #Meta data saving.
-        fHandle.write(struct.pack("i",len(self.MetaData))) #Number of elements to be saved
+        fHandle.write(struct.pack("i", len(self.MetaData))) #Number of elements to be saved
         for Key in self.MetaData:
             fHandle.write(World._MakeLengthString(Key))
             fHandle.write(World._MakeLengthString(self.MetaData[Key]))
         #Block Array
-        gzipHandle = gzip.GzipFile(fileobj=fHandle, mode="wb",compresslevel=self.CompressionLevel)
+        gzipHandle = gzip.GzipFile(fileobj = fHandle, mode = "wb", compresslevel = self.CompressionLevel)
         gzipHandle.write(self.Blocks.tostring())
         gzipHandle.close()
         fHandle.close()
         try:
-            shutil.copy("Worlds/%s.temp" %(self.Name),"Worlds/%s.save" %(self.Name))
-            os.remove("Worlds/%s.temp" %(self.Name))
+            shutil.copy("Worlds/%s.temp" % (self.Name), "Worlds/%s.save" % (self.Name))
+            os.remove("Worlds/%s.temp" % (self.Name))
         except:
             pass
         if Verbose:
-            Console.Out("World","Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
-            self.SendNotice("Saved world %s in %dms" %(self.Name,int((time.time()-start)*1000)))
+            Console.Out("World", "Saved world %s in %dms" % (self.Name, int((time.time() - start) * 1000)))
+            self.SendNotice("Saved world %s in %dms" % (self.Name, int((time.time() - start) * 1000)))
         self.LastSave = start
 
-    def Backup(self,Verbose = True):
+    def Backup(self, Verbose = True):
         '''Performs a backup of the current save file'''
         start = time.time()
         if os.path.isfile("Worlds/" + self.Name + ".save") == False:
@@ -360,12 +360,12 @@ class World(object):
         FileName = self.Name + '_' + time.strftime("%d-%m-%Y_%H-%M-%S", time.gmtime()) + '.save'
         shutil.copy("Worlds/" + self.Name + '.save', "Backups/" + self.Name + "/" + FileName)
         if Verbose:
-            self.SendNotice("Backed up world in %dms" %(int((time.time()-start) * 1000)))
+            self.SendNotice("Backed up world in %dms" % (int((time.time() - start) * 1000)))
         self.LastBackup = start
 
-    def InsertZone(self,pZone):
+    def InsertZone(self, pZone):
         self.Zones.append(pZone)
-    def GetZone(self,Name):
+    def GetZone(self, Name):
         Name = Name.lower()
         for pZone in self.Zones:
             if pZone.Name.lower() == Name:
@@ -373,14 +373,14 @@ class World(object):
         return None
     def GetZones(self):
         return self.Zones
-    def DeleteZone(self,pZone):
+    def DeleteZone(self, pZone):
         self.Zones.remove(pZone)
 
-    def SetIdleTimeout(self,Time):
+    def SetIdleTimeout(self, Time):
         self.IdleTimeout = Time
 
-    def _CalculateOffset(self,x,y,z):
-        return z*(self.X*self.Y) + y*(self.X) + x
+    def _CalculateOffset(self, x, y, z):
+        return z * (self.X * self.Y) + y * (self.X) + x
 
     def _CalculateCoords(self, offset):
         x = offset % self.X
@@ -388,12 +388,12 @@ class World(object):
         z = offset // (self.X * self.Y)
         return x, y, z
 
-    def WithinBounds(self,x,y,z):
+    def WithinBounds(self, x, y, z):
         if x < 0 or x >= self.X or y < 0 or y >= self.Y or z < 0 or z >= self.Z:
             return False
         return True
 
-    def AttemptSetBlock(self,pPlayer,x,y,z,val):
+    def AttemptSetBlock(self, pPlayer, x, y, z, val):
         if not self.WithinBounds(x, y, z):
             return True #Cant set that block. But don't return False or it'll try "undo" the change!
         if val >= BLOCK_END:
@@ -405,12 +405,12 @@ class World(object):
         if pPlayer.CalcDistance(x, y, z) > 10 and pPlayer.GetRank() == 'guest':
             return False
         #Plugins
-        if self.ServerControl.PluginMgr.OnAttemptPlaceBlock(self,pPlayer, val, x, y, z) == False:
+        if self.ServerControl.PluginMgr.OnAttemptPlaceBlock(self, pPlayer, val, x, y, z) == False:
             return False
         if pPlayer.GetAboutCmd() == True:
             #Display block information
             try:
-                BlockInfo = self.GetBlockLogEntry(x,y,z)
+                BlockInfo = self.GetBlockLogEntry(x, y, z)
             except dbapi.OperationalError:
                 pPlayer.SendMessage("&RDatabase is busy, try again in a few moments.")
                 return False
@@ -419,13 +419,13 @@ class World(object):
                 pPlayer.SendMessage("&SNo information available for this block (No changes made)")
             else:
                 now = int(time.time())
-                pPlayer.SendMessage("&SThis block was last changed by &V%s" %BlockInfo.Username)
-                pPlayer.SendMessage("&SThe old value for the block was &V%d" %ord(BlockInfo.Value))
-                pPlayer.SendMessage("&SChanged &V%s &Sago" %ElapsedTime(now-BlockInfo.Time))
+                pPlayer.SendMessage("&SThis block was last changed by &V%s" % BlockInfo.Username)
+                pPlayer.SendMessage("&SThe old value for the block was &V%d" % ord(BlockInfo.Value))
+                pPlayer.SendMessage("&SChanged &V%s &Sago" % ElapsedTime(now - BlockInfo.Time))
             pPlayer.SetAboutCmd(False)
             return False
         #ZONES!
-        if self.CheckZones(pPlayer,x,y,z) == False:
+        if self.CheckZones(pPlayer, x, y, z) == False:
             return False
         if val in DisabledBlocks and pPlayer.GetBlockOverride() not in DisabledBlocks:
                 pPlayer.SendMessage("&RThat block is disabled!")
@@ -461,11 +461,11 @@ class World(object):
                 pPlayer.SendMessage("&SNow place the final corner for the zone.")
                 return True
             elif zData["Phase"] == 2:
-                FileName = Zone.Create(zData["Name"], zData["X1"], x, zData["Y1"], y, zData["Z1"]-1, z-1, zData["Height"], zData["Owner"], self.Name)
-                pZone = Zone(FileName,self.ServerControl)
+                FileName = Zone.Create(zData["Name"], zData["X1"], x, zData["Y1"], y, zData["Z1"] - 1, z - 1, zData["Height"], zData["Owner"], self.Name)
+                pZone = Zone(FileName, self.ServerControl)
                 self.Zones.append(pZone)
                 self.ServerControl.AddZone(pZone)
-                pPlayer.SendMessage("&SSuccessfully created zone \"%s\"" %zData["Name"])
+                pPlayer.SendMessage("&SSuccessfully created zone \"%s\"" % zData["Name"])
                 #hide the starting block for the zone
                 self.SendBlock(pPlayer, zData["X1"], zData["Y1"], zData["Z1"])
                 pPlayer.FinishCreatingZone()
@@ -473,60 +473,67 @@ class World(object):
 
         #Temporary code to make "steps" function normally.
         if val == BLOCK_STEP and z > 0:
-            BlockBelow = self._CalculateOffset(x, y, z-1)
+            BlockBelow = self._CalculateOffset(x, y, z - 1)
             if ord(self.Blocks[BlockBelow]) == BLOCK_STEP:
-                if self.CheckZones(pPlayer,x,y,z-1) != False:
-                    self.SetBlock(None, x, y, z-1, BLOCK_DOUBLESTEP)
+                if self.CheckZones(pPlayer, x, y, z - 1) != False:
+                    self.SetBlock(None, x, y, z - 1, BLOCK_DOUBLESTEP)
                     return False
-        ArrayValue = self._CalculateOffset(x,y,z)
+        ArrayValue = self._CalculateOffset(x, y, z)
         if ord(self.Blocks[ArrayValue]) == BLOCK_HARDROCK:
             if pPlayer.HasPermission(self.ServerControl.AdmincreteRank) == False:
                 #not allowed to delete admincrete
                 return False
         if self.LogBlocks == True:
-            self.BlockHistory[ArrayValue] = BlockLog(pPlayer.GetName().lower(),int(time.time()),self.Blocks[ArrayValue])
-        self.SetBlock(pPlayer,x,y,z,val)
+            self.BlockHistory[ArrayValue] = BlockLog(pPlayer.GetName().lower(), int(time.time()), self.Blocks[ArrayValue])
+        self.SetBlock(pPlayer, x, y, z, val)
         return True
 
-    def CheckZones(self,pPlayer,x,y,z):
+    def CheckZones(self, pPlayer, x, y, z):
         for pZone in self.Zones:
-            if pZone.IsInZone(x,y,z):
+            if pZone.IsInZone(x, y, z):
                 if pZone.CanBuild(pPlayer) == False:
-                    pPlayer.SendMessage("&RYou cannot build in zone \"%s\"" %pZone.Name)
+                    pPlayer.SendMessage("&RYou cannot build in zone \"%s\"" % pZone.Name)
                     return False
         return True
-    def GetBlock(self,x,y,z):
+    def GetBlock(self, x, y, z):
         '''Returns the numeric value of a block on the map'''
         if self.WithinBounds(x, y, z) == False:
-            return -1
+            return - 1
         else:
             return ord(self.Blocks[self._CalculateOffset(x, y, z)])
-    def SetBlock(self,pPlayer,x,y,z,val):
+    def SetBlock(self, pPlayer, x, y, z, val, ResendToClient = False):
+
         #Changes a block to a certain value.
-        ArrayValue = self._CalculateOffset(x,y,z)
+        ArrayValue = self._CalculateOffset(x, y, z)
+        val = chr(val)
+        if self.Blocks[ArrayValue] == val:
+            return
         self.Blocks[ArrayValue] = chr(val)
         Packet = OptiCraftPacket(SMSG_BLOCKSET)
         Packet.WriteInt16(x)
         Packet.WriteInt16(z)
         Packet.WriteInt16(y)
         Packet.WriteByte(val)
-        self.SendPacketToAllButOne(Packet,pPlayer)
+        if not ResendToClient:
+            self.SendPacketToAllButOne(Packet, pPlayer)
+        else:
+            self.SendPacketToAll(Packet)
         self.IsDirty = True
-        self.ServerControl.PluginMgr.OnPostPlaceBlock(self,pPlayer,val,x,y,z)
+        self.ServerControl.PluginMgr.OnPostPlaceBlock(self, pPlayer, val, x, y, z)
         
-    def UndoActions(self,Username,ReversePlayer,Time):
+    def UndoActions(self, Username, ReversePlayer, Time):
         self.FlushBlockLog()
         #Reverse stuff in SQL DB
-        self.IOThread.Tasks.put(["UNDO_ACTIONS",Username.lower(),ReversePlayer.lower(),Time])
+        self.IOThread.Tasks.put(["UNDO_ACTIONS", Username.lower(), ReversePlayer.lower(), Time])
 
-    def AddBlockChanges(self,BlockChangeList):
+    def AddBlockChanges(self, BlockChangeList):
         self.AsyncBlockChanges.put(BlockChangeList)
 
-    def GetBlockLogEntry(self,X,Y,Z):
+    def GetBlockLogEntry(self, X, Y, Z):
         '''Attempts to return a Blocklog entry'''
         Offset = self._CalculateOffset(X, Y, Z)
         #First check our hashmap.
-        Result = self.BlockHistory.get(Offset,None)
+        Result = self.BlockHistory.get(Offset, None)
         if Result != None:
             #Easy peezy...
             return Result
@@ -536,15 +543,15 @@ class World(object):
         if SQLResult == None:
             return None
         else:
-            return BlockLog(SQLResult[0],SQLResult[1],chr(SQLResult[2]))
+            return BlockLog(SQLResult[0], SQLResult[1], chr(SQLResult[2]))
 
     def FlushBlockLog(self):
         '''Tells the IO Thread to Flush out the blockhistory to the disk'''
-        self.IOThread.Tasks.put(["FLUSH",self.BlockHistory])
+        self.IOThread.Tasks.put(["FLUSH", self.BlockHistory])
         self.BlockHistory = dict()
 
 
-    def SetSpawn(self,x,y,z,o,p):
+    def SetSpawn(self, x, y, z, o, p):
         '''Sets the worlds default spawn position. Stored in the format the client uses (pixels)'''
         self.SpawnX = x
         self.SpawnY = y
@@ -554,8 +561,8 @@ class World(object):
 
 
 
-    def GenerateGenericWorld(self,x=512,y=512,z=96):
-        self.X, self.Y, self.Z = x,y,z
+    def GenerateGenericWorld(self, x = 512, y = 512, z = 96):
+        self.X, self.Y, self.Z = x, y, z
         GrassLevel = self.Z / 2
         SandLevel = GrassLevel - 2
         self.SpawnY = self.Y / 2 * 32
@@ -573,21 +580,21 @@ class World(object):
                 Block = chr(BLOCK_GRASS)
             else:
                 Block = chr(BLOCK_AIR)
-            self.Blocks.fromstring((self.X*self.Y)*Block)
+            self.Blocks.fromstring((self.X * self.Y) * Block)
         self.MetaData["hidden"] = '0'
         self.MetaData["minrank"] = "guest"
         self.IsDirty = True
         self.Save(False)
 
-    def SetMetaData(self,Key,Value):
+    def SetMetaData(self, Key, Value):
         self.MetaData[Key] = Value
     def IsHidden(self):
         return int(self.MetaData["hidden"])
-    def SetHidden(self,Value):
+    def SetHidden(self, Value):
         self.SetMetaData("hidden", str(Value))
     def GetMinRank(self):
         return self.MetaData["minrank"]
-    def SetMinRank(self,Value):
+    def SetMinRank(self, Value):
         self.SetMetaData("minrank", Value)
     def Unload(self):
         #Remove players..
@@ -640,16 +647,16 @@ class World(object):
                 ReversedPlayer = Data[1]
                 NumChanged = Data[2]
 
-                for i in xrange(3,len(Data)):
-                    x,y,z = self._CalculateCoords(Data[i].Offset)
+                for i in xrange(3, len(Data)):
+                    x, y, z = self._CalculateCoords(Data[i].Offset)
                     self.SetBlock(None, x, y, z, Data[i].Value)
                 Initiator = self.ServerControl.GetPlayerFromName(Username)
                 if Initiator:
-                    Initiator.SendMessage("&SFinished reversing %s's actions" %ReversedPlayer)
+                    Initiator.SendMessage("&SFinished reversing %s's actions" % ReversedPlayer)
                 if NumChanged > 0:
-                    self.ServerControl.SendNotice("Antigrief: %s's actions have been reversed." %ReversedPlayer)
+                    self.ServerControl.SendNotice("Antigrief: %s's actions have been reversed." % ReversedPlayer)
                 elif Initiator and NumChanged == 0:
-                    Initiator.SendMessage("&R%s had no block history!" %ReversedPlayer)
+                    Initiator.SendMessage("&R%s had no block history!" % ReversedPlayer)
 
         while len(self.JoiningPlayers) > 0:
             pPlayer = self.JoiningPlayers.pop()
@@ -663,7 +670,7 @@ class World(object):
         while len(self.TransferringPlayers) > 0:
             self.Players.remove(self.TransferringPlayers.pop())
 
-    def Shutdown(self,Crash):
+    def Shutdown(self, Crash):
         self.Save(False)
         self.Backup(False)
         if self.LogBlocks:
@@ -673,12 +680,12 @@ class World(object):
     def IsFull(self):
         return len(self.PlayerIDs) == 0
 
-    def SendWorld(self,pPlayer):
+    def SendWorld(self, pPlayer):
         Packet = OptiCraftPacket(SMSG_PRECHUNK)
         pPlayer.SendPacket(Packet)
         if self.IsDirty:
             StringHandle = cStringIO.StringIO()
-            fHandle = gzip.GzipFile(fileobj=StringHandle,mode="wb",compresslevel=self.CompressionLevel)
+            fHandle = gzip.GzipFile(fileobj = StringHandle, mode = "wb", compresslevel = self.CompressionLevel)
             fHandle.write(self.NetworkSize)
             fHandle.write(self.Blocks)
             fHandle.close()
@@ -696,7 +703,7 @@ class World(object):
             Packet = OptiCraftPacket(SMSG_CHUNK)
             Packet.WriteInt16(ChunkSize)
             Packet.WriteKBChunk(Chunk)
-            Packet.WriteByte(100.0 * (float(CurBytes)/float(TotalBytes)))
+            Packet.WriteByte(100.0 * (float(CurBytes) / float(TotalBytes)))
             pPlayer.SendPacket(Packet)
             Chunk = StringHandle.read(1024)
 
@@ -730,7 +737,7 @@ class World(object):
 
 
 
-    def RemovePlayer(self,pPlayer,ChangingMaps = False):
+    def RemovePlayer(self, pPlayer, ChangingMaps = False):
         if not ChangingMaps:
             self.Players.remove(pPlayer)
         #Send Some packets to local players...
@@ -742,7 +749,7 @@ class World(object):
             self._ChangeWorld(pPlayer)
             self.TransferringPlayers.append(pPlayer)
 
-    def SendBlock(self,pPlayer,x,y,z):
+    def SendBlock(self, pPlayer, x, y, z):
         #We can trust that these coordinates will be within bounds.
         Packet = OptiCraftPacket(SMSG_BLOCKSET)
         Packet.WriteInt16(x)
@@ -750,11 +757,11 @@ class World(object):
         Packet.WriteInt16(y)
         Packet.WriteByte(ord(self.Blocks[self._CalculateOffset(x, y, z)]))
         pPlayer.SendPacket(Packet)
-    def AddPlayer(self,pPlayer, Transferring = False):
+    def AddPlayer(self, pPlayer, Transferring = False):
         self.JoiningPlayers.append(pPlayer)
         pPlayer.SetNewId(self.PlayerIDs.pop())
 
-    def SendPlayerJoined(self,pPlayer):
+    def SendPlayerJoined(self, pPlayer):
         Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
         Packet.WriteByte(pPlayer.GetId())
         Packet.WriteString(pPlayer.GetColouredName())
@@ -767,14 +774,14 @@ class World(object):
             if nPlayer != pPlayer and pPlayer.CanBeSeenBy(nPlayer):
                 nPlayer.SendPacket(Packet)
 
-    def _ChangeWorld(self,pPlayer):
+    def _ChangeWorld(self, pPlayer):
         for nPlayer in self.Players:
             if nPlayer != pPlayer:
                 Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
                 Packet.WriteByte(nPlayer.GetId())
                 pPlayer.SendPacket(Packet)
 
-    def SendAllPlayers(self,Client):
+    def SendAllPlayers(self, Client):
         for pPlayer in self.Players:
             if pPlayer != Client and pPlayer.CanBeSeenBy(Client):
                 Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
@@ -787,14 +794,14 @@ class World(object):
                 Packet.WriteByte(pPlayer.GetPitch())
                 Client.SendPacket(Packet)
 
-    def SendNotice(self,Message):
+    def SendNotice(self, Message):
         Packet = OptiCraftPacket(SMSG_MESSAGE)
         Packet.WriteByte(0)
         Message = self.ServerControl.ConvertColours(("&N" + Message))
         Packet.WriteString(Message)
         self.SendPacketToAll(Packet)
         
-    def SendJoinMessage(self,Message):
+    def SendJoinMessage(self, Message):
         Packet = OptiCraftPacket(SMSG_MESSAGE)
         Packet.WriteByte(0)
         Message = self.ServerControl.ConvertColours(Message)
@@ -802,13 +809,13 @@ class World(object):
         for pPlayer in self.Players:
             if pPlayer.GetJoinNotifications():
                 pPlayer.SendPacket(Packet)
-    def SendPacketToAll(self,Packet):
+    def SendPacketToAll(self, Packet):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
         Data = Packet.GetOutData()
         for pPlayer in self.Players:
             pPlayer.OutBuffer.write(Data)
-    def SendPacketToAllButOne(self,Packet,Client):
+    def SendPacketToAllButOne(self, Packet, Client):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
         Data = Packet.GetOutData()
@@ -816,9 +823,9 @@ class World(object):
             if pPlayer != Client:
                 pPlayer.OutBuffer.write(Data)
     @staticmethod
-    def GetCacheValues(Name,ServerControl):
+    def GetCacheValues(Name, ServerControl):
         try:
-            fHandle = open("Worlds/%s.save" %Name)
+            fHandle = open("Worlds/%s.save" % Name)
             fHandle.seek(18)
             NumElements = struct.unpack("i", fHandle.read(4))[0]
             MinRank = 'guest'
