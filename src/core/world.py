@@ -188,7 +188,7 @@ class World(object):
         self.BackupInterval = int(self.ServerControl.ConfigValues.GetValue("worlds", "BackupTime", "3600"))
         self.CompressionLevel = int(self.ServerControl.ConfigValues.GetValue("worlds", "CompressionLevel", 1))
         self.LogBlocks = int(self.ServerControl.ConfigValues.GetValue("worlds", "EnableBlockHistory", 1))
-        self.LogFlushThreshold = int(self.ServerControl.ConfigValues.GetValue("worlds", "LogFlushThreshold", 20000))
+        self.LogFlushThreshold = int(self.ServerControl.ConfigValues.GetValue("worlds", "LogFlushThreshold", 100000))
         self.IOThread = None
         self.AsyncBlockChanges = Queue.Queue()
         self.IdleTimeout = 0 #How long must the world be unoccupied until it unloads itself from memory
@@ -393,7 +393,7 @@ class World(object):
             return False
         return True
 
-    def AttemptSetBlock(self, pPlayer, x, y, z, val):
+    def AttemptSetBlock(self, pPlayer, x, y, z, val, IgnoreDistance = False, ResendToClient = False):
         if not self.WithinBounds(x, y, z):
             return True #Cant set that block. But don't return False or it'll try "undo" the change!
         if val >= BLOCK_END:
@@ -402,7 +402,7 @@ class World(object):
             pPlayer.SendMessage("&RYou do not have the required rank to build on this world")
             return False
         #Too far away!
-        if pPlayer.CalcDistance(x, y, z) > 10 and pPlayer.GetRank() == 'guest':
+        if not IgnoreDistance and pPlayer.CalcDistance(x, y, z) > 10 and pPlayer.GetRank() == 'guest':
             return False
         #Plugins
         if self.ServerControl.PluginMgr.OnAttemptPlaceBlock(self, pPlayer, val, x, y, z) == False:
@@ -484,31 +484,17 @@ class World(object):
                 #not allowed to delete admincrete
                 return False
         if self.LogBlocks == True:
-            self.BlockHistory[ArrayValue] = BlockLog(pPlayer.GetName().lower(), int(time.time()), self.Blocks[ArrayValue])
-        self.SetBlock(pPlayer, x, y, z, val)
+            self.BlockHistory[ArrayValue] = BlockLog(pPlayer.GetName().lower(), self.ServerControl.Now, self.Blocks[ArrayValue])
+        self.SetBlock(pPlayer, x, y, z, val, ResendToClient)
         return True
 
-    def CheckZones(self, pPlayer, x, y, z):
-        for pZone in self.Zones:
-            if pZone.IsInZone(x, y, z):
-                if pZone.CanBuild(pPlayer) == False:
-                    pPlayer.SendMessage("&RYou cannot build in zone \"%s\"" % pZone.Name)
-                    return False
-        return True
-    def GetBlock(self, x, y, z):
-        '''Returns the numeric value of a block on the map'''
-        if self.WithinBounds(x, y, z) == False:
-            return - 1
-        else:
-            return ord(self.Blocks[self._CalculateOffset(x, y, z)])
     def SetBlock(self, pPlayer, x, y, z, val, ResendToClient = False):
-
         #Changes a block to a certain value.
         ArrayValue = self._CalculateOffset(x, y, z)
-        val = chr(val)
-        if self.Blocks[ArrayValue] == val:
+        cval = chr(val)
+        if self.Blocks[ArrayValue] == cval:
             return
-        self.Blocks[ArrayValue] = chr(val)
+        self.Blocks[ArrayValue] = cval
         Packet = OptiCraftPacket(SMSG_BLOCKSET)
         Packet.WriteInt16(x)
         Packet.WriteInt16(z)
@@ -521,6 +507,21 @@ class World(object):
         self.IsDirty = True
         self.ServerControl.PluginMgr.OnPostPlaceBlock(self, pPlayer, val, x, y, z)
         
+    def CheckZones(self, pPlayer, x, y, z):
+        for pZone in self.Zones:
+            if pZone.IsInZone(x, y, z):
+                if pZone.CanBuild(pPlayer) == False:
+                    pPlayer.SendMessage("&RYou cannot build in zone \"%s\"" % pZone.Name)
+                    return False
+        return True
+    
+    def GetBlock(self, x, y, z):
+        '''Returns the numeric value of a block on the map'''
+        if self.WithinBounds(x, y, z) == False:
+            return - 1
+        else:
+            return ord(self.Blocks[self._CalculateOffset(x, y, z)])
+                
     def UndoActions(self, Username, ReversePlayer, Time):
         self.FlushBlockLog()
         #Reverse stuff in SQL DB
