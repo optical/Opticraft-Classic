@@ -94,6 +94,7 @@ class CuboidDrawAction(DrawAction):
             self.X2 = max(self.TempX, x)
             self.Y2 = max(self.TempY, y)
             self.Z2 = max(self.TempZ, z)
+            self.pPlayer.SetPluginData(DRAW_KEY, None)            
             self.DoDraw()
             return False
             
@@ -102,7 +103,7 @@ class CuboidDrawAction(DrawAction):
         for x in xrange(self.X1, self.X2 + 1):
             for y in xrange(self.Y1, self.Y2 + 1):
                 for z in xrange(self.Z1, self.Z2 + 1):
-                    self.pPlayer.GetWorld().SetBlock(self.pPlayer, x, y, z, self.Material, ResendToClient = True)
+                    self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, self.Material, IgnoreDistance = True, ResendToClient = True)
                     #self.pPlayer.Teleport(x * 32, y * 32, z * 32, 0, 0)
         self.pPlayer.SendMessage("&SFinished drawing cuboid")
-        self.pPlayer.SetPluginData(DRAW_KEY, None)
+
