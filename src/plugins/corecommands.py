@@ -1109,7 +1109,7 @@ class PluginCmd(CommandObject):
             return
         PluginName = Args[1]
         if PluginName not in pPlayer.ServerControl.PluginMgr.PluginModules:
-            pPlayer.SendMessage("&RThat plugin is already loaded!")
+            pPlayer.SendMessage("&RThat plugin is not loaded!")
             return
         Result = pPlayer.ServerControl.PluginMgr.UnloadPlugin(PluginName)
         if Result:
@@ -1142,6 +1142,7 @@ class DeleteWorldCmd(CommandObject):
         for pWorld in ActiveWorlds:
             if pWorld.Name.lower() == WorldName:
                 pWorld.Unload()
+                pWorld.IOThread.join() #Block until the thread is finished its jobs
         #Get the lists again, they may of changed at this stage of the process
         #(If the world was active, it will now be in the idle list due to being unloaded)
         ActiveWorlds, IdleWorlds = pPlayer.ServerControl.GetWorlds()
@@ -1157,12 +1158,7 @@ class DeleteWorldCmd(CommandObject):
                         pPlayer.ServerControl.DeleteZone(pZone)
                         pZone.Delete()
                 if pPlayer.ServerControl.EnableBlockLogs:
-                    #This can fail due to multi-threaded context, unfortunately.
-                    #Design flaw.
-                    try:
-                        os.remove("Worlds/BlockLogs/%s.db" % WorldName)
-                    except:
-                        pass
+                    os.remove("Worlds/BlockLogs/%s.db" % WorldName)
                 pPlayer.ServerControl.IdleWorlds.remove(WorldName)
                 del pPlayer.ServerControl.WorldRankCache[WorldName.lower()]
                 del pPlayer.ServerControl.WorldHideCache[WorldName.lower()]
