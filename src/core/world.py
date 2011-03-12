@@ -423,7 +423,7 @@ class World(object):
             else:
                 now = int(time.time())
                 pPlayer.SendMessage("&SThis block was last changed by &V%s" % BlockInfo.Username)
-                pPlayer.SendMessage("&SThe old value for the block was &V%d" % ord(BlockInfo.Value))
+                pPlayer.SendMessage("&SThe old block was: &V%s" % GetBlockNameFromID(ord(BlockInfo.Value)))
                 pPlayer.SendMessage("&SChanged &V%s &Sago" % ElapsedTime(now - BlockInfo.Time))
             pPlayer.SetAboutCmd(False)
             return False
@@ -431,8 +431,8 @@ class World(object):
         if self.CheckZones(pPlayer, x, y, z) == False:
             return False
         if val in DisabledBlocks and pPlayer.GetBlockOverride() not in DisabledBlocks:
-                pPlayer.SendMessage("&RThat block is disabled!")
-                return False
+            pPlayer.SendMessage("&RThat block is disabled!")
+            return False
         if pPlayer.GetTowerCmd() == True and val == 0:
             BadBlock = self.Blocks[self._CalculateOffset(x, y, z)]
             while True:
@@ -486,7 +486,7 @@ class World(object):
                 #not allowed to delete admincrete
                 return False
         if self.LogBlocks == True:
-            self.BlockHistory[ArrayValue] = BlockLog(pPlayer.GetName().lower(), self.ServerControl.Now, self.Blocks[ArrayValue])
+            self.BlockHistory[ArrayValue] = BlockLog(pPlayer.GetName().lower(), int(self.ServerControl.Now), self.Blocks[ArrayValue])
         self.SetBlock(pPlayer, x, y, z, val, ResendToClient)
         return True
 
