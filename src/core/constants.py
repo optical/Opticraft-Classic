@@ -24,7 +24,7 @@
 #  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 #  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+import ordereddict
 #Client messages
 CMSG_IDENTIFY = 0
 CMSG_BLOCKCHANGE = 5
@@ -108,111 +108,111 @@ BLOCK_BOOKCASE = 47
 BLOCK_MOSSYROCK = 48
 BLOCK_OBSIDIAN = 49
 BLOCK_END = 50
-BlockNamesToID = {
-                  "air": BLOCK_AIR,
-                  "blank": BLOCK_AIR,
-                  "stone": BLOCK_ROCK,
-                  "rock": BLOCK_ROCK,
-                  "grass": BLOCK_GRASS,
-                  "dirt": BLOCK_DIRT,
-                  "cobblestone": BLOCK_COBBLESTONE,
-                  "wood": BLOCK_WOOD,
-                  "plant": BLOCK_PLANT,
-                  "sappling": BLOCK_PLANT,
-                  "tree": BLOCK_PLANT,
-                  "hardrock": BLOCK_HARDROCK,
-                  "adminium": BLOCK_HARDROCK,
-                  "adminite": BLOCK_HARDROCK,
-                  "water": BLOCK_STILLWATER,
-                  "lava": BLOCK_STILLLAVA,
-                  "sand": BLOCK_SAND,
-                  "gravel": BLOCK_GRAVEL,
-                  "gold": BLOCK_GOLD,
-                  "goldore": BLOCK_GOLD,
-                  "iron": BLOCK_IRON,
-                  "ironore": BLOCK_IRON,
-                  "coal": BLOCK_COALORE,
-                  "coalore": BLOCK_COALORE,
-                  "log": BLOCK_LOG,
-                  "leaves": BLOCK_LEAVES,
-                  "sponge": BLOCK_SPONGE,
-                  "glass": BLOCK_GLASS,
-                  "red": BLOCK_RED_CLOTH,
-                  "red cloth": BLOCK_RED_CLOTH,
-                  "red wool": BLOCK_RED_CLOTH,
-                  "orange": BLOCK_ORANGE,
-                  "orange cloth": BLOCK_ORANGE,
-                  "orange wool": BLOCK_ORANGE,
-                  "yellow": BLOCK_YELLOW,
-                  "yeollow cloth": BLOCK_YELLOW,
-                  "yellow wool": BLOCK_YELLOW,
-                  "lightgreen": BLOCK_LIME,
-                  "lightgreen wool": BLOCK_LIME,
-                  "lightgreen cloth": BLOCK_LIME,
-                  "lime": BLOCK_LIME,
-                  "limecloth": BLOCK_LIME,
-                  "limewool": BLOCK_LIME,
-                  "green": BLOCK_GREEN,
-                  "greencloth": BLOCK_GREEN,
-                  "greenwool": BLOCK_GREEN,
-                  "aqua": BLOCK_TEAL,
-                  "aquacloth": BLOCK_TEAL,
-                  "aquawool": BLOCK_TEAL,
-                  "teal": BLOCK_TEAL,
-                  "tealwool": BLOCK_TEAL,
-                  "tealcloth": BLOCK_TEAL,
-                  "cyan": BLOCK_CYAN,
-                  "cyanwool": BLOCK_CYAN,
-                  "cyancloth": BLOCK_CYAN,
-                  "blue": BLOCK_BLUE,
-                  "blue wool": BLOCK_BLUE,
-                  "blue cloth": BLOCK_BLUE,
-                  "purple": BLOCK_PURPLE,
-                  "purple wool": BLOCK_PURPLE,
-                  "purple cloth": BLOCK_PURPLE,
-                  "indigo": BLOCK_INDIGO,
-                  "indigo cloth": BLOCK_INDIGO,
-                  "indigo wool": BLOCK_INDIGO,
-                  "violet": BLOCK_VIOLET,
-                  "violet wool": BLOCK_VIOLET,
-                  "violet cloth": BLOCK_VIOLET,
-                  "magenta": BLOCK_MAGENTA,
-                  "magenta wool": BLOCK_MAGENTA,
-                  "magenta cloth": BLOCK_MAGENTA,
-                  "pink": BLOCK_PINK,
-                  "pink wool": BLOCK_PINK,
-                  "pink cloth": BLOCK_PINK,
-                  "black": BLOCK_BLACK,
-                  "black wool": BLOCK_BLACK,
-                  "black cloth": BLOCK_BLACK,
-                  "grey": BLOCK_GREY,
-                  "grey wool": BLOCK_GREY,
-                  "grey cloth": BLOCK_GREY,
-                  "white": BLOCK_WHITE,
-                  "white cloth": BLOCK_WHITE,
-                  "white wool": BLOCK_WHITE,
-                  "yellow flower": BLOCK_YELLOWFLOWER,
-                  "rose": BLOCK_REDFLOWER,
-                  "red flower": BLOCK_REDFLOWER,
-                  "red rose": BLOCK_REDFLOWER,
-                  "red mushroom": BLOCK_RED_MUSHROOM,
-                  "brown mushroom": BLOCK_MUSHROOM,
-                  "gold block": BLOCK_GOLD,
-                  "iron block": BLOCK_IRON,
-                  "step": BLOCK_STEP,
-                  "doublestep": BLOCK_DOUBLESTEP,
-                  "stair": BLOCK_STEP,
-                  "brick": BLOCK_BRICK,
-                  "tnt": BLOCK_TNT,
-                  "bookcase": BLOCK_BOOKCASE,
-                  "book": BLOCK_BOOKCASE,
-                  "books": BLOCK_BOOKCASE,
-                  "mossy cobblestone": BLOCK_MOSSYROCK,
-                  "mossyrock": BLOCK_MOSSYROCK,
-                  "mossy rock": BLOCK_MOSSYROCK,
-                  "green cobblestone": BLOCK_MOSSYROCK,
-                  "obsidian": BLOCK_OBSIDIAN       
-}
+BlockNamesToID = ordereddict.OrderedDict()
+BlockNamesToID["air"] = BLOCK_AIR
+BlockNamesToID["blank"] = BLOCK_AIR
+BlockNamesToID["stone"] = BLOCK_ROCK
+BlockNamesToID["rock"] = BLOCK_ROCK
+BlockNamesToID["grass"] = BLOCK_GRASS
+BlockNamesToID["dirt"] = BLOCK_DIRT
+BlockNamesToID["cobblestone"] = BLOCK_COBBLESTONE
+BlockNamesToID["wood"] = BLOCK_WOOD
+BlockNamesToID["plant"] = BLOCK_PLANT
+BlockNamesToID["sappling"] = BLOCK_PLANT
+BlockNamesToID["tree"] = BLOCK_PLANT
+BlockNamesToID["hardrock"] = BLOCK_HARDROCK
+BlockNamesToID["adminium"] = BLOCK_HARDROCK
+BlockNamesToID["adminite"] = BLOCK_HARDROCK
+BlockNamesToID["water"] = BLOCK_STILLWATER
+BlockNamesToID["lava"] = BLOCK_STILLLAVA
+BlockNamesToID["sand"] = BLOCK_SAND
+BlockNamesToID["gravel"] = BLOCK_GRAVEL
+BlockNamesToID["gold"] = BLOCK_GOLD
+BlockNamesToID["goldore"] = BLOCK_GOLD
+BlockNamesToID["iron"] = BLOCK_IRON
+BlockNamesToID["ironore"] = BLOCK_IRON
+BlockNamesToID["coal"] = BLOCK_COALORE
+BlockNamesToID["coalore"] = BLOCK_COALORE
+BlockNamesToID["log"] = BLOCK_LOG
+BlockNamesToID["leaves"] = BLOCK_LEAVES
+BlockNamesToID["sponge"] = BLOCK_SPONGE
+BlockNamesToID["glass"] = BLOCK_GLASS
+BlockNamesToID["red"] = BLOCK_RED_CLOTH
+BlockNamesToID["red cloth"] = BLOCK_RED_CLOTH
+BlockNamesToID["red wool"] = BLOCK_RED_CLOTH
+BlockNamesToID["orange"] = BLOCK_ORANGE
+BlockNamesToID["orange cloth"] = BLOCK_ORANGE
+BlockNamesToID["orange wool"] = BLOCK_ORANGE
+BlockNamesToID["yellow"] = BLOCK_YELLOW
+BlockNamesToID["yeollow cloth"] = BLOCK_YELLOW
+BlockNamesToID["yellow wool"] = BLOCK_YELLOW
+BlockNamesToID["lightgreen"] = BLOCK_LIME
+BlockNamesToID["lightgreen wool"] = BLOCK_LIME
+BlockNamesToID["lightgreen cloth"] = BLOCK_LIME
+BlockNamesToID["lime"] = BLOCK_LIME
+BlockNamesToID["limecloth"] = BLOCK_LIME
+BlockNamesToID["limewool"] = BLOCK_LIME
+BlockNamesToID["green"] = BLOCK_GREEN
+BlockNamesToID["greencloth"] = BLOCK_GREEN
+BlockNamesToID["greenwool"] = BLOCK_GREEN
+BlockNamesToID["aqua"] = BLOCK_TEAL
+BlockNamesToID["aquacloth"] = BLOCK_TEAL
+BlockNamesToID["aquawool"] = BLOCK_TEAL
+BlockNamesToID["teal"] = BLOCK_TEAL
+BlockNamesToID["tealwool"] = BLOCK_TEAL
+BlockNamesToID["tealcloth"] = BLOCK_TEAL
+BlockNamesToID["cyan"] = BLOCK_CYAN
+BlockNamesToID["cyanwool"] = BLOCK_CYAN
+BlockNamesToID["cyancloth"] = BLOCK_CYAN
+BlockNamesToID["blue"] = BLOCK_BLUE
+BlockNamesToID["blue wool"] = BLOCK_BLUE
+BlockNamesToID["blue cloth"] = BLOCK_BLUE
+BlockNamesToID["purple"] = BLOCK_PURPLE
+BlockNamesToID["purple wool"] = BLOCK_PURPLE
+BlockNamesToID["purple cloth"] = BLOCK_PURPLE
+BlockNamesToID["indigo"] = BLOCK_INDIGO
+BlockNamesToID["indigo cloth"] = BLOCK_INDIGO
+BlockNamesToID["indigo wool"] = BLOCK_INDIGO
+BlockNamesToID["violet"] = BLOCK_VIOLET
+BlockNamesToID["violet wool"] = BLOCK_VIOLET
+BlockNamesToID["violet cloth"] = BLOCK_VIOLET
+BlockNamesToID["magenta"] = BLOCK_MAGENTA
+BlockNamesToID["magenta wool"] = BLOCK_MAGENTA
+BlockNamesToID["magenta cloth"] = BLOCK_MAGENTA
+BlockNamesToID["pink"] = BLOCK_PINK
+BlockNamesToID["pink wool"] = BLOCK_PINK
+BlockNamesToID["pink cloth"] = BLOCK_PINK
+BlockNamesToID["black"] = BLOCK_BLACK
+BlockNamesToID["black wool"] = BLOCK_BLACK
+BlockNamesToID["black cloth"] = BLOCK_BLACK
+BlockNamesToID["grey"] = BLOCK_GREY
+BlockNamesToID["grey wool"] = BLOCK_GREY
+BlockNamesToID["grey cloth"] = BLOCK_GREY
+BlockNamesToID["white"] = BLOCK_WHITE
+BlockNamesToID["white cloth"] = BLOCK_WHITE
+BlockNamesToID["white wool"] = BLOCK_WHITE
+BlockNamesToID["yellow flower"] = BLOCK_YELLOWFLOWER
+BlockNamesToID["rose"] = BLOCK_REDFLOWER
+BlockNamesToID["red flower"] = BLOCK_REDFLOWER
+BlockNamesToID["red rose"] = BLOCK_REDFLOWER
+BlockNamesToID["red mushroom"] = BLOCK_RED_MUSHROOM
+BlockNamesToID["brown mushroom"] = BLOCK_MUSHROOM
+BlockNamesToID["gold block"] = BLOCK_GOLD
+BlockNamesToID["iron block"] = BLOCK_IRON
+BlockNamesToID["step"] = BLOCK_STEP
+BlockNamesToID["doublestep"] = BLOCK_DOUBLESTEP
+BlockNamesToID["stair"] = BLOCK_STEP
+BlockNamesToID["brick"] = BLOCK_BRICK
+BlockNamesToID["tnt"] = BLOCK_TNT
+BlockNamesToID["bookcase"] = BLOCK_BOOKCASE
+BlockNamesToID["book"] = BLOCK_BOOKCASE
+BlockNamesToID["books"] = BLOCK_BOOKCASE
+BlockNamesToID["mossy cobblestone"] = BLOCK_MOSSYROCK
+BlockNamesToID["mossyrock"] = BLOCK_MOSSYROCK
+BlockNamesToID["mossy rock"] = BLOCK_MOSSYROCK
+BlockNamesToID["green cobblestone"] = BLOCK_MOSSYROCK
+BlockNamesToID["obsidian"] = BLOCK_OBSIDIAN
+
 def GetBlockIDFromName(Name):
     return BlockNamesToID.get(Name.lower(), None)
 def InvertDictionary(Dictionary):
