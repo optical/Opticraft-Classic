@@ -401,6 +401,9 @@ class World(object):
         if pPlayer.HasPermission(self.GetMinRank()) == False:
             pPlayer.SendMessage("&RYou do not have the required rank to build on this world")
             return False
+        ArrayValue = self._CalculateOffset(x, y, z)
+        if ord(self.Blocks[ArrayValue]) == val:
+            return        
         #Too far away!
         if not IgnoreDistance and pPlayer.CalcDistance(x, y, z) > 10 and pPlayer.GetRank() == 'guest':
             return False
@@ -478,7 +481,6 @@ class World(object):
                 if self.CheckZones(pPlayer, x, y, z - 1) != False:
                     self.SetBlock(None, x, y, z - 1, BLOCK_DOUBLESTEP)
                     return False
-        ArrayValue = self._CalculateOffset(x, y, z)
         if ord(self.Blocks[ArrayValue]) == BLOCK_HARDROCK:
             if pPlayer.HasPermission(self.ServerControl.AdmincreteRank) == False:
                 #not allowed to delete admincrete

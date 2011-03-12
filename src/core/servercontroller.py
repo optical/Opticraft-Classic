@@ -79,7 +79,7 @@ class PlayerDbThread(threading.Thread):
                                     pPlayer.GetBlocksMade(), pPlayer.GetBlocksErased(), pPlayer.GetIP(), pPlayer.GetIpLog(),
                                     pPlayer.GetJoinNotifications(), pPlayer.GetTimePlayed(), pPlayer.GetKickCount(),
                                     pPlayer.GetChatMessageCount(), pPlayer.GetLoginCount(), pPlayer.GetBannedBy(),
-                                    pPlayer.GetRankedBy(), pPlayer.GetPluginDataDictionary(JSON=True)))
+                                    pPlayer.GetRankedBy(), pPlayer.GetPluginDataDictionary(JSON = True)))
             if self.IsShuttingDown() == False:
                 self.Connection.commit()
         except dbapi.OperationalError:
@@ -337,8 +337,6 @@ class ServerController(object):
         self.LoadIPCache()
         self.PluginMgr = PluginManager(self)
         self.PluginMgr.LoadPlugins()
-        #Override default command permissions from the config file
-        self.LoadCommandOverrides()
         self.Rules = list()
         self.LoadRules()
         self.Greeting = list()
@@ -446,20 +444,6 @@ class ServerController(object):
         return self.WorldRankCache[Name.lower()]
     def SetWorldRank(self, Name, Rank):
         self.WorldRankCache[Name.lower()] = Rank
-    def LoadCommandOverrides(self):
-        Items = self.ConfigValues.GetItems("commandoverrides")
-        Console.Debug("Startup", "Loading command overrides")
-        for Item in Items:
-            Command = Item[0]
-            Permission = Item[1]
-            if self.IsValidRank(Permission):
-                if self.CommandHandle.OverrideCommandPermissions(Command, Permission) == False:
-                    Console.Warning("Startup", "Unable to override command %s as it does not exist!" % Command)
-                else:
-                    Console.Debug("Startup", "Successfully set command %s's permission to %s" % (Command, Permission))
-            else:
-                Console.Warning("Startup", "Unable to override command %s to %s as the rank doesn't exist!" % (Command, Permission))
-    
     def LoadIPCache(self):
         try:
             Console.Debug("IPCache", "Attempting to load IP Cache")
@@ -510,7 +494,7 @@ class ServerController(object):
                 ToAdd.append(Rank)
         while len(ToAdd) > 0:
             self.RankNames.append(ToAdd.pop())
-        self.RankNames.sort(key=lambda rank: self.RankLevels[rank.lower()])
+        self.RankNames.sort(key = lambda rank: self.RankLevels[rank.lower()])
         ExampleRanks = list()
         for Rank in self.RankNames:
             if Rank.lower() in self.RankDescriptions.iterkeys():
@@ -563,7 +547,7 @@ class ServerController(object):
 
     def LoadAnnouncements(self):
         Items = self.ConfigValues.GetItems("announcements")
-        Items.sort(key=lambda item: item[0])
+        Items.sort(key = lambda item: item[0])
         if len(Items) == 0:
             self.PeriodicAnnounceFrequency = 0
             return
@@ -571,12 +555,12 @@ class ServerController(object):
             self.PeriodicNotices.append(Item[1])
     def LoadRules(self):
         Items = self.ConfigValues.GetItems("rules")
-        Items.sort(key=lambda item: item[0])
+        Items.sort(key = lambda item: item[0])
         for Item in Items:
             self.Rules.append(Item[1])
     def LoadGreeting(self):
         Items = self.ConfigValues.GetItems("greeting")
-        Items.sort(key=lambda item: item[0])
+        Items.sort(key = lambda item: item[0])
         for Item in Items:
             self.Greeting.append(Item[1])
     def GetCurrentCpuUsage(self):
@@ -698,7 +682,7 @@ class ServerController(object):
 
             #Run the IRC Bot if enabled
             if self.EnableIRC:
-                asyncore.loop(count=1, timeout=0.001)
+                asyncore.loop(count = 1, timeout = 0.001)
             #Remove idle players
             if self.IdlePlayerLimit != 0:
                 if self.LastIdleCheck + self.IdleCheckPeriod < self.Now:
@@ -735,7 +719,7 @@ class ServerController(object):
         self.PlayerDBThread.Tasks.put(["SHUTDOWN"])
         if self.EnableIRC:
             self.IRCInterface.OnShutdown(Crash)
-            asyncore.loop(timeout=0.01, count=1)
+            asyncore.loop(timeout = 0.01, count = 1)
     def GetName(self):
         return self.Name
     def GetMotd(self):
@@ -921,7 +905,7 @@ class ServerController(object):
         Packet.WriteString(Message)
         self.SendPacketToAll(Packet)
         
-    def SendChatMessage(self, From, Message, NewLine=">", NormalStart=True):
+    def SendChatMessage(self, From, Message, NewLine = ">", NormalStart = True):
         LocalColourchars = ColourChars #Bring it into the local scope
         if NormalStart:
             Message = '%s: &f%s' % (From, Message)
