@@ -768,7 +768,7 @@ class AddIPBanCmd(CommandObject):
                 pPlayer.SendMessage("&RYou may not ban that user.")
                 return
             pPlayer.ServerControl.AddBan(pPlayer, Arg, 0)
-            pPlayer.SendMessage("&SSuccessfully added username ban on %s" % Arg)
+            pPlayer.SendMessage("&SSuccessfully added username ban on \"&V%s&S\"" % Arg)
             #Set arg to the IP address so we can ban that too.
             Arg = Target.GetIP()
         #Check if IP is legit. If so, ban it.
@@ -785,7 +785,7 @@ class AddIPBanCmd(CommandObject):
             return
         #Must be valid
         pPlayer.ServerControl.AddIPBan(pPlayer, Arg, 0)
-        pPlayer.SendMessage("&SSuccessfully banned ip %s" % Arg)
+        pPlayer.SendMessage("&SSuccessfully banned ip \"&V%s\"&S" % Arg)
 
 class DelIPBanCmd(CommandObject):
     '''Handler for the /delipban command. Removes an IP Address ban'''
@@ -804,7 +804,7 @@ class DelIPBanCmd(CommandObject):
             pPlayer.SendMessage("&RThat is not a valid ip-address!")
             return
         pPlayer.ServerControl.UnbanIP(Arg)
-        pPlayer.SendMessage("&SRemoved ban on ip \"%s\"" % Arg) #@IndentOk
+        pPlayer.SendMessage("&SRemoved ban on ip \"&V%s&S\"" % Arg)
 
 class WorldSetRankCmd(CommandObject):
     '''Sets the mimimum rank required to build on a world'''
@@ -812,7 +812,7 @@ class WorldSetRankCmd(CommandObject):
         WorldName = Args[0].lower()
         Rank = Args[1]
         if pPlayer.ServerControl.IsValidRank(Rank) == False:
-            pPlayer.SendMessage("&RThat is not a valid rank! Valid ranks: %s" % pPlayer.ServerControl.GetExampleRanks())
+            pPlayer.SendMessage("&RThat is not a valid rank! Valid ranks:&V %s" % pPlayer.ServerControl.GetExampleRanks())
             return
         pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
         if pWorld == None:
@@ -835,8 +835,8 @@ class TempOpCmd(CommandObject):
             pPlayer.SendMessage("&RYou may not set that players rank!")
             return
         Target.SetRank('operator')
-        Target.SendMessage("&SYou have been granted temporary operator privlidges by %s" % pPlayer.GetName())
-        pPlayer.SendMessage("&S%s is now a temporary operator" % Username)
+        Target.SendMessage("&SYou have been granted temporary operator privlidges by&V %s" % pPlayer.GetName())
+        pPlayer.SendMessage("&V%s &Sis now a temporary operator" % Username)
 
 class ZCreateCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):

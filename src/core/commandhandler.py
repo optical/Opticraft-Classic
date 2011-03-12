@@ -34,7 +34,7 @@ from core.console import *
 class CommandObject(object):
     '''Parents class for all commands'''
     '''Abstract'''
-    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Alias=False):
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Alias = False):
         self.Permissions = Permissions
         self.PermissionLevel = CmdHandler.ServerControl.GetRankLevel(Permissions)
         self.Name = Name
@@ -94,18 +94,22 @@ class CommandHandler(object):
             CommandObj = self.CommandTable[Command]
             CommandObj.Execute(pPlayer, Message)
 
-    def AddCommand(self, Command, CmdObj, Permissions, HelpMsg, ErrorMsg, MinArgs, Alias=False):
+    def AddCommand(self, Command, CmdObj, Permissions, HelpMsg, ErrorMsg, MinArgs, Alias = False):
         self.CommandTable[Command.lower()] = CmdObj(self, Permissions, HelpMsg, ErrorMsg, MinArgs, Command, Alias)
 
     def AddCommandObj(self, CmdObj):
         self.CommandTable[CmdObj.Name.lower()] = CmdObj
+        Permission = self.ServerControl.ConfigValues.GetValue("commandoverrides", CmdObj.Name, '')
+        if Permission != '':
+            if self.ServerControl.IsValidRank(Permission):
+                Console.Out("CommandOverride", "Overrode command %s to rank %s" % (CmdObj.Name, Permission))
+                self.OverrideCommandPermissions(CmdObj, Permission)
+            else:
+                Console.Warning("CommandOverride", "Failed to override command %s, rank %s does not exist" % (CmdObj.Name, Permission))
     def RemoveCommand(self, CmdObj):
         del self.CommandTable[CmdObj.Name.lower()]
 
-    def OverrideCommandPermissions(self, Command, NewPermission):
-        CmdObj = self.CommandTable.get(Command.lower(), None)
-        if CmdObj != None:
-            CmdObj.Permissions = NewPermission.lower()
-            CmdObj.PermissionLevel = self.ServerControl.GetRankLevel(NewPermission.lower())
-            return True
-        return False
+    def OverrideCommandPermissions(self, CmdObj, NewPermission):
+        CmdObj.Permissions = NewPermission.lower()
+        CmdObj.PermissionLevel = self.ServerControl.GetRankLevel(NewPermission.lower())
+        return True
