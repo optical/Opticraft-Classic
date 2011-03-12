@@ -31,6 +31,7 @@ from core.constants import *
 from core.console import *
 
 DRAW_KEY = "draw_plugin"
+COPY_KEY = "draw_plugin_copy_data"
 
 class DrawAction(object):
     '''Abstract class which when inherited is in charge of actually doing all of the drawing'''
@@ -39,8 +40,18 @@ class DrawAction(object):
         self.DisallowMapChanges = True
     def OnAttemptPlaceBlock(self, pWorld, BlockValue, x, y, z):
         pass
+    def PreDraw(self):
+        pass #Calculate blocks here
+    def TryDraw(self, NumBlocks):
+        Limit = int(self.pPlayer.ServerControl.ConfigValues.GetValue("drawcommands", self.pPlayer.GetRank(), "2147483647"))
+        if NumBlocks > Limit:
+            self.pPlayer.SendMessage("&RYou are only allowed to draw %d blocks. Proposed action would affect %d blocks" % (Limit, NumBlocks))
+        else:
+            self.DoDraw()
     def DoDraw(self):
         pass
+    def ArrangeCoordinates(self, X1, Y1, Z1, X2, Y2, Z2):
+        return min(X1, X2), min(Y1, Y2), min(Z1, Z2), max(X1, X2), max(Y1, Y2), max(Z1, Z2)
 
 class DrawCommandPlugin(PluginBase):
     def OnLoad(self):
@@ -59,7 +70,8 @@ class DrawCommandPlugin(PluginBase):
             pPlayer.SetPluginData(DRAW_KEY, None)
     
     def RegisterCommands(self):
-        self.AddCommand("cuboid", CuboidCommand, 'operator', 'Used to create large cuboids of blocks', 'Incorrect syntax! Usage: /cuboid <material>', 1)
+        self.AddCommand("cuboid", CuboidCommand, 'builder', 'Used to create large cuboids of blocks', 'Incorrect syntax! Usage: /cuboid <material>', 1)
+        self.AddCommand("cuboidh", CuboidHCommand, 'builder', 'Used to create large hollow cuboids of blocks', 'Incorrect syntax! Usage: /cuboidh <material>', 1)
 
 class CuboidCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
@@ -70,6 +82,15 @@ class CuboidCommand(CommandObject):
         else:
             pPlayer.SendMessage("&S\"&V%s&S\" is not a valid block!" % Material)
             
+class CuboidHCommand(CommandObject):
+    def Run(self, pPlayer, Args, Message):
+        Material = ' '.join(Args)
+        if GetBlockIDFromName(Material) != None:
+            pPlayer.SetPluginData(DRAW_KEY, HollowCuboidDrawAction(pPlayer, Material))
+            pPlayer.SendMessage("&SPlace blocks to represent the two corners of the hollow cuboid")
+        else:
+            pPlayer.SendMessage("&S\"&V%s&S\" is not a valid block!" % Material)  
+                              
 class CuboidDrawAction(DrawAction):
     def __init__(self, pPlayer, Material):
         DrawAction.__init__(self, pPlayer)
@@ -88,22 +109,34 @@ class CuboidDrawAction(DrawAction):
             self.pPlayer.SendMessage("&SNow place the second block for the cuboid to complete drawing.")
             return False
         else:
-            self.X1 = min(self.TempX, x)
-            self.Y1 = min(self.TempY, y)
-            self.Z1 = min(self.TempZ, z)
-            self.X2 = max(self.TempX, x)
-            self.Y2 = max(self.TempY, y)
-            self.Z2 = max(self.TempZ, z)
-            self.pPlayer.SetPluginData(DRAW_KEY, None)            
-            self.DoDraw()
+            self.X1, self.Y1, self.Z1, self.X2, self.Y2, self.Z2 = self.ArrangeCoordinates(self.TempX, self.TempY, self.TempZ, x, y, z)    
+            self.PreDraw()
             return False
-            
+    def PreDraw(self):
+        NumBlocks = (self.X2 - self.X1) * (self.Y2 - self.Y1) * (self.Z2 - self.Z1)
+        self.pPlayer.SetPluginData(DRAW_KEY, None)
+        self.TryDraw(NumBlocks)     
+    
     def DoDraw(self):
         self.pPlayer.SendMessage("&SDrawing cuboid!")
         for x in xrange(self.X1, self.X2 + 1):
             for y in xrange(self.Y1, self.Y2 + 1):
                 for z in xrange(self.Z1, self.Z2 + 1):
                     self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, self.Material, IgnoreDistance = True, ResendToClient = True)
-                    #self.pPlayer.Teleport(x * 32, y * 32, z * 32, 0, 0)
         self.pPlayer.SendMessage("&SFinished drawing cuboid")
 
+class HollowCuboidDrawAction(CuboidDrawAction):
+    def PreDraw(self):
+        NumBlocks = (self.X2 - self.X1) * (self.Y2 - self.Y1) * (self.Z2 - self.Z1)
+        self.pPlayer.SetPluginData(DRAW_KEY, None)
+        self.TryDraw(0)     
+            
+    def DoDraw(self):
+        self.pPlayer.SendMessage("&SDrawing hollow cuboid!")
+        for x in xrange(self.X1, self.X2 + 1):
+            for y in xrange(self.Y1, self.Y2 + 1):
+                for z in xrange(self.Z1, self.Z2 + 1):
+                    if x == self.X1 or x == self.X2 or y == self.Y1 or y == self.Y2 or z == self.Z1 or z == self.Z2:
+                        self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, self.Material, IgnoreDistance = True, ResendToClient = True)
+        self.pPlayer.SendMessage("&SFinished drawing hollow cuboid")
+ 

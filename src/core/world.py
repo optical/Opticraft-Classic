@@ -60,17 +60,10 @@ class AsynchronousIOThread(threading.Thread):
         self.Lock = threading.Lock()
         self.WorldName = pWorld.Name
         self.World = pWorld
-        self.OldName = ''
         self.DBConnection = None
         self.Running = True
         self.Tasks = Queue.Queue()
         self.Tasks.put(["CONNECT", self.WorldName])
-
-    def SetWorldName(self, Name):
-        self.Lock.acquire()
-        self.OldName = self.WorldName
-        self.WorldName = Name
-        self.Lock.release()
 
     def run(self):
         while self.Running:
@@ -107,12 +100,6 @@ class AsynchronousIOThread(threading.Thread):
             self.Tasks.put(["EXECUTE", Query, Parameters])
     def _ConnectTask(self):
         self.Lock.acquire()
-        if self.DBConnection != None:
-            #Shut it off + erase it
-            self.DBConnection.close()
-            self.DBConnection = None
-            os.remove("Worlds/BlockLogs/%s.db" % self.OldName)
-
         self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" % self.WorldName)
         self.DBConnection.text_factory = str
         self.Lock.release()
@@ -389,11 +376,10 @@ class World(object):
         return x, y, z
 
     def WithinBounds(self, x, y, z):
-        if x < 0 or x >= self.X or y < 0 or y >= self.Y or z < 0 or z >= self.Z:
-            return False
-        return True
+        return x >= 0 and x < self.X and y >= 0 and y < self.Y and z >= 0 and z < self.Z
 
     def AttemptSetBlock(self, pPlayer, x, y, z, val, IgnoreDistance = False, ResendToClient = False):
+        #TODO: Rewrite this terrible, terrible function
         if not self.WithinBounds(x, y, z):
             return True #Cant set that block. But don't return False or it'll try "undo" the change!
         if val >= BLOCK_END:
@@ -421,7 +407,7 @@ class World(object):
             if BlockInfo == None:
                 pPlayer.SendMessage("&SNo information available for this block (No changes made)")
             else:
-                now = int(time.time())
+                now = int(self.ServerControl.Now)
                 pPlayer.SendMessage("&SThis block was last changed by &V%s" % BlockInfo.Username)
                 pPlayer.SendMessage("&SThe old block was: &V%s" % GetBlockNameFromID(ord(BlockInfo.Value)))
                 pPlayer.SendMessage("&SChanged &V%s &Sago" % ElapsedTime(now - BlockInfo.Time))

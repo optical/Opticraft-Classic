@@ -30,7 +30,7 @@ from core.commandhandler import CommandObject
 from core.console import *
 from core.constants import *
 
-from core.world import World
+from core.world import World, AsynchronousIOThread
 import os.path
 import sqlite3 as dbapi
 import shutil
@@ -1031,13 +1031,14 @@ class RenameWorldCmd(CommandObject):
                         pWorld.DBConnection.close()
                         pWorld.DBCursor = None
                         pWorld.DBConnection = None
-                        shutil.copy("Worlds/BlockLogs/%s.db" % pWorld.Name, "Worlds/BlockLogs/%s.db" % NewName)
+                        pWorld.IOThread.Tasks.put(["SHUTDOWN"])
+                        pWorld.IOThread.join() #Block until IOThread dies.
+                        shutil.move("Worlds/BlockLogs/%s.db" % pWorld.Name, "Worlds/BlockLogs/%s.db" % NewName)
+                        pWorld.IOThread = AsynchronousIOThread(pWorld)
+                        pWorld.IOThread.start()
                         #The copy will be removed by the IO Thread for the world.
                         pWorld.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" % NewName)
                         pWorld.DBCursor = pWorld.DBConnection.cursor()
-                        #Get the IO Thread to reconnect.
-                        pWorld.IOThread.SetWorldName(NewName)
-                        pWorld.IOThread.Tasks.put(["CONNECT"])
                     pWorld.Name = NewName
                     #Are we the default map?
                     if pPlayer.ServerControl.ConfigValues.GetValue("worlds", "DefaultName", "Main").lower() == OldName:
