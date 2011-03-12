@@ -597,6 +597,10 @@ class World(object):
         if self.LogBlocks:
             self.FlushBlockLog()
             self.IOThread.Shutdown(False)
+            self.DBConnection.commit()
+            self.DBConnection.close()
+            self.DBConnection = None
+            self.DBCursor = None
         self.ServerControl.PluginMgr.OnWorldUnload(self)
 
     def Run(self):
