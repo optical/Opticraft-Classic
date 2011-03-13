@@ -27,6 +27,7 @@
 
 from core.pluginmanager import PluginBase
 from core.commandhandler import CommandObject
+import time
 from core.constants import *
 from core.console import *
 
@@ -43,10 +44,18 @@ class DrawAction(object):
     def PreDraw(self):
         pass #Calculate blocks here
     def TryDraw(self, NumBlocks):
+        self.pPlayer.SetPluginData(DRAW_KEY, None)
         Limit = int(self.pPlayer.ServerControl.ConfigValues.GetValue("drawcommands", self.pPlayer.GetRank(), "2147483647"))
         if NumBlocks > Limit:
             self.pPlayer.SendMessage("&RYou are only allowed to draw %d blocks. Proposed action would affect %d blocks" % (Limit, NumBlocks))
         else:
+            TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]", time.localtime())
+            LogLine = "%s User %s (%s) used draw command (%s) on map %s, changed %d blocks\n" % (TimeFormat,
+                    self.pPlayer.GetName(), self.pPlayer.GetIP(), self.__class__.__name__,
+                    self.pPlayer.GetWorld().Name, NumBlocks)
+            LogFile = self.pPlayer.ServerControl.CommandHandle.LogFile
+            if LogFile != None:
+                LogFile.write(LogLine)
             self.DoDraw()
     def DoDraw(self):
         pass
@@ -72,26 +81,37 @@ class DrawCommandPlugin(PluginBase):
     def RegisterCommands(self):
         self.AddCommand("cuboid", CuboidCommand, 'builder', 'Used to create large cuboids of blocks', 'Incorrect syntax! Usage: /cuboid <material>', 1)
         self.AddCommand("cuboidh", CuboidHCommand, 'builder', 'Used to create large hollow cuboids of blocks', 'Incorrect syntax! Usage: /cuboidh <material>', 1)
+        self.AddCommand("cuboidw", CuboidWCommand, 'builder', 'Used to create large wireframes cuboids', 'Incorrect syntax! Usage: /cuboidw <material>', 1)
 
 class CuboidCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Material = ' '.join(Args)
         if GetBlockIDFromName(Material) != None:
-            pPlayer.SetPluginData(DRAW_KEY, CuboidDrawAction(pPlayer, Material))
+            pPlayer.SetPluginData(DRAW_KEY, Cuboid(pPlayer, Material))
             pPlayer.SendMessage("&SPlace blocks to represent the two corners of the cuboid")
         else:
             pPlayer.SendMessage("&S\"&V%s&S\" is not a valid block!" % Material)
+
+class CuboidWCommand(CommandObject):
+    def Run(self, pPlayer, Args, Message):
+        Material = ' '.join(Args)
+        if GetBlockIDFromName(Material) != None:
+            pPlayer.SetPluginData(DRAW_KEY, WireFrameCuboid(pPlayer, Material))
+            pPlayer.SendMessage("&SPlace blocks to represent the two corners of the wireframe cuboid")
+        else:
+            pPlayer.SendMessage("&S\"&V%s&S\" is not a valid block!" % Material)
+
             
 class CuboidHCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Material = ' '.join(Args)
         if GetBlockIDFromName(Material) != None:
-            pPlayer.SetPluginData(DRAW_KEY, HollowCuboidDrawAction(pPlayer, Material))
+            pPlayer.SetPluginData(DRAW_KEY, HollowCuboid(pPlayer, Material))
             pPlayer.SendMessage("&SPlace blocks to represent the two corners of the hollow cuboid")
         else:
             pPlayer.SendMessage("&S\"&V%s&S\" is not a valid block!" % Material)  
                               
-class CuboidDrawAction(DrawAction):
+class Cuboid(DrawAction):
     def __init__(self, pPlayer, Material):
         DrawAction.__init__(self, pPlayer)
         self.Material = GetBlockIDFromName(Material)
@@ -113,30 +133,69 @@ class CuboidDrawAction(DrawAction):
             self.PreDraw()
             return False
     def PreDraw(self):
-        NumBlocks = (self.X2 - self.X1) * (self.Y2 - self.Y1) * (self.Z2 - self.Z1)
-        self.pPlayer.SetPluginData(DRAW_KEY, None)
+        NumBlocks = (self.X2 + 1 - self.X1) * (self.Y2 + 1 - self.Y1) * (self.Z2 + 1 - self.Z1)
         self.TryDraw(NumBlocks)     
     
     def DoDraw(self):
         self.pPlayer.SendMessage("&SDrawing cuboid!")
+        Blocks = 0
         for x in xrange(self.X1, self.X2 + 1):
             for y in xrange(self.Y1, self.Y2 + 1):
                 for z in xrange(self.Z1, self.Z2 + 1):
+                    Blocks += 1
                     self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, self.Material, IgnoreDistance = True, ResendToClient = True)
         self.pPlayer.SendMessage("&SFinished drawing cuboid")
 
-class HollowCuboidDrawAction(CuboidDrawAction):
+class HollowCuboid(Cuboid):
     def PreDraw(self):
-        NumBlocks = (self.X2 - self.X1) * (self.Y2 - self.Y1) * (self.Z2 - self.Z1)
-        self.pPlayer.SetPluginData(DRAW_KEY, None)
-        self.TryDraw(0)     
+        dx = self.X2 - self.X1
+        dy = self.Y2 - self.Y1
+        dz = self.Z2 - self.Z1
+        NumBlocks = (dx * dy) + (dx * dz) + (dy * dz)
+        NumBlocks += 1
+        NumBlocks *= 2
+        self.TryDraw(NumBlocks)     
             
     def DoDraw(self):
         self.pPlayer.SendMessage("&SDrawing hollow cuboid!")
+        Num = 0
         for x in xrange(self.X1, self.X2 + 1):
             for y in xrange(self.Y1, self.Y2 + 1):
                 for z in xrange(self.Z1, self.Z2 + 1):
                     if x == self.X1 or x == self.X2 or y == self.Y1 or y == self.Y2 or z == self.Z1 or z == self.Z2:
+                        Num += 1
                         self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, self.Material, IgnoreDistance = True, ResendToClient = True)
         self.pPlayer.SendMessage("&SFinished drawing hollow cuboid")
  
+class WireFrameCuboid(Cuboid):
+    def PreDraw(self):
+        dx = self.X2 + 1 - self.X1
+        dy = self.Y2 + 1 - self.Y1
+        dz = self.Z2 + 1 - self.Z1
+        NumBlocks = dx * 4 + dy * 4 + dz * 4
+        self.TryDraw(NumBlocks)
+        
+    def DoDraw(self):
+        Num = 0
+        for x in xrange(self.X1, self.X2 + 1):
+            Num += 4
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, self.Y1, self.Z1, self.Material, IgnoreDistance = True, ResendToClient = True)
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, self.Y2, self.Z1, self.Material, IgnoreDistance = True, ResendToClient = True)
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, self.Y1, self.Z2, self.Material, IgnoreDistance = True, ResendToClient = True)
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, self.Y2, self.Z2, self.Material, IgnoreDistance = True, ResendToClient = True)
+        
+        for y in xrange(self.Y1, self.Y2 + 1):
+            Num += 4
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X1, y, self.Z1, self.Material, IgnoreDistance = True, ResendToClient = True)
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X2, y, self.Z1, self.Material, IgnoreDistance = True, ResendToClient = True)
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X1, y, self.Z2, self.Material, IgnoreDistance = True, ResendToClient = True)
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X2, y, self.Z2, self.Material, IgnoreDistance = True, ResendToClient = True)
+  
+        for z in xrange(self.Z1, self.Z2 + 1):
+            Num += 4
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X1, self.Y1, z, self.Material, IgnoreDistance = True, ResendToClient = True)
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X2, self.Y1, z, self.Material, IgnoreDistance = True, ResendToClient = True)
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X1, self.Y2, z, self.Material, IgnoreDistance = True, ResendToClient = True)
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X2, self.Y2, z, self.Material, IgnoreDistance = True, ResendToClient = True)
+        
+        self.pPlayer.SendMessage("&SFinished drawing the wireframe cuboid")
