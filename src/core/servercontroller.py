@@ -43,7 +43,7 @@ from core.configreader import ConfigReader
 from core.zones import Zone
 from core.world import World, WorldLoadFailedException
 from core.pluginmanager import PluginManager
-from core.constants import *
+from core.constants import * 
 from core.console import *
 from core.ircrelay import RelayBot
 class SigkillException(Exception):

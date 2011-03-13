@@ -42,6 +42,8 @@ class DrawAction(object):
         self.DisallowMapChanges = True
     def OnAttemptPlaceBlock(self, pWorld, BlockValue, x, y, z):
         pass
+    def DrawBlock(self, x, y, z, Value):
+        self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, Value, IgnoreDistance = True, ResendToClient = True)
     def PreDraw(self):
         pass #Calculate blocks here
     def TryDraw(self, NumBlocks):
@@ -78,18 +80,37 @@ class DrawCommandPlugin(PluginBase):
             pPlayer.SetPluginData(DRAW_KEY, None)
     
     def RegisterCommands(self):
+        self.AddCommand("place", PlaceCommand, 'builder', 'Use instead of placing a block during a draw command', '', 0)
+        self.AddCommand("cancel", CancelCommand, 'builder', 'Cancels your current draw command', '', 0)
         self.AddCommand("cuboid", CuboidCommand, 'builder', 'Used to create large cuboids of blocks', 'Incorrect syntax! Usage: /cuboid <material>', 1)
         self.AddCommand("cuboidh", CuboidHCommand, 'builder', 'Used to create large hollow cuboids of blocks', 'Incorrect syntax! Usage: /cuboidh <material>', 1)
         self.AddCommand("cuboidw", CuboidWCommand, 'builder', 'Used to create large wireframes cuboids', 'Incorrect syntax! Usage: /cuboidw <material>', 1)
         self.AddCommand("copy", CopyCommand, 'builder', 'Used to copy and then paste an area of blocks', '', 0)
         self.AddCommand("paste", PasteCommand, 'builder', 'Used to paste blocks after you have copied them with /copy', '', 0)
 
+class CancelCommand(CommandObject):
+    def Run(self, pPlayer, Args, Message):
+        if pPlayer.GetPluginData(DRAW_KEY) != None:
+            pPlayer.SetPluginData(DRAW_KEY, None)
+            pPlayer.SendMessage("&SDraw command cancelled")
+            return
+        else:
+            pPlayer.SendMessage("&RYou are not currently using a draw command!")
+
+class PlaceCommand(CommandObject):
+    def Run(self, pPlayer, Args, Message):
+        DrawObject = pPlayer.GetPluginData(DRAW_KEY)
+        if DrawObject == None:
+            pPlayer.SendMessage("&RYou are not currently using a draw command!")
+        else:
+            DrawObject.OnAttemptPlaceBlock(pPlayer.GetWorld(), BLOCK_ROCK, pPlayer.GetX() / 32, pPlayer.GetY() / 32, pPlayer.GetZ() / 32)
+            
 class CuboidCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Material = ' '.join(Args)
         if GetBlockIDFromName(Material) != None:
             pPlayer.SetPluginData(DRAW_KEY, Cuboid(pPlayer, Material))
-            pPlayer.SendMessage("&SPlace blocks to represent the two corners of the cuboid")
+            pPlayer.SendMessage("&SPlace two blocks or use /place to represent the cuboid's corners")
         else:
             pPlayer.SendMessage("&S\"&V%s&S\" is not a valid block!" % Material)
 
@@ -98,7 +119,7 @@ class CuboidWCommand(CommandObject):
         Material = ' '.join(Args)
         if GetBlockIDFromName(Material) != None:
             pPlayer.SetPluginData(DRAW_KEY, WireFrameCuboid(pPlayer, Material))
-            pPlayer.SendMessage("&SPlace blocks to represent the two corners of the wireframe cuboid")
+            pPlayer.SendMessage("&SPlace two blocks or use /place to represent the cuboid corners")
         else:
             pPlayer.SendMessage("&S\"&V%s&S\" is not a valid block!" % Material)
 
@@ -108,14 +129,14 @@ class CuboidHCommand(CommandObject):
         Material = ' '.join(Args)
         if GetBlockIDFromName(Material) != None:
             pPlayer.SetPluginData(DRAW_KEY, HollowCuboid(pPlayer, Material))
-            pPlayer.SendMessage("&SPlace blocks to represent the two corners of the hollow cuboid")
+            pPlayer.SendMessage("&SPlace two blocks or use /place to represent the cuboid's corners")
         else:
             pPlayer.SendMessage("&S\"&V%s&S\" is not a valid block!" % Material)  
 
 class CopyCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         pPlayer.SetPluginData(DRAW_KEY, CopyAction(pPlayer))
-        pPlayer.SendMessage("&SPlace two blocks around the area you wish to copy")
+        pPlayer.SendMessage("&SPlace two blocks or use /place around the area you wish to copy")
                                                    
 class PasteCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
@@ -123,7 +144,7 @@ class PasteCommand(CommandObject):
             pPlayer.SendMessage("&RYou have not copied anything! Use /copy first")
             return
         else:
-            pPlayer.SendMessage("&SPlace a block where you want to paste")
+            pPlayer.SendMessage("&SPlace a block, or use /place where you want to paste")
             pPlayer.SetPluginData(DRAW_KEY, PasteAction(pPlayer))
 
 class TwoStepDrawAction(DrawAction):
@@ -168,12 +189,10 @@ class Cuboid(TwoStepDrawAction):
     
     def DoDraw(self):
         self.pPlayer.SendMessage("&SDrawing cuboid!")
-        Blocks = 0
         for x in xrange(self.X1, self.X2 + 1):
             for y in xrange(self.Y1, self.Y2 + 1):
                 for z in xrange(self.Z1, self.Z2 + 1):
-                    Blocks += 1
-                    self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, self.Material, IgnoreDistance = True, ResendToClient = True)
+                    self.DrawBlock(x, y, z, self.Material)
         self.pPlayer.SendMessage("&SFinished drawing cuboid")
 
 class HollowCuboid(Cuboid):
@@ -188,13 +207,11 @@ class HollowCuboid(Cuboid):
             
     def DoDraw(self):
         self.pPlayer.SendMessage("&SDrawing hollow cuboid!")
-        Num = 0
         for x in xrange(self.X1, self.X2 + 1):
             for y in xrange(self.Y1, self.Y2 + 1):
                 for z in xrange(self.Z1, self.Z2 + 1):
                     if x == self.X1 or x == self.X2 or y == self.Y1 or y == self.Y2 or z == self.Z1 or z == self.Z2:
-                        Num += 1
-                        self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, self.Material, IgnoreDistance = True, ResendToClient = True)
+                        self.DrawBlock(x, y, z, self.Material)
         self.pPlayer.SendMessage("&SFinished drawing hollow cuboid")
  
 class WireFrameCuboid(Cuboid):
@@ -207,23 +224,22 @@ class WireFrameCuboid(Cuboid):
         
     def DoDraw(self):
         for x in xrange(self.X1, self.X2 + 1):
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, self.Y1, self.Z1, self.Material, IgnoreDistance = True, ResendToClient = True)
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, self.Y2, self.Z1, self.Material, IgnoreDistance = True, ResendToClient = True)
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, self.Y1, self.Z2, self.Material, IgnoreDistance = True, ResendToClient = True)
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, self.Y2, self.Z2, self.Material, IgnoreDistance = True, ResendToClient = True)
-        
+            self.DrawBlock(x, self.Y1, self.Z1, self.Material)
+            self.DrawBlock(x, self.Y2, self.Z1, self.Material)
+            self.DrawBlock(x, self.Y1, self.Z2, self.Material)
+            self.DrawBlock(x, self.Y2, self.Z2, self.Material)
         for y in xrange(self.Y1, self.Y2 + 1):
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X1, y, self.Z1, self.Material, IgnoreDistance = True, ResendToClient = True)
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X2, y, self.Z1, self.Material, IgnoreDistance = True, ResendToClient = True)
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X1, y, self.Z2, self.Material, IgnoreDistance = True, ResendToClient = True)
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X2, y, self.Z2, self.Material, IgnoreDistance = True, ResendToClient = True)
-  
+            self.DrawBlock(self.X1, y, self.Z1, self.Material)
+            self.DrawBlock(self.X2, y, self.Z1, self.Material)
+            self.DrawBlock(self.X1, y, self.Z2, self.Material)
+            self.DrawBlock(self.X2, y, self.Z2, self.Material)
+
         for z in xrange(self.Z1, self.Z2 + 1):
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X1, self.Y1, z, self.Material, IgnoreDistance = True, ResendToClient = True)
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X2, self.Y1, z, self.Material, IgnoreDistance = True, ResendToClient = True)
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X1, self.Y2, z, self.Material, IgnoreDistance = True, ResendToClient = True)
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X2, self.Y2, z, self.Material, IgnoreDistance = True, ResendToClient = True)
-        
+            self.DrawBlock(self.X1, self.Y1, z, self.Material)
+            self.DrawBlock(self.X2, self.Y1, z, self.Material)
+            self.DrawBlock(self.X1, self.Y2, z, self.Material)
+            self.DrawBlock(self.X2, self.Y2, z, self.Material)
+
         self.pPlayer.SendMessage("&SFinished drawing the wireframe cuboid")
         
 class CopyInformation(object):
@@ -272,8 +288,7 @@ class PasteAction(DrawAction):
         for x in xrange(self.CopyData.X):
             for y in xrange(self.CopyData.Y):
                 for z in xrange(self.CopyData.Z):
-                    Block = self.CopyData.Blocks[Index]
-                    self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, self.X + x, self.Y + y, self.Z + z, Block, IgnoreDistance = True, ResendToClient = True)
+                    self.DrawBlock(self.X + x, self.Y + y, self.Z + z, self.CopyData.Blocks[Index])
                     Index += 1
         self.pPlayer.SendMessage("&SPasting complete.")
         
