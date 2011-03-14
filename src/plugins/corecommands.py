@@ -1036,6 +1036,7 @@ class RenameWorldCmd(CommandObject):
                         pWorld.IOThread.join() #Block until IOThread dies.
                         Console.Debug("RenameWorld", "Successfully waited")
                         shutil.move("Worlds/BlockLogs/%s.db" % pWorld.Name, "Worlds/BlockLogs/%s.db" % NewName)
+                        pWorld.Name = NewName
                         pWorld.IOThread = AsynchronousIOThread(pWorld)
                         pWorld.IOThread.start()
                         #The copy will be removed by the IO Thread for the world.
