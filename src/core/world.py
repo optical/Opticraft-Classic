@@ -57,7 +57,6 @@ class AsynchronousIOThread(threading.Thread):
     def __init__(self, pWorld):
         threading.Thread.__init__(self)
         self.daemon = True
-        self.Lock = threading.Lock()
         self.WorldName = pWorld.Name
         self.World = pWorld
         self.DBConnection = None
@@ -99,10 +98,8 @@ class AsynchronousIOThread(threading.Thread):
             Console.Warning("IOThread", "Failed to execute Query. Trying again soon")
             self.Tasks.put(["EXECUTE", Query, Parameters])
     def _ConnectTask(self):
-        self.Lock.acquire()
         self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" % self.WorldName)
         self.DBConnection.text_factory = str
-        self.Lock.release()
 
     def _FlushBlocksTask(self, Data):
         start = time.time()
@@ -145,8 +142,10 @@ class AsynchronousIOThread(threading.Thread):
         except dbapi.OperationalError:
             self.Tasks.put(["EXECUTE"], "DELETE FROM Blocklogs where Username = ? and Time > ?", (ReverseName, now - Time))
         Console.Debug("IOThread", "%s reversed %s's actions. %d changed in %f seconds" % (Username, ReverseName, NumChanged, time.time() - now))
+
     def Shutdown(self, Crash):
         self.Tasks.put(["SHUTDOWN"])
+        
 class WorldLoadFailedException(Exception):
     pass
 class World(object):
