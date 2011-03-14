@@ -1033,7 +1033,8 @@ class RenameWorldCmd(CommandObject):
                         pWorld.DBConnection = None
                         pWorld.IOThread.Tasks.put(["SHUTDOWN"])
                         Console.Debug("RenameWorld", "Attempting to shutdown io thread on world %s (now %s)" % (pWorld.Name, NewName))
-                        pWorld.IOThread.join() #Block until IOThread dies.
+                        if pWorld.IOThread.isAlive():
+                            pWorld.IOThread.join() #Block until IOThread dies.
                         Console.Debug("RenameWorld", "Successfully waited")
                         shutil.move("Worlds/BlockLogs/%s.db" % pWorld.Name, "Worlds/BlockLogs/%s.db" % NewName)
                         pWorld.Name = NewName
@@ -1145,9 +1146,10 @@ class DeleteWorldCmd(CommandObject):
         for pWorld in ActiveWorlds:
             if pWorld.Name.lower() == WorldName:
                 pWorld.Unload()
-                Console.Debug("RemoveWorld", "Blocking for IOThread on %s" % pWorld.Name)
-                pWorld.IOThread.join() #Block until the thread is finished its jobs
-                Console.Debug("RemoveWorld", "IOThread is down")
+                if pWorld.IOThread.isAlive():
+                    Console.Debug("RemoveWorld", "Blocking for IOThread on %s" % pWorld.Name)
+                    pWorld.IOThread.join() #Block until the thread is finished its jobs
+                    Console.Debug("RemoveWorld", "IOThread is down")
                 
         #Get the lists again, they may of changed at this stage of the process
         #(If the world was active, it will now be in the idle list due to being unloaded)
