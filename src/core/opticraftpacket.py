@@ -28,7 +28,7 @@
 import struct
 import cStringIO
 class OptiCraftPacket(object):
-    __slots__ = ['Opcode', 'data', 'ReadPos']
+    __slots__ = ['OpCode', 'data', 'ReadPos']
     def __init__(self, OpCode, data = ''):
         self.OpCode = OpCode
         self.data = chr(OpCode) + data
