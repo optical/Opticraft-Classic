@@ -36,6 +36,7 @@ import sqlite3 as dbapi
 import threading
 import Queue
 import ctypes
+import subprocess
 from core.heartbeatcontrol import HeartBeatController
 from core.opticraftpacket import OptiCraftPacket
 from core.optisockets import SocketManager
@@ -568,43 +569,55 @@ class ServerController(object):
         '''Attempts to retrieve memory usage. Works on Windows and unix like operating systems
         ...Returns a float represent how many MB is in use'''
         if platform.system() == "Windows":
-            #Source: lists.ubuntu.com/archives/bazaar-commits/2009-February/011990.html
-            # lifted from:
-            # lists.ubuntu.com/archives/bazaar-commits/2009-February/011990.html
-            class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
-                """Used by GetProcessMemoryInfo"""
-                _fields_ = [('cb', ctypes.c_ulong),
-                            ('PageFaultCount', ctypes.c_ulong),
-                            ('PeakWorkingSetSize', ctypes.c_size_t),
-                            ('WorkingSetSize', ctypes.c_size_t),
-                            ('QuotaPeakPagedPoolUsage', ctypes.c_size_t),
-                            ('QuotaPagedPoolUsage', ctypes.c_size_t),
-                            ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t),
-                            ('QuotaNonPagedPoolUsage', ctypes.c_size_t),
-                            ('PagefileUsage', ctypes.c_size_t),
-                            ('PeakPagefileUsage', ctypes.c_size_t),
-                            ('PrivateUsage', ctypes.c_size_t),
-                           ]
-      
-            mem_struct = PROCESS_MEMORY_COUNTERS_EX()
-            ret = ctypes.windll.psapi.GetProcessMemoryInfo(
-                        ctypes.windll.kernel32.GetCurrentProcess(),
-                        ctypes.byref(mem_struct),
-                        ctypes.sizeof(mem_struct)
-                        )
-            if not ret:
-                return 0
-            return mem_struct.PrivateUsage / 1024.0 / 1024.0
+            return self.GetMemoryUsageWin32()
         else:
-            try:
-                with open("/proc/%d/status" % os.getpid()) as fHandle:
-                    for Line in fHandle.readlines():
-                        Tokens = Line.split()
-                        if Tokens[0] == "VmSize:":
-                            return float(Tokens[1]) / 1024.0
-            except Exception, e:
-                return 0.0
-
+            Result = self.GetMemoryUsageLinux()
+            if int(Result) == 0:
+                Result = self.GetMemoryUsageUnix()
+            return Result
+    def GetMemoryUsageLinux(self):
+        try:
+            with open("/proc/%d/status" % os.getpid()) as fHandle:
+                for Line in fHandle.readlines():
+                    Tokens = Line.split()
+                    if Tokens[0] == "VmSize:":
+                        return float(Tokens[1]) / 1024.0
+        except:
+            return 0.0
+    def GetMemoryUsageUnix(self):
+        try:
+            proc = subprocess.Popen(["ps", "-o", "vsize", "-p", str(os.getpid())], stdout = subprocess.PIPE)
+            return float(proc.communicate()[0].split()[1]) / 1024.0
+        except Exception, e:
+            return 0.0
+    def GetMemoryUsageWin32(self):
+        #Source: lists.ubuntu.com/archives/bazaar-commits/2009-February/011990.html
+        # lifted from:
+        # lists.ubuntu.com/archives/bazaar-commits/2009-February/011990.html
+        class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
+            """Used by GetProcessMemoryInfo"""
+            _fields_ = [('cb', ctypes.c_ulong),
+                        ('PageFaultCount', ctypes.c_ulong),
+                        ('PeakWorkingSetSize', ctypes.c_size_t),
+                        ('WorkingSetSize', ctypes.c_size_t),
+                        ('QuotaPeakPagedPoolUsage', ctypes.c_size_t),
+                        ('QuotaPagedPoolUsage', ctypes.c_size_t),
+                        ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t),
+                        ('QuotaNonPagedPoolUsage', ctypes.c_size_t),
+                        ('PagefileUsage', ctypes.c_size_t),
+                        ('PeakPagefileUsage', ctypes.c_size_t),
+                        ('PrivateUsage', ctypes.c_size_t),
+                       ]
+  
+        mem_struct = PROCESS_MEMORY_COUNTERS_EX()
+        ret = ctypes.windll.psapi.GetProcessMemoryInfo(
+                    ctypes.windll.kernel32.GetCurrentProcess(),
+                    ctypes.byref(mem_struct),
+                    ctypes.sizeof(mem_struct)
+                    )
+        if not ret:
+            return 0
+        return mem_struct.PrivateUsage / 1024.0 / 1024.0
     def GetCurrentCpuUsage(self):
         '''Returns the last 60 seconds of cpu usage in a tuple of (Total,user,system)'''
         if self.LastCpuTimes == 0:
