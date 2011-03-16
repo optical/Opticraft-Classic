@@ -43,7 +43,7 @@ class DrawAction(object):
     def OnAttemptPlaceBlock(self, pWorld, BlockValue, x, y, z):
         pass
     def DrawBlock(self, x, y, z, Value):
-        self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, Value, IgnoreDistance = True, ResendToClient = True)
+        self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, Value, AutomatedChange = True, ResendToClient = True)
     def PreDraw(self):
         pass #Calculate blocks here
     def TryDraw(self, NumBlocks):

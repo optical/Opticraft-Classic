@@ -28,7 +28,8 @@
 import struct
 import cStringIO
 class OptiCraftPacket(object):
-    def __init__(self, OpCode, data=''):
+    __slots__ = ['Opcode', 'data', 'ReadPos']
+    def __init__(self, OpCode, data = ''):
         self.OpCode = OpCode
         self.data = chr(OpCode) + data
         self.ReadPos = 0
@@ -52,23 +53,23 @@ class OptiCraftPacket(object):
     #Getter functions for unpacking data.
     #These are NOT safe - Exceptions will be thrown if you read beyond the buffer length.
     def GetByte(self):
-        Result = struct.unpack("!B", self.data[self.ReadPos:self.ReadPos+1])[0]
+        Result = struct.unpack("!B", self.data[self.ReadPos:self.ReadPos + 1])[0]
         self.ReadPos += 1
         return Result
     def GetString(self):
-        Result = self.data[self.ReadPos:self.ReadPos+64].strip()
+        Result = self.data[self.ReadPos:self.ReadPos + 64].strip()
         self.ReadPos += 64
         return Result
     def GetInt16(self):
-        Result = struct.unpack("!h", self.data[self.ReadPos:self.ReadPos+2])[0]
+        Result = struct.unpack("!h", self.data[self.ReadPos:self.ReadPos + 2])[0]
         self.ReadPos += 2
         return Result
     def GetInt32(self):
-        Result = struct.unpack("!i", self.data[self.ReadPos:self.ReadPos+4])[0]
+        Result = struct.unpack("!i", self.data[self.ReadPos:self.ReadPos + 4])[0]
         self.ReadPos += 4
         return Result
     def GetKBChunk(self):
-        Result = self.data[self.ReadPos:self.ReadPos+1024]
+        Result = self.data[self.ReadPos:self.ReadPos + 1024]
         self.ReadPos += 1024
         return Result
 
