@@ -40,6 +40,7 @@ from core.constants import *
 from core.zones import Zone
 from core.console import *
 class BlockLog(object):
+    __slots__ = ['Username', 'Time', 'Value']
     '''Stores the history of a block'''
     def __init__(self, Username, Time, Value):
         self.Username = Username
@@ -48,6 +49,7 @@ class BlockLog(object):
 class BlockChange(object):
     '''Used between threads IOThread creates these and sends them to the World thread
     in order for changes to be made in a thread-safe manner'''
+    __slots__ = ['Offset', 'Value']
     def __init__(self, Offset, Value):
         self.Offset = Offset
         self.Value = Value
@@ -377,7 +379,7 @@ class World(object):
     def WithinBounds(self, x, y, z):
         return x >= 0 and x < self.X and y >= 0 and y < self.Y and z >= 0 and z < self.Z
 
-    def AttemptSetBlock(self, pPlayer, x, y, z, val, IgnoreDistance = False, ResendToClient = False):
+    def AttemptSetBlock(self, pPlayer, x, y, z, val, ResendToClient = False, AutomatedChange = False):
         #TODO: Rewrite this terrible, terrible function
         if not self.WithinBounds(x, y, z):
             return True #Cant set that block. But don't return False or it'll try "undo" the change!
@@ -390,7 +392,7 @@ class World(object):
         if ord(self.Blocks[ArrayValue]) == val:
             return        
         #Too far away!
-        if not IgnoreDistance and pPlayer.CalcDistance(x, y, z) > 10 and pPlayer.GetRank() == 'guest':
+        if not AutomatedChange and pPlayer.CalcDistance(x, y, z) > 10 and pPlayer.GetRank() == 'guest':
             return False
         #Plugins
         if self.ServerControl.PluginMgr.OnAttemptPlaceBlock(self, pPlayer, val, x, y, z) == False:
@@ -415,7 +417,7 @@ class World(object):
         #ZONES!
         if self.CheckZones(pPlayer, x, y, z) == False:
             return False
-        if val in DisabledBlocks and pPlayer.GetBlockOverride() not in DisabledBlocks:
+        if not AutomatedChange and val in DisabledBlocks and pPlayer.GetBlockOverride() != val:
             pPlayer.SendMessage("&RThat block is disabled!")
             return False
         if pPlayer.GetTowerCmd() == True and val == 0:
