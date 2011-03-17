@@ -73,7 +73,7 @@ class Player(object):
 
     def IsDisconnecting(self):
         return self.Disconnecting
-    def Disconnect(self, Message=''):
+    def Disconnect(self, Message = ''):
         if self.Disconnecting == True:
             return
         self.Disconnecting = True
@@ -85,7 +85,7 @@ class Player(object):
         self.ServerControl.SockManager.CloseSocket(self.PlayerSocket)
         self.ServerControl.RemovePlayer(self)
 
-    def SendMessage(self, Message, ColourNewLines=True):
+    def SendMessage(self, Message, ColourNewLines = True):
         '''Message must be of type str'''
         Message = Message.strip()
         Message = self.ServerControl.ConvertColours(Message)
@@ -99,7 +99,7 @@ class Player(object):
             Packet.WriteString(Message[:64])
             self.SendPacket(Packet)
 
-    def _SlowSendMessage(self, Message, ColourNewLines=True):
+    def _SlowSendMessage(self, Message, ColourNewLines = True):
         '''Sends a multiline message'''
         Tokens = Message.split()
         if Tokens[0][0] == "&" and ColourNewLines:
@@ -299,7 +299,7 @@ class Player(object):
     def UpdatePlayedTime(self):
         self.TimePlayed += int(self.ServerControl.Now) - self.LastPlayedTimeUpdate
         self.LastPlayedTimeUpdate = int(self.ServerControl.Now)
-    def GetPluginDataDictionary(self, JSON=False):
+    def GetPluginDataDictionary(self, JSON = False):
         '''Returns a reference to the pluginData Dictionary, or a json encoded version of it'''
         if not JSON:
             return self.PermanentPluginData
@@ -385,7 +385,7 @@ class Player(object):
         self.ServerControl.PluginMgr.OnPlayerDataLoaded(self)
 
     def Teleport(self, x, y, z, o, p):
-        '''Teleports the player to X Y Z. These coordinates have the fractal bit at position 5'''
+        '''Teleports the player to X Y Z. These coordinates are on pixel. Multiply by 32 for blocks'''
         self.SetLocation(x, y, z, o, p)
         Packet = OptiCraftPacket(SMSG_PLAYERPOS)
         Packet.WriteByte(255)
@@ -490,7 +490,7 @@ class Player(object):
             if x == self.X and y == self.Y and z == self.Z and o == self.O and p == self.P:
                 return #Saves bandwidth. No need to redistribute something we just sent..
             if self.IsFrozen:
-                if self.CalcDistance(x/32, y/32, z/32) < 2:
+                if self.CalcDistance(x / 32, y / 32, z / 32) < 2:
                     return
                 NewPacket = OptiCraftPacket(SMSG_PLAYERPOS)
                 NewPacket.WriteByte(0xFF)
