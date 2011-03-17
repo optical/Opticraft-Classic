@@ -69,12 +69,15 @@ class AsynchronousIOThread(threading.Thread):
     def run(self):
         while self.Running:
             Task = self.Tasks.get()
+            #Terrible, terrible way of communication between threads
+            #TODO: Rewrite this junk
             #Task is a list of 2 items, [0] is the instruction, [1] is the payload
             if Task[0] == "FLUSH":
                 #Flush blocks
                 self._FlushBlocksTask(Task[1])
             elif Task[0] == "UNDO_ACTIONS":
-                #Task 1-4 is: Number of blocks changed thus far (int)
+                #Task 1-4 is: 
+                #Number of blocks changed thus far (int)
                 #Username (Who used the command
                 #Username of blocks to undo,
                 #Timestamp of oldest block allowed
@@ -118,7 +121,7 @@ class AsynchronousIOThread(threading.Thread):
                     SuccessfulQuery = True
 
         self.DBConnection.commit()
-        Console.Debug("IOThread", "Flushing took %.3f seconds!" % (time.time() - start))
+        Console.Debug("IOThread", "Flushing %d blocks took %.3f seconds!" % (len(Data), time.time() - start))
         
     def _UndoActionsTask(self, Username, ReverseName, Time):
         now = time.time()
@@ -474,6 +477,8 @@ class World(object):
                 return False
         if self.LogBlocks == True:
             self.BlockHistory[ArrayValue] = BlockLog(pPlayer.GetName().lower(), int(self.ServerControl.Now), self.Blocks[ArrayValue])
+        if len(self.BlockHistory) >= self.LogFlushThreshold:
+            self.FlushBlockLog()    
         self.SetBlock(pPlayer, x, y, z, val, ResendToClient)
         return True
 
@@ -621,9 +626,6 @@ class World(object):
             self.Save()
         if self.LastBackup + self.BackupInterval < self.ServerControl.Now:
             self.Backup()
-        if len(self.BlockHistory) >= self.LogFlushThreshold:
-            #Write the BlockLog to disk (SQL)
-            self.FlushBlockLog()
         #Check for pending block changes from the IO Thread
         #This is only used when Blockhistory is enabled.
         if self.LogBlocks == True:
