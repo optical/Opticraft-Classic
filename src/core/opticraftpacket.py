@@ -26,7 +26,6 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import struct
-import cStringIO
 class OptiCraftPacket(object):
     __slots__ = ['OpCode', 'data', 'ReadPos']
     def __init__(self, OpCode, data = ''):
