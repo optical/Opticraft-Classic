@@ -958,7 +958,10 @@ class ServerController(object):
         Packet.WriteByte(0)
         Message = self.ConvertColours(Message)
         Packet.WriteString(Message)
-        self.SendPacketToAll(Packet)
+        
+        for pPlayer in self.PlayerSet:
+            if pPlayer.IsDeafened == False:
+                pPlayer.SendPacket(Packet)
         
     def SendChatMessage(self, From, Message, NewLine = ">", NormalStart = True):
         LocalColourchars = ColourChars #Bring it into the local scope

@@ -256,6 +256,10 @@ class Player(object):
         return self.JoinNotifications
     def SetJoinNotifications(self, Value):
         self.JoinNotifications = int(Value)
+    def GetDeafened(self):
+        return self.IsDeafened
+    def SetDeafened(self, Value):
+        self.IsDeafened = bool(Value)      
     def GetTimePlayed(self):
         return self.TimePlayed
     def GetKickCount(self):
@@ -599,8 +603,9 @@ class Player(object):
         if self.ServerControl.LogChat:
             TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]", time.localtime())
             self.ServerControl.PMLogHandle.write("%s <%s> to <%s>: %s\n" % (TimeFormat, self.GetName(), Reciever.GetName(), Contents))
-            
-        Reciever.SendMessage('&bfrom %s&b: %s' % (self.GetColouredName(), Contents))
+        
+        if Reciever.GetDeafened() == False:
+            Reciever.SendMessage('&bfrom %s&b: %s' % (self.GetColouredName(), Contents))
         Reciever.SetLastPM(self.Name)
         self.SendMessage('&bto %s&b: %s' % (Reciever.GetColouredName(), Contents))
 
@@ -612,6 +617,7 @@ class Player(object):
         self.IsIdentified = False
         self.IsFrozen = False
         self.IsMuted = False
+        self.IsDeafened = False
         self.Id = -1
         self.ServerControl = ServerControl
         self.World = None #Pointer to our current world.

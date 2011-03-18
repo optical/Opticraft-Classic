@@ -64,6 +64,7 @@ class Commands(PluginBase):
         self.AddCommand("credits", CreditsCmd, 'guest', 'Displays information about the server', '', 0, Alias = True) #Hidden
         self.AddCommand("stats", StatsCmd, 'guest', 'Displays a players statistics. Usage: /stats [Username]', '', 0)
         self.AddCommand("togglenotifications", ToggleNotificationsCmd, 'guest', 'Turns join/leave messages on or off', '', 0)
+        self.AddCommand("deafen", DeafenCmd, 'guest', 'Deafens yourself to other players chat messages', '', 0)
         self.AddCommand("ranks", RanksCmd, 'guest', 'Displays information on all the ranks', '', 0)
         self.AddCommand("whois", PlayerInfoCmd, 'guest', 'Returns information on a player', 'Incorrect syntax! Usage: /whois <username>', 1)
         self.AddCommand("players", PlayerListCmd, 'guest', 'Lists all online players', '', 0)
@@ -276,6 +277,16 @@ class ToggleNotificationsCmd(CommandObject):
         else:
             pPlayer.SetJoinNotifications(True)
             pPlayer.SendMessage("&SJoin/Leave notifications have been enabled")
+
+class DeafenCmd(CommandObject):
+    '''Handler for the /deafen command. Enables/Disables player messages'''
+    def Run(self, pPlayer, Args, Message):
+        if pPlayer.GetDeafened() == False:
+            pPlayer.SendMessage("&SYou are now deaf to other players")
+            pPlayer.SetDeafened(True)
+        else:
+            pPlayer.SendMessage("&SYou are no longer deaf")
+            pPlayer.SetDeafened(False)
 
 class sInfoCmd(CommandObject):
     '''Handler for the /sinfo command. Returns server information'''
