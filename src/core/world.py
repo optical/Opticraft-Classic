@@ -180,6 +180,7 @@ class World(object):
         self.CompressionLevel = int(self.ServerControl.ConfigValues.GetValue("worlds", "CompressionLevel", 1))
         self.LogBlocks = int(self.ServerControl.ConfigValues.GetValue("worlds", "EnableBlockHistory", 1))
         self.LogFlushThreshold = int(self.ServerControl.ConfigValues.GetValue("worlds", "LogFlushThreshold", 100000))
+        self.DisableBots = bool(int(self.ServerControl.ConfigValues.GetValue("server", "DisableBots", "0")))
         self.IOThread = None
         self.AsyncBlockChanges = Queue.Queue()
         self.IdleTimeout = 0 #How long must the world be unoccupied until it unloads itself from memory
@@ -702,7 +703,18 @@ class World(object):
             Packet.WriteByte(100.0 * (float(CurBytes) / float(TotalBytes)))
             pPlayer.SendPacket(Packet)
             Chunk = StringHandle.read(1024)
-
+            
+        if self.DisableBots:
+            #Sending this causes InsideBots draw commands to break
+            BadPacket = OptiCraftPacket(SMSG_INITIAL)
+            BadPacket.WriteByte(7)
+            BadPacket.WriteString("Finished loading world: %s" % self.Name)
+            BadPacket.WriteString("Hold on tight!")
+            if pPlayer.HasPermission(self.ServerControl.AdmincreteRank):
+                BadPacket.WriteByte(0x64)
+            else:
+                BadPacket.WriteByte(0x00)
+            pPlayer.SendPacket(BadPacket)
         Packet2 = OptiCraftPacket(SMSG_LEVELSIZE)
         Packet2.WriteInt16(self.X)
         Packet2.WriteInt16(self.Z)
