@@ -198,7 +198,7 @@ class World(object):
                 Result = self.DBCursor.execute("SELECT * FROM sqlite_master where name='Blocklogs' and type='table'")
             except dbapi.OperationalError:
                 raise WorldLoadFailedException
-            if Result.fetchone() == None:
+            if Result.fetchone() is None:
                 #Create the table
                 self.DBCursor.execute("CREATE TABLE Blocklogs (Offset INTEGER UNIQUE,Username TEXT,Time INTEGER,OldValue INTEGER)")
                 self.DBCursor.execute("CREATE INDEX Lookup ON Blocklogs (Offset)")
@@ -408,7 +408,7 @@ class World(object):
                 pPlayer.SendMessage("&RDatabase is busy, try again in a few moments.")
                 return False
             
-            if BlockInfo == None:
+            if BlockInfo is None:
                 pPlayer.SendMessage("&SNo information available for this block (No changes made)")
             else:
                 now = int(self.ServerControl.Now)
@@ -535,7 +535,7 @@ class World(object):
         #Turn to SQL - This can throw an exception that needs to be handled!
         self.DBCursor.execute("SELECT Username,Time,Oldvalue FROM Blocklogs where Offset = ?", (Offset,))
         SQLResult = self.DBCursor.fetchone()
-        if SQLResult == None:
+        if SQLResult is None:
             return None
         else:
             return BlockLog(SQLResult[0], SQLResult[1], chr(SQLResult[2]))

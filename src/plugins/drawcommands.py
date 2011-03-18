@@ -57,7 +57,7 @@ class DrawAction(object):
                     self.pPlayer.GetName(), self.pPlayer.GetIP(), self.__class__.__name__,
                     self.pPlayer.GetWorld().Name, NumBlocks)
             LogFile = self.pPlayer.ServerControl.CommandHandle.LogFile
-            if LogFile != None:
+            if LogFile is not None:
                 LogFile.write(LogLine)
             self.DoDraw()
     def DoDraw(self):
@@ -71,12 +71,12 @@ class DrawCommandPlugin(PluginBase):
         
     def OnAttemptPlaceBlock(self, pWorld, pPlayer, BlockValue, x, y, z):
         pDrawAction = pPlayer.GetPluginData(DRAW_KEY)
-        if pDrawAction != None:
+        if pDrawAction is not None:
             return pDrawAction.OnAttemptPlaceBlock(pWorld, BlockValue, x, y, z)
             
     def OnWorldChange(self, pPlayer, OldWorld, NewWorld):
         pDrawAction = pPlayer.GetPluginData(DRAW_KEY)
-        if pDrawAction != None and pDrawAction.DisallowMapChanges:
+        if pDrawAction is not None and pDrawAction.DisallowMapChanges:
             pPlayer.SetPluginData(DRAW_KEY, None)
     
     def RegisterCommands(self):
@@ -90,7 +90,7 @@ class DrawCommandPlugin(PluginBase):
 
 class CancelCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
-        if pPlayer.GetPluginData(DRAW_KEY) != None:
+        if pPlayer.GetPluginData(DRAW_KEY) is not None:
             pPlayer.SetPluginData(DRAW_KEY, None)
             pPlayer.SendMessage("&SDraw command cancelled")
             return
@@ -100,7 +100,7 @@ class CancelCommand(CommandObject):
 class PlaceCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         DrawObject = pPlayer.GetPluginData(DRAW_KEY)
-        if DrawObject == None:
+        if DrawObject is None:
             pPlayer.SendMessage("&RYou are not currently using a draw command!")
         else:
             DrawObject.OnAttemptPlaceBlock(pPlayer.GetWorld(), BLOCK_ROCK, pPlayer.GetX() / 32, pPlayer.GetY() / 32, pPlayer.GetZ() / 32)
@@ -108,7 +108,7 @@ class PlaceCommand(CommandObject):
 class CuboidCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Material = ' '.join(Args)
-        if GetBlockIDFromName(Material) != None:
+        if GetBlockIDFromName(Material) is not None:
             pPlayer.SetPluginData(DRAW_KEY, Cuboid(pPlayer, Material))
             pPlayer.SendMessage("&SPlace two blocks or use /place to represent the cuboid's corners")
         else:
@@ -117,7 +117,7 @@ class CuboidCommand(CommandObject):
 class CuboidWCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Material = ' '.join(Args)
-        if GetBlockIDFromName(Material) != None:
+        if GetBlockIDFromName(Material) is not None:
             pPlayer.SetPluginData(DRAW_KEY, WireFrameCuboid(pPlayer, Material))
             pPlayer.SendMessage("&SPlace two blocks or use /place to represent the cuboid corners")
         else:
@@ -127,7 +127,7 @@ class CuboidWCommand(CommandObject):
 class CuboidHCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Material = ' '.join(Args)
-        if GetBlockIDFromName(Material) != None:
+        if GetBlockIDFromName(Material) is not None:
             pPlayer.SetPluginData(DRAW_KEY, HollowCuboid(pPlayer, Material))
             pPlayer.SendMessage("&SPlace two blocks or use /place to represent the cuboid's corners")
         else:
@@ -140,7 +140,7 @@ class CopyCommand(CommandObject):
                                                    
 class PasteCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
-        if pPlayer.GetPluginData(COPY_KEY) == None:
+        if pPlayer.GetPluginData(COPY_KEY) is None:
             pPlayer.SendMessage("&RYou have not copied anything! Use /copy first")
             return
         else:

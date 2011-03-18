@@ -50,6 +50,8 @@ from core.console import *
 from core.ircrelay import RelayBot
 class SigkillException(Exception):
     pass
+class SighupException(Exception):
+    pass
 class PlayerDbThread(threading.Thread):
     '''This thread performs asynchronous querys on the player databases, specifically for loading
     and saving player data'''
@@ -95,7 +97,7 @@ class PlayerDbThread(threading.Thread):
         self.Connection.row_factory = dbapi.Row
         Console.Out("PlayerDB", "Successfully connected to Player.db")
         Result = self.Connection.execute("SELECT * FROM sqlite_master where name='Server' and type='table'")
-        if Result.fetchone() == None:
+        if Result.fetchone() is None:
             #Create the DB
             Console.Warning("PlayerDB", "No data exists in Player.db. Creating Tables")
             self.Connection.execute("CREATE TABLE Server (DatabaseVersion INTEGER)")
@@ -182,7 +184,7 @@ class PlayerDbThread(threading.Thread):
 
 
 class ServerController(object):
-    def __init__(self):
+    def __init__(self, Tag = ''):
         self.StartTime = int(time.time())
         self.ConfigValues = ConfigReader()
         self.RankStore = ConfigReader()
@@ -208,7 +210,8 @@ class ServerController(object):
         self.RawRevision = "$Revision$"
         self.RawDate = "$Date$"
         self.Revision = self.RawRevision.split()[1]
-        self.VersionString = "Opticraft v0.2 r%s" % self.Revision
+        self.Tag = Tag
+        self.VersionString = "Opticraft v0.2 r%s%s" % (self.Revision, self.Tag)
         Console.Out("Startup", "%s is starting up." % self.VersionString)
         self.Port = self.ConfigValues.GetValue("server", "Port", "25565")
         self.Name = self.ConfigValues.GetValue("server", "Name", "An opticraft server")
@@ -646,7 +649,7 @@ class ServerController(object):
             self.RankedPlayers[Username.lower()] = Rank.lower()
             self.RankStore.set("ranks", Username, Rank)
             pPlayer = self.GetPlayerFromName(Username)
-            if pPlayer != None:
+            if pPlayer is not None:
                 pPlayer.SetRank(Rank)
                 pPlayer.SetRankedBy(Initiator.GetName())
                 pPlayer.SendMessage("&SYour rank has been changed to %s!" % Rank.capitalize())
@@ -655,7 +658,7 @@ class ServerController(object):
                 del self.RankedPlayers[Username.lower()]
                 self.RankStore.remove_option("ranks", Username)
                 pPlayer = self.GetPlayerFromName(Username)
-                if pPlayer != None:
+                if pPlayer is not None:
                     pPlayer.SetRank('guest')
                     pPlayer.SetRankedBy(Initiator.GetName())
                     pPlayer.SendMessage("&SYour rank has been changed to %s!" % Rank.capitalize())
@@ -665,7 +668,9 @@ class ServerController(object):
             self.RankStore.write(fHandle)
         self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set RankedBy = ? where Username = ?", (Initiator.GetName(), Username.lower())])
     def HandleKill(self, SignalNumber, Frame):
-        raise SigkillException()
+        raise SigkillException
+    def HandleSighup(self, SignalNumer, Frame):
+        raise SighupException
     def Run(self):
         '''Main Thread from the application. Runs The sockets and worlds'''
         self.Running = True
@@ -679,6 +684,7 @@ class ServerController(object):
 
         if platform.system() == 'Linux':
             signal.signal(signal.SIGTERM, self.HandleKill)
+            signal.signal(signal.SIGHUP, self.HandleSighup)
         Console.Out("Startup", "Startup procedure completed in %.0fms" % ((time.time() - self.StartTime) * 1000))
         Console.Out("Server", "Press Ctrl-C at any time to shutdown the sever safely.")
         self.PluginMgr.OnServerStart()
@@ -706,7 +712,7 @@ class ServerController(object):
                 else:
                     if self.ActiveWorlds[0].IsFull() == False:
                         NewWorld = self.ActiveWorlds[0]
-                if NewWorld == None:
+                if NewWorld is None:
                     pPlayer.Disconnect("The server is full!")
                 else:
                     self.SendJoinMessage('&N%s has connected. Joined map %s%s' % (pPlayer.GetName(),
@@ -753,7 +759,7 @@ class ServerController(object):
                 Username = Result[0]
                 Rows = Result[1]
                 pPlayer = self.GetPlayerFromName(Username)
-                if pPlayer != None:
+                if pPlayer is not None:
                     pPlayer.LoadData(Rows)
 
             SleepTime = 0.05 - (time.time() - self.Now)
@@ -763,9 +769,9 @@ class ServerController(object):
         '''Starts shutting down the server. If crash is true it only saves what is needed'''
         self.ShuttingDown = True
         self.HeartBeatControl.Running = False
-        self.SockManager.Terminate(True)
+        self.SockManager.Terminate(Crash)
         for pWorld in self.ActiveWorlds:
-            pWorld.Shutdown(True)
+            pWorld.Shutdown(Crash)
         self.Running = False
         ToRemove = list(self.PlayerSet)
         self.PlayerDBThread.InitiateShutdown()
@@ -829,7 +835,7 @@ class ServerController(object):
         self.BannedUsers[Username.lower()] = Expiry
         self.FlushBans()
         pPlayer = self.GetPlayerFromName(Username)
-        if pPlayer != None:
+        if pPlayer is not None:
             pPlayer.IncreaseKickCount()
             self.PluginMgr.OnKick(pPlayer, Username, 'Username ban', True)
             pPlayer.SetBannedBy(Initiator.GetName())
@@ -865,7 +871,7 @@ class ServerController(object):
 
     def Kick(self, Operator, Username, Reason):
         pPlayer = self.GetPlayerFromName(Username)
-        if pPlayer != None:
+        if pPlayer is not None:
             pPlayer.IncreaseKickCount()
             self.PluginMgr.OnKick(pPlayer, Operator, Reason, False)
             self.SendNotice("%s was kicked by %s. Reason: %s" % (Username, Operator.GetName(), Reason))
@@ -915,14 +921,14 @@ class ServerController(object):
             self.AuthPlayers.remove(pPlayer)
         else:
             self.SendJoinMessage("&N%s has left the server" % pPlayer.GetName())
-            if self.GetPlayerFromName(pPlayer.GetName()) != None:
+            if self.GetPlayerFromName(pPlayer.GetName()) is not None:
                 del self.PlayerNames[pPlayer.GetName().lower()]
             if self.EnableIRC:
                 self.IRCInterface.HandleLogout(pPlayer.GetName())
 
-        if pPlayer.GetWorld() != None:
+        if pPlayer.GetWorld() is not None:
             pPlayer.GetWorld().RemovePlayer(pPlayer)
-        if pPlayer.GetNewWorld() != None:
+        if pPlayer.GetNewWorld() is not None:
             #Very rare. Client gets removed from server during a world transfer (same cycle)
             pPlayer.GetNewWorld().JoiningPlayers.remove(pPlayer)
             pPlayer.GetNewWorld().PlayerIDs.append(pPlayer.GetNewId())
