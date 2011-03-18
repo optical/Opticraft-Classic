@@ -56,6 +56,7 @@ class Commands(PluginBase):
         self.AddCommand("j", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1, Alias = True)
         self.AddCommand("warp", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1, Alias = True)
         self.AddCommand("goto", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1, Alias = True)
+        self.AddCommand("gps", GPSCmd, 'guest', 'Returns your current position', '', 0)
         self.AddCommand("grass", GrassCmd, 'guest', 'Allows you to place grass', '', 0)
         self.AddCommand("paint", PaintCmd, 'guest', 'When you destroy a block it will be replaced by what you are currently holding', '', 0)
         self.AddCommand("sinfo", sInfoCmd, 'guest', 'Displays information about the server', '', 0)
@@ -225,6 +226,11 @@ class JoinWorldCmd(CommandObject):
                     return
 
         pPlayer.ChangeWorld(World)
+        
+class GPSCmd(CommandObject):
+    '''Handler for the /gps command. Returns current coordinates on the world'''
+    def Run(self, pPlayer, Args, Message):
+        pPlayer.SendMessage("&SYour current position is: &V(%d,%d,%d)" % (pPlayer.GetX() / 32, pPlayer.GetY() / 32, pPlayer.GetZ() / 32))        
 class WorldsCmd(CommandObject):
     '''Handler for the /worlds command. Lists all available worlds.'''
     def Run(self, pPlayer, Args, Message):

@@ -29,6 +29,7 @@ from core.pluginmanager import PluginBase
 from core.commandhandler import CommandObject
 import time
 import array
+import math
 from core.constants import *
 from core.console import *
 
@@ -82,6 +83,7 @@ class DrawCommandPlugin(PluginBase):
     def RegisterCommands(self):
         self.AddCommand("place", PlaceCommand, 'builder', 'Use instead of placing a block during a draw command', '', 0)
         self.AddCommand("cancel", CancelCommand, 'builder', 'Cancels your current draw command', '', 0)
+        self.AddCommand("measure", MeasureCommand, 'builder', 'Measures the distance between two points', '', 0)
         self.AddCommand("cuboid", CuboidCommand, 'builder', 'Used to create large cuboids of blocks', 'Incorrect syntax! Usage: /cuboid <material>', 1)
         self.AddCommand("cuboidh", CuboidHCommand, 'builder', 'Used to create large hollow cuboids of blocks', 'Incorrect syntax! Usage: /cuboidh <material>', 1)
         self.AddCommand("cuboidw", CuboidWCommand, 'builder', 'Used to create large wireframes cuboids', 'Incorrect syntax! Usage: /cuboidw <material>', 1)
@@ -147,6 +149,10 @@ class PasteCommand(CommandObject):
             pPlayer.SendMessage("&SPlace a block, or use /place where you want to paste")
             pPlayer.SetPluginData(DRAW_KEY, PasteAction(pPlayer))
 
+class MeasureCommand(CommandObject):
+    def Run(self, pPlayer, Args, Message):
+        pPlayer.SetPluginData(DRAW_KEY, Measure(pPlayer))
+        pPlayer.SendMessage("&SPlace two blocks to measure the distance between")
 class TwoStepDrawAction(DrawAction):
     '''Useful base for DrawAction classes which require
     ...Two blocks to be placed before actually drawing'''
@@ -154,6 +160,8 @@ class TwoStepDrawAction(DrawAction):
         DrawAction.__init__(self, pPlayer)
         self.X1, self.Y1, self.Z1 = -1, -1, -1
         self.X2, self.Y2, self.Z2 = -1, -1, -1
+        self.Pos1 = (-1, -1, 1)
+        self.Pos2 = (-1, -1, -1)
         self.TempX, self.TempY, self.TempZ = -1, -1, -1    
             
     def ArrangeCoordinates(self, X1, Y1, Z1, X2, Y2, Z2):
@@ -169,12 +177,26 @@ class TwoStepDrawAction(DrawAction):
             self.TempX = x
             self.TempY = y
             self.TempZ = z
+            self.Pos1 = (x, y, z)
             self.OnFirstBlockPlaced(pWorld, BlockValue, x, y, z)
             return False
         else:
+            self.Pos2 = (x, y, z)
             self.X1, self.Y1, self.Z1, self.X2, self.Y2, self.Z2 = self.ArrangeCoordinates(self.TempX, self.TempY, self.TempZ, x, y, z)    
             self.PreDraw()
             return False
+       
+class Measure(TwoStepDrawAction):
+    def OnFirstBlockPlaced(self, pWorld, BlockValue, x, y, z):
+        self.pPlayer.SendMessage("&SNow place the final block to measure the distance")
+    def PreDraw(self):
+        self.TryDraw(0)
+    def DoDraw(self):
+        dx = self.X2 + 1 - self.X1
+        dy = self.Y2 + 1 - self.Y1
+        dz = self.Z2 + 1 - self.Z1
+        Distance = math.sqrt(dx * dx + dy * dy + dz * dz)
+        self.pPlayer.SendMessage("&SThe distance from &V%s &Sto &V%s &Sis: &V%d" % (self.Pos1, self.Pos2, Distance))
         
 class Cuboid(TwoStepDrawAction):
     def __init__(self, pPlayer, Material):
