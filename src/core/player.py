@@ -155,14 +155,14 @@ class Player(object):
         for pWorld in ActiveWorlds:
             if pWorld.Name.lower() == Name:
                 NewWorld = pWorld
-        if NewWorld == None:
+        if NewWorld is None:
             #Its idle...
             for WorldName in IdleWorlds:
                 if Name == WorldName.lower():
                     Name = WorldName
                     break
             NewWorld = self.ServerControl.LoadWorld(Name)
-        if NewWorld != None and NewWorld != False:
+        if NewWorld is not None and NewWorld != False:
             self.UpdateLastWorldChange()
             self.World.RemovePlayer(self, True)
             OldWorld = self.World
@@ -360,7 +360,7 @@ class Player(object):
             return True
     def LoadData(self, Row):
         self.DataIsLoaded = True
-        if Row == None:
+        if Row is None:
             #No data found, must be the first login.
             self.LastIps = self.GetIP()
             self.JoinTime = int(self.ServerControl.Now)
@@ -450,7 +450,7 @@ class Player(object):
         
         if isAuthenticated:
             self.ServerControl.IPCache[self.Name.lower()] = self.GetIP()
-            if self.ServerControl.GetPlayerFromName(self.Name) != None:
+            if self.ServerControl.GetPlayerFromName(self.Name) is not None:
                 Console.Debug("Player", "%s tried to connect but is already online." % self.Name)
                 self.Disconnect("Disconnecting your duplicate login. Please reconnect.")
                 self.ServerControl.GetPlayerFromName(self.Name).Disconnect("Disonnecting for second login")
@@ -549,7 +549,7 @@ class Player(object):
                     self.World.SendBlock(self, x, y, z)
             
     def HandleChatMessage(self, Packet):
-        if self.World == None:
+        if self.World is None:
             return
         self.IncreaseChatMessageCount()
         self.LastAction = self.ServerControl.Now
@@ -594,7 +594,7 @@ class Player(object):
         Username = Tokens[0]
         Contents = ' '.join(Tokens[1:])
         Reciever = self.ServerControl.GetPlayerFromName(Username)
-        if Reciever == None or Reciever.CanBeSeenBy(self) == False:
+        if Reciever is None or Reciever.CanBeSeenBy(self) == False:
             self.SendMessage("&RThat user is not online!")
             return
         if len(Contents) == 0:

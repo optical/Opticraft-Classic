@@ -166,7 +166,7 @@ class PluginManager(object):
     def RegisterHook(self, Plugin, Function, HookName):
         '''Registers the plugin and function for the hook'''
         NumArgs = PluginBase.HookSpecs.get(HookName, None)
-        if NumArgs == None:
+        if NumArgs is None:
             raise PluginException("Hook %s does not exist!" % HookName)
         NumArgs += 1 #Include the 'self' argument
         FuncArgs = len(inspect.getargspec(Function)[0])
@@ -194,7 +194,7 @@ class PluginManager(object):
         if self.ServerControl.CommandHandle.CommandTable.has_key(CommandObj.Name.lower()):
             return
         pList = self.Commands.get(Plugin.ModuleName, None)
-        if pList == None:
+        if pList is None:
             pList = list()
             self.Commands[Plugin.ModuleName] = pList
         pList.append(CommandObj)

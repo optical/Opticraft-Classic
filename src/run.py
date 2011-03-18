@@ -26,7 +26,7 @@
 #  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from core.servercontroller import ServerController
+from core.servercontroller import ServerController, SighupException, SigkillException
 import traceback
 import time
 import os
@@ -38,29 +38,41 @@ except ImportError:
     import Profile
 from core.console import *
 
+ProfileRun = False
+
 def Main():
     ServerControl = None
     try:
-        ServerControl = ServerController()
+        if ProfileRun != False:
+            ServerControl = ServerController(Tag = ' (Profile mode)')
+        else:
+            ServerControl = ServerController()
         ServerControl.Run()
-    except:
-        Console.Error("Shutdown", "Server is shutting down.")
-        try:
-            fHandle = open("CrashLog.txt", "a")
-            fHandle.write("="*30 + "\n")
-            fHandle.write("Crash date: %s\n" % time.strftime("%c", time.gmtime()))
-            fHandle.write("="*30 + "\n")
-            traceback.print_exc(file=fHandle)
-            fHandle.close()
-        except IOError:
-            traceback.print_exc()
+    except BaseException, e:
+        ExceptionType = type(e)
+        Crash = ExceptionType not in [KeyboardInterrupt, SighupException, SigkillException]
+        if Crash:
+            Console.Error("Shutdown", "The server has encountered a critical error and is shutting down.")
+            Console.Error("Shutdown", "Details about the error can be found in CrashLog.txt")
+            try:
+                fHandle = open("CrashLog.txt", "a")
+                fHandle.write("="*30 + "\n")
+                fHandle.write("Crash date: %s\n" % time.strftime("%c", time.gmtime()))
+                fHandle.write("="*30 + "\n")
+                traceback.print_exc(file = fHandle)
+                fHandle.close()
+            except IOError:
+                traceback.print_exc()            
+        else:
+            Console.Error("Shutdown", "Server shutdown has been initiated")
         if os.path.isfile("opticraft.pid"):
             os.remove("opticraft.pid")            
-        if ServerControl != None:
-            ServerControl.Shutdown(True)
+        if ServerControl is not None:
+            ServerControl.Shutdown(Crash)
             if ServerControl.InstantClose == 0:
                 raw_input("\nPress enter to terminate ")
         return
+    
 if __name__ == "__main__":
     ProfileRun = False
     for i in xrange(1, len(sys.argv)):

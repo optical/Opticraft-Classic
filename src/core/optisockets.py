@@ -47,7 +47,7 @@ class ListenSocket(object):
             self.Socket.listen(BackLog)
             self.Socket.setblocking(0)
         except:
-            raise SocketBindFailException("Could not bind to host '%s' on port %d" %(Host,Port))
+            raise SocketBindFailException("Could not bind to host '%s' on port %d" % (Host, Port))
 
     def Accept(self):
         try:
@@ -81,7 +81,7 @@ class SocketManager(object):
         self.ServerControl = ServerControl
 
     def Terminate(self, Crash):
-        '''Stop the listening socket'''
+        '''Stop the listening sockets'''
         for ListenSock in self.ListenSockets:
             ListenSock.Terminate()
         
@@ -89,7 +89,7 @@ class SocketManager(object):
         '''None blocking call. Returns Tuple of Socket, IP or None,None if would block'''
         for ListenSock in self.ListenSockets:
             PlayerSock, PlayerIP = ListenSock.Accept()
-            if PlayerSock != None:
+            if PlayerSock is not None:
                 return PlayerSock, PlayerIP
             else:
                 continue
@@ -101,7 +101,7 @@ class SocketManager(object):
 
         #Pop a socket off the stack
         PlayerSock, SockAddress = self.AcceptConnection()
-        while PlayerSock != None and SockAddress != None:
+        while PlayerSock is not None and SockAddress is not None:
             PlayerSock.setblocking(0)
             #This enables socket buffering through the nagle algorithmn
             # - http://en.wikipedia.org/wiki/Nagle's_algorithm

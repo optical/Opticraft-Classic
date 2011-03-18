@@ -46,7 +46,7 @@ class IRCChannel(object):
         if User:
             self.Users.remove(User)
     def HasUser(self, NickName):
-        return self.GetUser(NickName) != None
+        return self.GetUser(NickName) is not None
     def RenameUser(self, OldNick, NewNick):
         self.GetUser(OldNick).SetName(NewNick)
     def GetName(self):
@@ -93,7 +93,7 @@ class IRCClient(asynchat.async_chat):
 
     def AddPacketHandler(self, Packet, Function):
         PackList = self.PacketHandlers.get(Packet.lower(), None)
-        if PackList == None:
+        if PackList is None:
             self.PacketHandlers[Packet.lower()] = list()
             PackList = self.PacketHandlers[Packet.lower()]
         PackList.append(Function)
@@ -116,7 +116,7 @@ class IRCClient(asynchat.async_chat):
             self.Write("PONG %s" % Tokens[1])
             return
         Handler = self.PacketHandlers.get(Tokens[1].lower(), None)
-        if Handler != None:
+        if Handler is not None:
             for Function in Handler:
                 Function(Packet)
 
@@ -152,7 +152,7 @@ class IRCClient(asynchat.async_chat):
                 return Channel
         return None
     def InChannel(self, ChannelName):
-        return self.GetChannel(ChannelName) != None
+        return self.GetChannel(ChannelName) is not None
 
     def _OnJoin(self, Data):
         Tokens = Data.split()
@@ -181,7 +181,7 @@ class IRCClient(asynchat.async_chat):
         if len(Tokens) == 4:
             return
         pChannel = self.GetChannel(Channel)
-        if pChannel == None:
+        if pChannel is None:
             return
         Nicks[0] = Nicks[0][1:]
         for Nick in Nicks:

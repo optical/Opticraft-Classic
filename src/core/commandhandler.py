@@ -57,7 +57,7 @@ class CommandObject(object):
             return
         else:
             self.Run(pPlayer, Tokens, Message)
-            if self.CmdHandler.LogFile != None and self.PermissionLevel >= self.CmdHandler.ServerControl.GetRankLevel('operator'):
+            if self.CmdHandler.LogFile is not None and self.PermissionLevel >= self.CmdHandler.ServerControl.GetRankLevel('operator'):
                 #Log all operator+ commands
                 self.LogCommand(pPlayer, self.Name, Tokens)
     def LogCommand(self, pPlayer, Command, Args):

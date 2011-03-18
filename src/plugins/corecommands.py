@@ -255,7 +255,7 @@ class StatsCmd(CommandObject):
             Target = pPlayer
         else:
             Target = pPlayer.ServerControl.GetPlayerFromName(Args[0])
-            if Target == None or Target.CanBeSeenBy(pPlayer) == False:
+            if Target is None or Target.CanBeSeenBy(pPlayer) == False:
                 pPlayer.SendMessage("&RThat player is not online")
                 return
 
@@ -317,7 +317,7 @@ class RanksCmd(CommandObject):
         Items = pPlayer.ServerControl.RankNames
         for Rank in Items:
             Description = pPlayer.ServerControl.RankDescriptions.get(Rank.lower(), None)
-            if Description != None:
+            if Description is not None:
                 Colour = pPlayer.ServerControl.RankColours[Rank.lower()]
                 pPlayer.SendMessage("&V %s%s&V: %s" % (Colour, Rank, Description))
 
@@ -326,12 +326,12 @@ class PlayerInfoCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
-        if Target == None or Target.CanBeSeenBy(pPlayer) == False:
+        if Target is None or Target.CanBeSeenBy(pPlayer) == False:
             #Try load some data from the DB
             try:
                 Result = pPlayer.ServerControl.PlayerDBConnection.execute("SELECT * FROM Players where Username = ?", (Username.lower(),))
                 Row = Result.fetchone()
-                if Row == None:
+                if Row is None:
                     pPlayer.SendMessage("&RThat player does not exist!")
                     return
                 pPlayer.SendMessage("&S%s is &ROffline. &SRank: &V%s" % (Username, pPlayer.ServerControl.GetRank(Username).capitalize()))
@@ -407,7 +407,7 @@ class ZoneInfoCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Name = Args[0]
         pZone = pPlayer.GetWorld().GetZone(Name)
-        if pZone == None:
+        if pZone is None:
             pPlayer.SendMessage("&RNo such zone exists on this map")
             return
         pPlayer.SendMessage("&SName: &V%s" % pZone.Name)
@@ -457,7 +457,7 @@ class AddZoneBuilderCmd(CommandObject):
         ZoneName = Args[0]
         Username = Args[1]
         pZone = pPlayer.GetWorld().GetZone(ZoneName)
-        if pZone == None:
+        if pZone is None:
             pPlayer.SendMessage("&RNo such zone exists on this map")
             return
         if pPlayer.GetName().lower() != pZone.Owner.lower():
@@ -470,7 +470,7 @@ class AddZoneBuilderCmd(CommandObject):
             return
         pZone.AddBuilder(Username)
         pPlayer.SendMessage("&SSuccessfully added &V%s &Sas a builder for zone \"&V%s&S\"" % (Username, pZone.Name))
-        if pPlayer.ServerControl.GetPlayerFromName(Username) != None:
+        if pPlayer.ServerControl.GetPlayerFromName(Username) is not None:
             pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&SYou have been added as a builder to zone &V%s" % pZone.Name)
 class DelZoneBuilderCmd(CommandObject):
     '''Del zone builder handler. This deletes a builder from a zone'''
@@ -478,7 +478,7 @@ class DelZoneBuilderCmd(CommandObject):
         ZoneName = Args[0]
         Username = Args[1]
         pZone = pPlayer.GetWorld().GetZone(ZoneName)
-        if pZone == None:
+        if pZone is None:
             pPlayer.SendMessage("&RNo such zone exists on this map")
             return
         if pPlayer.GetName().lower() != pZone.Owner.lower():
@@ -491,7 +491,7 @@ class DelZoneBuilderCmd(CommandObject):
             return
         pZone.DelBuilder(Username)
         pPlayer.SendMessage("&SSuccessfully removed %s as a builder for zone &V\"%s&S\"" % (Username, pZone.Name))
-        if pPlayer.ServerControl.GetPlayerFromName(Username) != None:
+        if pPlayer.ServerControl.GetPlayerFromName(Username) is not None:
             pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&SYou have been removed as a builder from zone &V\"%s&S\"" % pZone.Name)
 
 class zSetMinRankCmd(CommandObject):
@@ -503,7 +503,7 @@ class zSetMinRankCmd(CommandObject):
             pPlayer.SendMessage("&RInvalid rank! Valid ranks are: %s" % pPlayer.ServerControl.GetExampleRanks())
             return
         pZone = pPlayer.GetWorld().GetZone(ZoneName)
-        if pZone == None:
+        if pZone is None:
             pPlayer.SendMessage("&RNo such zone exists on this map")
             return
         if pPlayer.GetName().lower() != pZone.Owner.lower():
@@ -519,7 +519,7 @@ class zChangeOwnerCmd(CommandObject):
         ZoneName = Args[0]
         Username = Args[1]
         pZone = pPlayer.GetWorld().GetZone(ZoneName)
-        if pZone == None:
+        if pZone is None:
             pPlayer.SendMessage("&RNo such zone exists on this map")
             return
         if pPlayer.GetName().lower() != pZone.Owner.lower():
@@ -529,7 +529,7 @@ class zChangeOwnerCmd(CommandObject):
         Username = Username.lower()
         pZone.ChangeOwner(Username)
         pPlayer.SendMessage("&SSuccessfully changed the owner of zone &V\"%s&S\" to &V%s" % (pZone.Name, Username))
-        if pPlayer.ServerControl.GetPlayerFromName(Username) != None:
+        if pPlayer.ServerControl.GetPlayerFromName(Username) is not None:
             pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&SYou have been set as the owner of zone &V\"%s&S\"" % pZone.Name)
 
 ########################
@@ -561,7 +561,7 @@ class AppearCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
-        if Target != None and Target.CanBeSeenBy(pPlayer) and Target.GetWorld() != None:
+        if Target is not None and Target.CanBeSeenBy(pPlayer) and Target.GetWorld() is not None:
             if pPlayer.GetWorld() != Target.GetWorld():
                 if Target.GetWorld().IsFull():
                     pPlayer.SendMessage("&SYou cannot teleport to a world that is full")
@@ -656,7 +656,7 @@ class MuteCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
-        if Target != None:
+        if Target is not None:
             if Target.IsMuted == False:
                 Target.IsMuted = True
                 Target.SendMessage("&SYou have been temporarily muted")
@@ -674,7 +674,7 @@ class FreezeCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
-        if Target != None:
+        if Target is not None:
             if Target.IsFrozen == False:
                 Target.IsFrozen = True
                 Target.SendMessage("&SYou have been frozen in place by \"&V%s&S\"" % pPlayer.GetName())
@@ -691,7 +691,7 @@ class SummonCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
-        if Target != None and Target.GetWorld() != None and Target.CanBeSeenBy(pPlayer):
+        if Target is not None and Target.GetWorld() is not None and Target.CanBeSeenBy(pPlayer):
             if pPlayer.GetWorld() != Target.GetWorld():
                 if pPlayer.GetWorld().IsFull():
                     pPlayer.SendMessage("&RSummon failed. Your world is full.")
@@ -775,7 +775,7 @@ class AddIPBanCmd(CommandObject):
         Arg = Args[0]
         #Check to see if this is a user...
         Target = pPlayer.ServerControl.GetPlayerFromName(Arg)
-        if Target != None:
+        if Target is not None:
             if Target.GetRankLevel() >= pPlayer.GetRankLevel():
                 pPlayer.SendMessage("&RYou may not ban that user.")
                 return
@@ -827,7 +827,7 @@ class WorldSetRankCmd(CommandObject):
             pPlayer.SendMessage("&RThat is not a valid rank! Valid ranks:&V %s" % pPlayer.ServerControl.GetExampleRanks())
             return
         pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
-        if pWorld == None:
+        if pWorld is None:
             pPlayer.SendMessage("&RCould not change rank for that world.")
             pPlayer.SendMessage("&RTry joining that world then setting the rank.")
             return
@@ -840,7 +840,7 @@ class TempOpCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
-        if Target == None:
+        if Target is None:
             pPlayer.SendMessage("&RThat player is not online!")
             return
         if Target.GetRankLevel() > pPlayer.ServerControl.GetRankLevel('operator'):
@@ -865,7 +865,7 @@ class ZCreateCmd(CommandObject):
             return
         if Height <= 0:
             pPlayer.SendMessage("&RHeight must be at least 1!")
-        if pPlayer.GetWorld().GetZone(Name) != None:
+        if pPlayer.GetWorld().GetZone(Name) is not None:
             pPlayer.SendMessage("&RA Zone with that name already exists!")
             return
         pPlayer.SendMessage("&SYou have started the zone creation process. Please place a block where you want the first corner of the zone to be")
@@ -877,7 +877,7 @@ class ZDeleteCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         ZoneName = Args[0]
         pZone = pPlayer.GetWorld().GetZone(ZoneName)
-        if pZone == None:
+        if pZone is None:
             pPlayer.SendMessage("&RNo such zone exists on this map")
             return
         pPlayer.GetWorld().DeleteZone(pZone)
@@ -970,7 +970,7 @@ class SetDefaultWorldCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         WorldName = Args[0]
         pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
-        if pWorld == None:
+        if pWorld is None:
             pPlayer.SendMessage("&RCould not set world to default world.")
             pPlayer.SendMessage("&RTry joining the world and trying again.")
             return
@@ -981,7 +981,7 @@ class HideWorldCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         WorldName = Args[0]
         pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
-        if pWorld == None:
+        if pWorld is None:
             pPlayer.SendMessage("&RCould not set world to hidden.")
             pPlayer.SendMessage("&RTry joining the world and trying again.")
             return
@@ -994,7 +994,7 @@ class UnHideWorldCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         WorldName = Args[0]
         pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
-        if pWorld == None:
+        if pWorld is None:
             pPlayer.SendMessage("&RCould not unhide world.")
             pPlayer.SendMessage("&RTry joining the world and trying again.")
             return
@@ -1038,7 +1038,7 @@ class RenameWorldCmd(CommandObject):
                 if pWorld.Name.lower() == OldName:
                     os.rename("Worlds/%s.save" % pWorld.Name, "Worlds/%s.save" % NewName)
                     #Close the SQL Connection if its active
-                    if pWorld.DBConnection != None:
+                    if pWorld.DBConnection is not None:
                         pWorld.DBConnection.commit()
                         pWorld.DBConnection.close()
                         pWorld.DBCursor = None
