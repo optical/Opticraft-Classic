@@ -112,7 +112,10 @@ class Player(object):
                 continue #too long
             elif len(Token) + len(OutStr) + 1 > 63:
                 self.SendMessage(OutStr)
-                OutStr = ColourTag + Token
+                if len(Token) < 2 or Token[0] != '&':
+                    OutStr = ColourTag + Token
+                else:
+                    OutStr = Token
             else:
                 OutStr = OutStr + ' ' + Token
 
@@ -563,7 +566,7 @@ class Player(object):
             self.HandlePrivateMessage(Contents[1:])
         else:
             if self.IsMuted:
-                self.SendMessage("&RYou cannot change, you have been muted!")
+                self.SendMessage("&RYou cannot talk, you have been muted!")
                 return
             if self.ServerControl.AllowCaps == False:
                 if Contents == Contents.upper() and len(Contents) >= self.ServerControl.MinCapsLength:
