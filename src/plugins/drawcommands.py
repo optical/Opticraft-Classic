@@ -83,7 +83,7 @@ class DrawCommandPlugin(PluginBase):
     def RegisterCommands(self):
         self.AddCommand("place", PlaceCommand, 'builder', 'Use instead of placing a block during a draw command', '', 0)
         self.AddCommand("cancel", CancelCommand, 'builder', 'Cancels your current draw command', '', 0)
-        self.AddCommand("measure", MeasureCommand, 'builder', 'Measures the distance between two points', '', 0)
+        self.AddCommand("measure", MeasureCommand, 'guest', 'Measures the distance between two points', '', 0)
         self.AddCommand("cuboid", CuboidCommand, 'builder', 'Used to create large cuboids of blocks', 'Incorrect syntax! Usage: /cuboid <material>', 1)
         self.AddCommand("cuboidh", CuboidHCommand, 'builder', 'Used to create large hollow cuboids of blocks', 'Incorrect syntax! Usage: /cuboidh <material>', 1)
         self.AddCommand("cuboidw", CuboidWCommand, 'builder', 'Used to create large wireframes cuboids', 'Incorrect syntax! Usage: /cuboidw <material>', 1)
