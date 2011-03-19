@@ -709,7 +709,7 @@ class World(object):
             BadPacket = OptiCraftPacket(SMSG_INITIAL)
             BadPacket.WriteByte(7)
             BadPacket.WriteString("Finished loading world: %s" % self.Name)
-            BadPacket.WriteString("Hold on tight!")
+            BadPacket.WriteString(self.ServerControl.Motd)
             if pPlayer.HasPermission(self.ServerControl.AdmincreteRank):
                 BadPacket.WriteByte(0x64)
             else:
