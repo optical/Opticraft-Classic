@@ -465,8 +465,8 @@ class Player(object):
             #send the next packet...
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
             OutPacket.WriteByte(7)
-            OutPacket.WriteString(self.ServerControl.GetName())
-            OutPacket.WriteString(self.ServerControl.GetMotd())
+            OutPacket.WriteString(self.ServerControl.Name)
+            OutPacket.WriteString(self.ServerControl.Motd)
             if self.HasPermission(self.ServerControl.AdmincreteRank):
                 OutPacket.WriteByte(0x64)
             else:

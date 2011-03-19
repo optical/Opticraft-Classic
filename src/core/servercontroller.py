@@ -781,10 +781,7 @@ class ServerController(object):
         if self.EnableIRC:
             self.IRCInterface.OnShutdown(Crash)
             asyncore.loop(timeout = 0.01, count = 1)
-    def GetName(self):
-        return self.Name
-    def GetMotd(self):
-        return self.Motd
+
     def GetUptimeStr(self):
         return ElapsedTime((int(self.Now)) - int(self.StartTime))
 
