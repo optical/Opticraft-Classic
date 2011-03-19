@@ -173,7 +173,7 @@ class Player(object):
             #Send packet telling client were changing the world.
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
             OutPacket.WriteByte(7)
-            OutPacket.WriteString(self.ServerControl.GetName())
+            OutPacket.WriteString(self.ServerControl.Name)
             OutPacket.WriteString("Loading world: %s%s" % (self.ServerControl.RankColours[NewWorld.GetMinRank()], NewWorld.Name))
             if self.HasPermission(self.ServerControl.AdmincreteRank):
                 OutPacket.WriteByte(0x64)
