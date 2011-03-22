@@ -721,10 +721,10 @@ class UndoActionsCmd(CommandObject):
         try:
             Time = int(Time)
         except:
-            pPlayer.SendMessage("&RThat is not a valud number of seconds")
+            pPlayer.SendMessage("&RThat is not a valid number of seconds")
             return
         if Time < 0:
-            pPlayer.SendMessage("&RThat is not a valud number of seconds")
+            pPlayer.SendMessage("&RThat is not a valid number of seconds")
             return
         pPlayer.GetWorld().UndoActions(pPlayer.GetName(), ReversePlayer, Time)
 
