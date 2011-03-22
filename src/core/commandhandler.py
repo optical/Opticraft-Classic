@@ -64,7 +64,6 @@ class CommandObject(object):
         TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]", time.localtime())
         OutStr = "%s User %s (%s) used command %s with args: %s\n" % (TimeFormat, pPlayer.GetName(), pPlayer.GetIP(), Command, ' '.join(Args))
         self.CmdHandler.LogFile.write(OutStr)
-        self.CmdHandler.LogFile.flush()
     def Run(self, pPlayer, Args, Message):
         '''Subclasses will perform their work here'''
         pass

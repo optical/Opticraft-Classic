@@ -597,7 +597,7 @@ class ModifyRankCmd(CommandObject):
         Username = Args[0]
         Rank = Args[1].lower()
         if pPlayer.ServerControl.IsValidRank(Rank) == False:
-            pPlayer.SendMessage("&RInvalid Rank! Valid ranks are: %s" % pPlayer.ServerControl.GetExampleRanks())
+            pPlayer.SendMessage("&RInvalid Rank! Valid ranks are:&V %s" % pPlayer.ServerControl.GetExampleRanks())
             return
         #Check to see we can set this rank.
         NewRank = pPlayer.ServerControl.GetRankLevel(Rank)
@@ -609,7 +609,7 @@ class ModifyRankCmd(CommandObject):
             pPlayer.SendMessage("&RYou may not set that players rank!")
             return
         pPlayer.ServerControl.SetRank(pPlayer, Username, Rank)
-        pPlayer.SendMessage("&SSuccessfully set %s's rank to %s" % (Username, Rank.capitalize()))
+        pPlayer.SendMessage("&SSuccessfully set &V%s's &Srank to &V%s" % (Username, Rank.capitalize()))
 
 class BanCmd(CommandObject):
     '''Ban command handler. Bans a username (permanently)'''
@@ -624,7 +624,7 @@ class BanCmd(CommandObject):
         Result = pPlayer.ServerControl.AddBan(pPlayer, Username, 0) #TODO: Parse input so we can enter expiry!
         if Result:
             pPlayer.ServerControl.SendNotice("%s was banned by %s" % (Username, pPlayer.GetName()))
-        pPlayer.SendMessage("&SSuccessfully banned %s" % (Username))
+        pPlayer.SendMessage("&SSuccessfully banned &V%s" % (Username))
 
 class UnbanCmd(CommandObject):
     '''Unban command handler. Removes a ban for a username'''
@@ -632,7 +632,7 @@ class UnbanCmd(CommandObject):
         Username = Args[0]
         Result = pPlayer.ServerControl.Unban(Username)
         if Result:
-            pPlayer.SendMessage("&SSuccessfully unbanned %s" % (Username))
+            pPlayer.SendMessage("&SSuccessfully unbanned &V%s" % (Username))
         else:
             pPlayer.SendMessage("&RThat user was not banned!")
 
@@ -653,7 +653,7 @@ class KickCmd(CommandObject):
 
         Result = pPlayer.ServerControl.Kick(pPlayer, Username, Reason)
         if Result:
-            pPlayer.SendMessage("&SSuccessfully kicked %s" % (Username))
+            pPlayer.SendMessage("&SSuccessfully kicked &V%s" % (Username))
         else:
             pPlayer.SendMessage("&RThat user is not online!")
 
@@ -853,7 +853,7 @@ class TempOpCmd(CommandObject):
             pPlayer.SendMessage("&RYou may not set that players rank!")
             return
         Target.SetRank('operator')
-        Target.SendMessage("&SYou have been granted temporary operator privlidges by&V %s" % pPlayer.GetName())
+        Target.SendMessage("&SYou have been granted temporary operator privlidges by &V%s" % pPlayer.GetName())
         pPlayer.SendMessage("&V%s &Sis now a temporary operator" % Username)
 
 class ZCreateCmd(CommandObject):
@@ -1050,10 +1050,8 @@ class RenameWorldCmd(CommandObject):
                         pWorld.DBCursor = None
                         pWorld.DBConnection = None
                         pWorld.IOThread.Tasks.put(["SHUTDOWN"])
-                        Console.Debug("RenameWorld", "Attempting to shutdown io thread on world %s (now %s)" % (pWorld.Name, NewName))
                         if pWorld.IOThread.isAlive():
                             pWorld.IOThread.join() #Block until IOThread dies.
-                        Console.Debug("RenameWorld", "Successfully waited")
                         shutil.move("Worlds/BlockLogs/%s.db" % pWorld.Name, "Worlds/BlockLogs/%s.db" % NewName)
                         pWorld.Name = NewName
                         pWorld.IOThread = AsynchronousIOThread(pWorld)
@@ -1165,9 +1163,7 @@ class DeleteWorldCmd(CommandObject):
             if pWorld.Name.lower() == WorldName:
                 pWorld.Unload()
                 if pWorld.IOThread.isAlive():
-                    Console.Debug("RemoveWorld", "Blocking for IOThread on %s" % pWorld.Name)
                     pWorld.IOThread.join() #Block until the thread is finished its jobs
-                    Console.Debug("RemoveWorld", "IOThread is down")
                 
         #Get the lists again, they may of changed at this stage of the process
         #(If the world was active, it will now be in the idle list due to being unloaded)
