@@ -158,6 +158,7 @@ class World(object):
         self.Blocks = array("c")
         self.BlockCache = cStringIO.StringIO()
         self.IsDirty = True
+        self.IsLocked = False
         self.Players = set()
         self.TransferringPlayers = list()
         self.JoiningPlayers = list()
@@ -490,6 +491,10 @@ class World(object):
         if self.Blocks[ArrayValue] == cval:
             return
         self.Blocks[ArrayValue] = cval
+        self.IsDirty = True
+        self.ServerControl.PluginMgr.OnPostPlaceBlock(self, pPlayer, val, x, y, z)
+        if self.IsLocked == True:
+            return
         Packet = OptiCraftPacket(SMSG_BLOCKSET)
         Packet.WriteInt16(x)
         Packet.WriteInt16(z)
@@ -499,8 +504,6 @@ class World(object):
             self.SendPacketToAllButOne(Packet, pPlayer)
         else:
             self.SendPacketToAll(Packet)
-        self.IsDirty = True
-        self.ServerControl.PluginMgr.OnPostPlaceBlock(self, pPlayer, val, x, y, z)
         
     def CheckZones(self, pPlayer, x, y, z):
         for pZone in self.Zones:
@@ -677,7 +680,32 @@ class World(object):
     def IsFull(self):
         return len(self.PlayerIDs) == 0
 
+    def Lock(self):
+        '''Locks the worlds blocks. Any changes made after the world is locked
+        ...Will not be sent to the clients. Unlock() Should be called
+        ...after all changes have been made'''
+        self.IsLocked = True
+        
+    def UnLock(self):
+        '''Unlocks the worlds blocklogs. All clients on the map will have the
+        ...updated level sent to them again as gzipped chunks
+        ...This is useful as the client lags when it recieves large volumes of chunk updates'''
+        self.IsLocked = False
+        for pPlayer in self.Players:
+            Packet = OptiCraftPacket(SMSG_INITIAL)
+            Packet.WriteByte(7)
+            Packet.WriteString("Reloading map...")
+            Packet.WriteString("The map is being refreshed");
+            if pPlayer.HasPermission(self.ServerControl.AdmincreteRank):
+                Packet.WriteByte(0x64)
+            else:
+                Packet.WriteByte(0x00)
+            pPlayer.SetSpawnPosition(pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ(), pPlayer.GetOrientation(), pPlayer.GetPitch())
+            self.SendWorld(pPlayer)
+            pPlayer.SendPacket(Packet)
+            
     def SendWorld(self, pPlayer):
+        '''Sends the gzipped level to the client'''
         Packet = OptiCraftPacket(SMSG_PRECHUNK)
         pPlayer.SendPacket(Packet)
         if self.IsDirty:

@@ -35,6 +35,7 @@ from core.console import *
 
 DRAW_KEY = "draw_plugin"
 COPY_KEY = "draw_plugin_copy_data"
+LOCK_LEVEL = 10000 #10,000 block changes results in the map being resent to prevent lag
 
 class DrawAction(object):
     '''Abstract class which when inherited is in charge of actually doing all of the drawing'''
@@ -53,6 +54,8 @@ class DrawAction(object):
         if NumBlocks > Limit:
             self.pPlayer.SendMessage("&RYou are only allowed to draw %d blocks. Proposed action would affect %d blocks" % (Limit, NumBlocks))
         else:
+            if NumBlocks > LOCK_LEVEL:
+                self.pPlayer.GetWorld().Lock()
             TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]", time.localtime())
             LogLine = "%s User %s (%s) used draw command (%s) on map %s, changed %d blocks\n" % (TimeFormat,
                     self.pPlayer.GetName(), self.pPlayer.GetIP(), self.__class__.__name__,
@@ -61,6 +64,8 @@ class DrawAction(object):
             if LogFile is not None:
                 LogFile.write(LogLine)
             self.DoDraw()
+            if NumBlocks > LOCK_LEVEL:
+                self.pPlayer.GetWorld().UnLock()
     def DoDraw(self):
         pass
 
