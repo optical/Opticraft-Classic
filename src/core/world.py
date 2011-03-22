@@ -39,6 +39,11 @@ from core.opticraftpacket import OptiCraftPacket
 from core.constants import *
 from core.zones import Zone
 from core.console import *
+
+#Used for deciding whether to lock a map when undoing actions
+#Tweak appropriately
+LOCK_LEVEL = 10000 #Number of blocks needed in order to force a map lock
+
 class BlockLog(object):
     __slots__ = ['Username', 'Time', 'Value']
     '''Stores the history of a block'''
@@ -646,7 +651,8 @@ class World(object):
                 Username = Data[0]
                 ReversedPlayer = Data[1]
                 NumChanged = Data[2]
-
+                if NumChanged > LOCK_LEVEL:
+                    self.Lock()
                 for i in xrange(3, len(Data)):
                     x, y, z = self._CalculateCoords(Data[i].Offset)
                     self.SetBlock(None, x, y, z, Data[i].Value)
@@ -657,6 +663,8 @@ class World(object):
                     self.ServerControl.SendNotice("Antigrief: %s's actions have been reversed." % ReversedPlayer)
                 elif Initiator and NumChanged == 0:
                     Initiator.SendMessage("&R%s had no block history!" % ReversedPlayer)
+                if NumChanged > LOCK_LEVEL:
+                    self.UnLock()
 
         while len(self.JoiningPlayers) > 0:
             pPlayer = self.JoiningPlayers.pop()
