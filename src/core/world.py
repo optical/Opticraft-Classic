@@ -693,6 +693,8 @@ class World(object):
         ...Will not be sent to the clients. Unlock() Should be called
         ...after all changes have been made'''
         self.IsLocked = True
+        for pPlayer in self.Players:
+            self._RemoveAllPlayersFromView(pPlayer)
         
     def UnLock(self):
         '''Unlocks the worlds blocklogs. All clients on the map will have the
@@ -790,7 +792,7 @@ class World(object):
         self.SendPacketToAllButOne(Packet, pPlayer)
         self.PlayerIDs.append(pPlayer.GetId()) #release the ID
         if ChangingMaps:
-            self._ChangeWorld(pPlayer)
+            self._RemoveAllPlayersFromView(pPlayer)
             self.TransferringPlayers.append(pPlayer)
 
     def SendBlock(self, pPlayer, x, y, z):
@@ -818,7 +820,7 @@ class World(object):
             if nPlayer != pPlayer and pPlayer.CanBeSeenBy(nPlayer):
                 nPlayer.SendPacket(Packet)
 
-    def _ChangeWorld(self, pPlayer):
+    def _RemoveAllPlayersFromView(self, pPlayer):
         for nPlayer in self.Players:
             if nPlayer != pPlayer:
                 Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
