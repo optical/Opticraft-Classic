@@ -290,7 +290,12 @@ class CopyAction(TwoStepDrawAction):
         for x in xrange(self.X1, self.X2 + 1):
             for y in xrange(self.Y1, self.Y2 + 1):
                 for z in xrange(self.Z1, self.Z2 + 1):
-                    CopyData.Blocks.append(self.pPlayer.GetWorld().GetBlock(x, y, z))
+                    Block = self.pPlayer.GetWorld().GetBlock(x, y, z)
+                    if Block == -1:
+                        self.pPlayer.SendMessage("&RCannot copy that area as it extends outside of map bounds")
+                        return
+                    else:
+                        CopyData.Blocks.append(self.pPlayer.GetWorld().GetBlock(x, y, z))
                 
         self.pPlayer.SetPluginData(COPY_KEY, CopyData)
         self.pPlayer.SendMessage("&SData has been copied. Use /paste to paste")
