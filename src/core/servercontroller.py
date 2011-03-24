@@ -291,7 +291,7 @@ class ServerController(object):
         self.LoadResults = Queue.Queue()
         self.PlayerDBThread = PlayerDbThread(self)
         self.PlayerDBThread.start()
-        self.PlayerDBConnection = dbapi.connect("Player.db")
+        self.PlayerDBConnection = dbapi.connect("Player.db", timeout = 0.1)
         self.PlayerDBConnection.text_factory = str
         self.PlayerDBConnection.row_factory = dbapi.Row
         self.PlayerDBCursor = self.PlayerDBConnection.cursor()

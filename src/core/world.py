@@ -198,7 +198,7 @@ class World(object):
             if os.path.exists("Worlds/BlockLogs") == False:
                 os.mkdir("Worlds/BlockLogs")
             #Setup the DB connections
-            self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" % self.Name)
+            self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" % self.Name, timeout = 0.1)
             self.DBConnection.text_factory = str
             self.DBCursor = self.DBConnection.cursor()
             try:
