@@ -519,11 +519,9 @@ class World(object):
         return True
     
     def GetBlock(self, x, y, z):
-        '''Returns the numeric value of a block on the map'''
-        if self.WithinBounds(x, y, z) == False:
-            return - 1
-        else:
-            return ord(self.Blocks[self._CalculateOffset(x, y, z)])
+        '''Returns the numeric value of a block on the map
+        ...Throws exception if coordinates are out of bounds'''
+        return ord(self.Blocks[self._CalculateOffset(x, y, z)])
                 
     def UndoActions(self, Username, ReversePlayer, Time):
         self.FlushBlockLog()
