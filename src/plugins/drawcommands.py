@@ -42,6 +42,8 @@ class DrawAction(object):
     def __init__(self, pPlayer):
         self.pPlayer = pPlayer
         self.DisallowMapChanges = True
+        self.IsLogged = True
+        
     def OnAttemptPlaceBlock(self, pWorld, BlockValue, x, y, z):
         pass
     def DrawBlock(self, x, y, z, Value):
@@ -158,6 +160,7 @@ class MeasureCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         pPlayer.SetPluginData(DRAW_KEY, Measure(pPlayer))
         pPlayer.SendMessage("&SPlace two blocks to measure the distance between")
+        
 class TwoStepDrawAction(DrawAction):
     '''Useful base for DrawAction classes which require
     ...Two blocks to be placed before actually drawing'''
@@ -192,6 +195,10 @@ class TwoStepDrawAction(DrawAction):
             return False
        
 class Measure(TwoStepDrawAction):
+    def __init__(self, pPlayer):
+        TwoStepDrawAction.__init__(self, pPlayer)
+        self.IsLogged = False
+        
     def OnFirstBlockPlaced(self, pWorld, BlockValue, x, y, z):
         self.pPlayer.SendMessage("&SNow place the final block to measure the distance")
     def PreDraw(self):
@@ -290,13 +297,12 @@ class CopyAction(TwoStepDrawAction):
         for x in xrange(self.X1, self.X2 + 1):
             for y in xrange(self.Y1, self.Y2 + 1):
                 for z in xrange(self.Z1, self.Z2 + 1):
-                    Block = self.pPlayer.GetWorld().GetBlock(x, y, z)
-                    if Block == -1:
+                    try:
+                        CopyData.Blocks.append(self.pPlayer.GetWorld().GetBlock(x, y, z))
+                    except IndexError:
                         self.pPlayer.SendMessage("&RCannot copy that area as it extends outside of map bounds")
                         return
-                    else:
-                        CopyData.Blocks.append(self.pPlayer.GetWorld().GetBlock(x, y, z))
-                
+                    
         self.pPlayer.SetPluginData(COPY_KEY, CopyData)
         self.pPlayer.SendMessage("&SData has been copied. Use /paste to paste")
                     
