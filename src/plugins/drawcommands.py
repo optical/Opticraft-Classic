@@ -171,6 +171,7 @@ class TwoStepDrawAction(DrawAction):
         self.Pos1 = (-1, -1, 1)
         self.Pos2 = (-1, -1, -1)
         self.TempX, self.TempY, self.TempZ = -1, -1, -1    
+        self.AllowAir = False
             
     def ArrangeCoordinates(self, X1, Y1, Z1, X2, Y2, Z2):
         return min(X1, X2), min(Y1, Y2), min(Z1, Z2), max(X1, X2), max(Y1, Y2), max(Z1, Z2)
@@ -179,7 +180,7 @@ class TwoStepDrawAction(DrawAction):
         pass
                                 
     def OnAttemptPlaceBlock(self, pWorld, BlockValue, x, y, z):
-        if BlockValue == BLOCK_AIR:
+        if BlockValue == BLOCK_AIR and not self.AllowAir:
             return
         if self.TempX == -1:
             self.TempX = x

@@ -124,8 +124,8 @@ class AsynchronousIOThread(threading.Thread):
                     continue
                 else:
                     SuccessfulQuery = True
-
-        self.DBConnection.commit()
+        if self.Tasks.empty():
+            self.DBConnection.commit()
         Console.Debug("IOThread", "Flushing %d blocks took %.3f seconds!" % (len(Data), time.time() - start))
         
     def _UndoActionsTask(self, Username, ReverseName, Time):
