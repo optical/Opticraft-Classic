@@ -99,9 +99,10 @@ class PluginManager(object):
         self.Commands = dict() #Key is string (PluginModule), value is list of commandobjects
         self.Plugins = set() # A set of PluginBase Objects.
         self.PluginModules = list() #List of loaded plugin names
-
+        self._Emptylist = list() #Dummy object. Used so we do not have to create empty lists when searching for hooks that dont exist
+        
     def _GetHooks(self, Name):
-        return self.Hooks.get(Name, list())
+        return self.Hooks.get(Name, self._Emptylist)
 
     def LoadPlugins(self):
         Plugins = self.ServerControl.ConfigValues.GetItems("plugins")
