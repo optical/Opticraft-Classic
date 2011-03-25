@@ -60,6 +60,7 @@ class DrawCommandPlugin(PluginBase):
         self.AddCommand("cuboid", CuboidCommand, 'builder', 'Used to create large cuboids of blocks', 'Incorrect syntax! Usage: /cuboid <material>', 1)
         self.AddCommand("cuboidh", CuboidHCommand, 'builder', 'Used to create large hollow cuboids of blocks', 'Incorrect syntax! Usage: /cuboidh <material>', 1)
         self.AddCommand("cuboidw", CuboidWCommand, 'builder', 'Used to create large wireframes cuboids', 'Incorrect syntax! Usage: /cuboidw <material>', 1)
+        self.AddCommand("cuboidr", CuboidRCommand, 'builder', 'Replaces all the "Material1" with "Material2 in a given cuboid', 'Incorrect syntax! Usage: /cuboidr <replacewhat> <replacewith>', 2)
         self.AddCommand("copy", CopyCommand, 'builder', 'Used to copy and then paste an area of blocks', '', 0)
         self.AddCommand("paste", PasteCommand, 'builder', 'Used to paste blocks after you have copied them with /copy', '', 0)
 
@@ -79,7 +80,7 @@ class PlaceCommand(CommandObject):
             pPlayer.SendMessage("&RYou are not currently using a draw command!")
         else:
             DrawObject.OnAttemptPlaceBlock(pPlayer.GetWorld(), BLOCK_ROCK, pPlayer.GetX() / 32, pPlayer.GetY() / 32, pPlayer.GetZ() / 32)
-            
+   
 class CuboidCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Material = ' '.join(Args)
@@ -87,7 +88,7 @@ class CuboidCommand(CommandObject):
             pPlayer.SetPluginData(DRAW_KEY, Cuboid(pPlayer, Material))
             pPlayer.SendMessage("&SPlace two blocks or use /place to represent the cuboid's corners")
         else:
-            pPlayer.SendMessage("&S\"&V%s&S\" is not a valid block!" % Material)
+            pPlayer.SendMessage("&R%s is not a valid block!" % Material)
 
 class CuboidWCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
@@ -96,7 +97,7 @@ class CuboidWCommand(CommandObject):
             pPlayer.SetPluginData(DRAW_KEY, WireFrameCuboid(pPlayer, Material))
             pPlayer.SendMessage("&SPlace two blocks or use /place to represent the cuboid corners")
         else:
-            pPlayer.SendMessage("&S\"&V%s&S\" is not a valid block!" % Material)
+            pPlayer.SendMessage("&R%s is not a valid block!" % Material)
 
             
 class CuboidHCommand(CommandObject):
@@ -106,8 +107,22 @@ class CuboidHCommand(CommandObject):
             pPlayer.SetPluginData(DRAW_KEY, HollowCuboid(pPlayer, Material))
             pPlayer.SendMessage("&SPlace two blocks or use /place to represent the cuboid's corners")
         else:
-            pPlayer.SendMessage("&S\"&V%s&S\" is not a valid block!" % Material)  
+            pPlayer.SendMessage("&R%s is not a valid block!" % Material)  
 
+class CuboidRCommand(CommandObject):
+    def Run(self, pPlayer, Args, Message):    
+        Material1 = Args[0]
+        Material2 = Args[1]
+        if GetBlockIDFromName(Material1) is None:
+            pPlayer.SendMessage("&R%s is not a valid block!" % Material1)
+            return
+        elif GetBlockIDFromName(Material2) is None:
+            pPlayer.SendMessage("&R%s is not a valid block!" % Material2)
+            return
+        else:
+            pPlayer.SetPluginData(DRAW_KEY, ReplaceCuboid(pPlayer, Material1, Material2))
+            pPlayer.SendMessage("&SPlace two blocks or use /place to represent the cuboid's corners")
+         
 class CopyCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         pPlayer.SetPluginData(DRAW_KEY, CopyAction(pPlayer))
@@ -232,6 +247,36 @@ class Cuboid(TwoStepDrawAction):
                 for z in xrange(self.Z1, self.Z2 + 1):
                     self.DrawBlock(x, y, z, self.Material)
         self.pPlayer.SendMessage("&SFinished drawing cuboid")
+        
+class ReplaceCuboid(TwoStepDrawAction):
+    '''Material 1 is replaced with Material 2'''
+    def __init__(self, pPlayer, Material1, Material2):
+        TwoStepDrawAction.__init__(self, pPlayer)
+        self.Material1 = GetBlockIDFromName(Material1)
+        self.Material2 = GetBlockIDFromName(Material2)
+        self.CoordArray = list()
+        
+    def OnFirstBlockPlaced(self, pWorld, BlockValue, x, y, z):
+        self.pPlayer.SendMessage("&SNow place the second block for the cuboids to be replaced.")
+        
+    def PreDraw(self):
+        Count = 0
+        for x in xrange(self.X1, self.X2 + 1):
+            for y in xrange(self.Y1, self.Y2 + 1):
+                for z in xrange(self.Z1, self.Z2 + 1):
+                    if self.pPlayer.GetWorld().GetBlock(x, y, z) == self.Material1:
+                        Count += 1
+                        self.CoordArray.append((x, y, z))
+                        
+        self.TryDraw(Count)  
+    
+    def DoDraw(self):
+        self.pPlayer.SendMessage("&SReplacing blocks!")
+        for x, y, z in self.CoordArray:
+            self.DrawBlock(x, y, z, self.Material2)
+        self.pPlayer.SendMessage("&SFinished replacing blocks!")
+        
+        
 
 class HollowCuboid(Cuboid):
     def PreDraw(self):

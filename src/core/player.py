@@ -36,16 +36,17 @@ from core.pluginmanager import PluginDict, PluginData
 class Player(object):
     #Constructor is located at the bottom
     def ProcessPackets(self):
+        LocalPacketSizes = PacketSizes #Micro optimization. Store reference in local scope
         ProcessingPackets = True
         while ProcessingPackets:
             RawBuffer = self.SockBuffer.getvalue()
             if len(RawBuffer) == 0:
                 break
             OpCode = ord(RawBuffer[0])
-            if PacketSizes.has_key(OpCode) == False:
+            if LocalPacketSizes.has_key(OpCode) == False:
                 self.Disconnect("Unhandled packet!") #Unimplemented packet type.
                 return
-            PacketSize = PacketSizes[OpCode]
+            PacketSize = LocalPacketSizes[OpCode]
             BufLen = len(RawBuffer) - 1 #Remove one for opcode
             if BufLen >= PacketSize:
                 Packet = OptiCraftPacket(OpCode, RawBuffer[1:PacketSize + 1]) #up to and including end of packet
