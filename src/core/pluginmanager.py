@@ -34,20 +34,33 @@ import json
 
 sys.path.append("plugins")
 
+class Hooks:
+    ON_START = 0
+    ON_CONNECT = 1
+    ON_DISCONNECT = 2
+    ON_PLAYER_DATA_LOADED = 3
+    ON_KICK = 4
+    ON_ATTEMPT_PLACE_BLOCK = 5
+    ON_POST_PLACE_BLOCK = 6
+    ON_CHAT = 7
+    ON_CHANGE_WORLD = 8
+    ON_WORLD_LOAD = 9
+    ON_WORLD_UNLOAD = 10
+
 class PluginBase(object):
     #These numbers do not include the "self" argument, though all objects need to have this!
     HookSpecs = {
-    "on_start": 0,
-    "on_connect": 1,
-    "on_disconnect": 1,
-    "on_playerdataloaded": 1,
-    "on_kick": 4,
-    "on_attemptplaceblock": 6,
-    "on_postplaceblock": 6,
-    "on_chat": 2,
-    "on_changeworld": 3,
-    "on_worldload": 1,
-    "on_worldunload": 1,
+    Hooks.ON_START: 0,
+    Hooks.ON_CONNECT: 1,
+    Hooks.ON_DISCONNECT: 1,
+    Hooks.ON_PLAYER_DATA_LOADED: 1,
+    Hooks.ON_KICK: 4,
+    Hooks.ON_ATTEMPT_PLACE_BLOCK: 6,
+    Hooks.ON_POST_PLACE_BLOCK: 6,
+    Hooks.ON_CHAT: 2,
+    Hooks.ON_CHANGE_WORLD: 3,
+    Hooks.ON_WORLD_LOAD: 1,
+    Hooks.ON_WORLD_UNLOAD: 1,
     }
 
     def __init__(self, PluginMgr, ServerControl, Name):
@@ -174,13 +187,13 @@ class PluginManager(object):
             raise PluginException("Hook %s requires %d arguments. Function %s provides %d" 
                 % (HookName, NumArgs, Function.func_name, FuncArgs))
 
-        HookList = self.Hooks.get(HookName.lower(), list())
+        HookList = self.Hooks.get(HookName, list())
         HookList.append(Hook(Plugin, Function))
-        if HookName.lower() not in self.Hooks:
-            self.Hooks[HookName.lower()] = HookList
+        if HookName not in self.Hooks:
+            self.Hooks[HookName] = HookList
 
     def RemoveHook(self, Plugin, HookName):
-        HookList = self.Hooks[HookName.lower()]
+        HookList = self.Hooks[HookName]
         FoundHook = False
         for Hook in HookList:
             if Hook.Plugin == Plugin:
@@ -206,33 +219,33 @@ class PluginManager(object):
 
     def OnServerStart(self):
         '''Called when the server finishes up its startup routine'''
-        for Hook in self._GetHooks("on_start"):
+        for Hook in self._GetHooks(Hooks.ON_START):
             Hook.Function()
 
     def OnPlayerConnect(self, pPlayer):
         '''Called when a player successfully authenticates with the server.
         ...At this stage they will not be on a world nor have any data loaded'''
-        for Hook in self._GetHooks("on_connect"):
+        for Hook in self._GetHooks(Hooks.ON_CONNECT):
             Hook.Function(pPlayer)
     def OnPlayerDataLoaded(self, pPlayer):
         '''Called when a players data is loaded from the database'''
-        for Hook in self._GetHooks("on_playerdataloaded"):
+        for Hook in self._GetHooks(Hooks.ON_PLAYER_DATA_LOADED):
             Hook.Function(pPlayer)
 
     def OnDisconnect(self, pPlayer):
         '''Called when a player leaves the server for whatever reason (Kick,Ban,Quit,etc)'''
-        for Hook in self._GetHooks("on_disconnect"):
+        for Hook in self._GetHooks(Hooks.ON_DISCONNECT):
             Hook.Function(pPlayer)
 
     def OnKick(self, pPlayer, Initiator, Reason, Ban):
         '''Called when a player is kicked or banned. Ban is true when it is a Ban (D'oh!)'''
-        for Hook in self._GetHooks("on_kick"):
+        for Hook in self._GetHooks(Hooks.ON_KICK):
             Hook.Function(pPlayer, Initiator, Reason, Ban)
 
     def OnAttemptPlaceBlock(self, pWorld, pPlayer, BlockValue, x, y, z):
         '''Plugins may return false to disallow the block placement'''
         Allowed = True
-        for Hook in self._GetHooks("on_attemptplaceblock"):
+        for Hook in self._GetHooks(Hooks.ON_ATTEMPT_PLACE_BLOCK):
             Result = Hook.Function(pWorld, pPlayer, BlockValue, x, y, z)
             if Result == False:
                 Allowed = False
@@ -242,13 +255,13 @@ class PluginManager(object):
         '''Called when a block is changed on the map.
         ...IMPORTANT: The pPlayer reference may be null in the event
         ...of an automated (non-player) block change!'''
-        for Hook in self._GetHooks("on_postplaceblock"):
+        for Hook in self._GetHooks(Hooks.ON_POST_PLACE_BLOCK):
             Hook.Function(pWorld, pPlayer, BlockValue, x, y, z)
 
     def OnChat(self, pPlayer, ChatMessage):
         '''Called when a player types a message
         ...This fires for any message besides slash "/" commands and PM's'''
-        for Hook in self._GetHooks("on_chat"):
+        for Hook in self._GetHooks(Hooks.ON_CHAT):
             Hook.Function(pPlayer, ChatMessage)
 
     def OnChangeWorld(self, pPlayer, OldWorld, NewWorld):
@@ -259,12 +272,12 @@ class PluginManager(object):
 
     def OnWorldLoad(self, pWorld):
         '''Called when a world object is created'''
-        for Hook in self._GetHooks("on_worldload"):
+        for Hook in self._GetHooks(Hooks.ON_WORLD_LOAD):
             Hook.Function(pWorld)
 
     def OnWorldUnload(self, pWorld):
         '''Called when a world is unloaded'''
-        for Hook in self._GetHooks("on_worldunload"):
+        for Hook in self._GetHooks(Hooks.ON_WORLD_UNLOAD):
             Hook.Function(pWorld)
 
 
@@ -275,7 +288,7 @@ class PluginDict(object):
         self._dictionary = dict()
         #Nasty piece of code.
         self.NonJsonValues = NonJsonValues
-        self.ValidJsonTypes = set([str, int, long, bool, dict, list, None, float])
+        self.ValidJsonTypes = frozenset([str, int, long, bool, dict, list, None, float])
 
     def __getitem__(self, Key):
         if type(Key) != str:
