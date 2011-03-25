@@ -25,7 +25,7 @@
 #  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from core.pluginmanager import PluginBase
+from core.pluginmanager import PluginBase, Hooks
 from core.commandhandler import CommandObject
 import time
 import array
@@ -37,44 +37,10 @@ DRAW_KEY = "draw_plugin"
 COPY_KEY = "draw_plugin_copy_data"
 LOCK_LEVEL = 10000 #10,000 block changes results in the map being resent to prevent lag
 
-class DrawAction(object):
-    '''Abstract class which when inherited is in charge of actually doing all of the drawing'''
-    def __init__(self, pPlayer):
-        self.pPlayer = pPlayer
-        self.DisallowMapChanges = True
-        self.IsLogged = True
-        
-    def OnAttemptPlaceBlock(self, pWorld, BlockValue, x, y, z):
-        pass
-    def DrawBlock(self, x, y, z, Value):
-        self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, Value, AutomatedChange = True, ResendToClient = True)
-    def PreDraw(self):
-        pass #Calculate blocks here
-    def TryDraw(self, NumBlocks):
-        self.pPlayer.SetPluginData(DRAW_KEY, None)
-        Limit = int(self.pPlayer.ServerControl.ConfigValues.GetValue("drawcommands", self.pPlayer.GetRank(), "2147483647"))
-        if NumBlocks > Limit:
-            self.pPlayer.SendMessage("&RYou are only allowed to draw %d blocks. Proposed action would affect %d blocks" % (Limit, NumBlocks))
-        else:
-            if NumBlocks > LOCK_LEVEL:
-                self.pPlayer.GetWorld().Lock()
-            TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]", time.localtime())
-            LogLine = "%s User %s (%s) used draw command (%s) on map %s, changed %d blocks\n" % (TimeFormat,
-                    self.pPlayer.GetName(), self.pPlayer.GetIP(), self.__class__.__name__,
-                    self.pPlayer.GetWorld().Name, NumBlocks)
-            LogFile = self.pPlayer.ServerControl.CommandHandle.LogFile
-            if LogFile is not None:
-                LogFile.write(LogLine)
-            self.DoDraw()
-            if NumBlocks > LOCK_LEVEL:
-                self.pPlayer.GetWorld().UnLock()
-    def DoDraw(self):
-        pass
-
 class DrawCommandPlugin(PluginBase):
     def OnLoad(self):
-        self.PluginMgr.RegisterHook(self, self.OnAttemptPlaceBlock, "on_attemptplaceblock")
-        self.PluginMgr.RegisterHook(self, self.OnWorldChange, "on_changeworld")
+        self.PluginMgr.RegisterHook(self, self.OnAttemptPlaceBlock, Hooks.ON_ATTEMPT_PLACE_BLOCK)
+        self.PluginMgr.RegisterHook(self, self.OnWorldChange, Hooks.ON_CHANGE_WORLD)
         self.RegisterCommands()
         
     def OnAttemptPlaceBlock(self, pWorld, pPlayer, BlockValue, x, y, z):
@@ -160,6 +126,43 @@ class MeasureCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         pPlayer.SetPluginData(DRAW_KEY, Measure(pPlayer))
         pPlayer.SendMessage("&SPlace two blocks to measure the distance between")
+        
+#######################################
+#        Draw actions go below        #
+#######################################    
+class DrawAction(object):
+    '''Abstract class which when inherited is in charge of actually doing all of the drawing'''
+    def __init__(self, pPlayer):
+        self.pPlayer = pPlayer
+        self.DisallowMapChanges = True
+        self.IsLogged = True
+        
+    def OnAttemptPlaceBlock(self, pWorld, BlockValue, x, y, z):
+        pass
+    def DrawBlock(self, x, y, z, Value):
+        self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, Value, AutomatedChange = True, ResendToClient = True)
+    def PreDraw(self):
+        pass #Calculate blocks here
+    def TryDraw(self, NumBlocks):
+        self.pPlayer.SetPluginData(DRAW_KEY, None)
+        Limit = int(self.pPlayer.ServerControl.ConfigValues.GetValue("drawcommands", self.pPlayer.GetRank(), "2147483647"))
+        if NumBlocks > Limit:
+            self.pPlayer.SendMessage("&RYou are only allowed to draw %d blocks. Proposed action would affect %d blocks" % (Limit, NumBlocks))
+        else:
+            if NumBlocks > LOCK_LEVEL:
+                self.pPlayer.GetWorld().Lock()
+            TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]", time.localtime())
+            LogLine = "%s User %s (%s) used draw command (%s) on map %s, changed %d blocks\n" % (TimeFormat,
+                    self.pPlayer.GetName(), self.pPlayer.GetIP(), self.__class__.__name__,
+                    self.pPlayer.GetWorld().Name, NumBlocks)
+            LogFile = self.pPlayer.ServerControl.CommandHandle.LogFile
+            if LogFile is not None:
+                LogFile.write(LogLine)
+            self.DoDraw()
+            if NumBlocks > LOCK_LEVEL:
+                self.pPlayer.GetWorld().UnLock()
+    def DoDraw(self):
+        pass        
         
 class TwoStepDrawAction(DrawAction):
     '''Useful base for DrawAction classes which require
