@@ -104,7 +104,6 @@ class Commands(PluginBase):
         self.AddCommand("summon", SummonCmd, 'operator', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
         self.AddCommand("undoactions", UndoActionsCmd, 'operator', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>', 2)
         self.AddCommand("invisible", InvisibleCmd, 'operator', "Makes you invisible to other players", "", 0)
-        self.AddCommand("destroytower", DestroyTowerCmd, 'operator', 'Destroys a vertical tower of shit', '', 0, Alias = True) #Hidden command
         self.AddCommand("ModifyRank", ModifyRankCmd, 'operator', 'Modify\'s a players rank.', 'Incorrect syntax. Usage: /addrank <username> <rank>', 2)
         ######################
         #ADMIN COMMANDS HERE #
@@ -736,16 +735,6 @@ class UndoActionsCmd(CommandObject):
         OutStr = "%s User %s (%s) used command %s on world %s with args: %s\n" % (TimeFormat, pPlayer.GetName(), pPlayer.GetIP(), Command, pPlayer.GetWorld().Name, ' '.join(Args))
         self.CmdHandler.LogFile.write(OutStr)
 
-class DestroyTowerCmd(CommandObject):
-    '''Handler for the /destroy tower command. This destroy a tower of blocks'''
-    def Run(self, pPlayer, Args, Message):
-        if pPlayer.GetTowerCmd():
-            pPlayer.SendMessage("&STower destruction turned off")
-            pPlayer.SetTowerCmd(False)
-            return
-        else:
-            pPlayer.SetTowerCmd(True)
-            pPlayer.SendMessage("&SClick on the top-most block of the shitty tower to begin destruction")
 class InvisibleCmd(CommandObject):
     '''Handles the /invisible command'''
     def Run(self, pPlayer, Args, Message):

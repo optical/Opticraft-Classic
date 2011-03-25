@@ -63,6 +63,7 @@ class DrawCommandPlugin(PluginBase):
         self.AddCommand("cuboidr", CuboidRCommand, 'builder', 'Replaces all the "Material1" with "Material2 in a given cuboid', 'Incorrect syntax! Usage: /cuboidr <replacewhat> <replacewith>', 2)
         self.AddCommand("copy", CopyCommand, 'builder', 'Used to copy and then paste an area of blocks', '', 0)
         self.AddCommand("paste", PasteCommand, 'builder', 'Used to paste blocks after you have copied them with /copy', '', 0)
+        self.AddCommand("destroytower", DestroyTowerCommand, 'operator', 'Destroys tower of the same block. Useful for cleaning', '', 0)
 
 class CancelCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
@@ -142,6 +143,16 @@ class MeasureCommand(CommandObject):
         pPlayer.SetPluginData(DRAW_KEY, Measure(pPlayer))
         pPlayer.SendMessage("&SPlace two blocks to measure the distance between")
         
+class DestroyTowerCommand(CommandObject):
+    def Run(self, pPlayer, Args, Message):
+        DrawData = pPlayer.GetPluginData(DRAW_KEY)
+        if type(DrawData) == DestroyTowerAction:
+            pPlayer.SetPluginData(DRAW_KEY, None)
+            pPlayer.SendMessage("&SDestroy tower disabled")
+        else:
+            pPlayer.SetPluginData(DRAW_KEY, DestroyTowerAction(pPlayer))
+            pPlayer.SendMessage("&SDestroy tower enabled")
+
 #######################################
 #        Draw actions go below        #
 #######################################    
@@ -151,6 +162,7 @@ class DrawAction(object):
         self.pPlayer = pPlayer
         self.DisallowMapChanges = True
         self.IsLogged = True
+        self.IsOneUse = True
         
     def OnAttemptPlaceBlock(self, pWorld, BlockValue, x, y, z):
         pass
@@ -159,7 +171,8 @@ class DrawAction(object):
     def PreDraw(self):
         pass #Calculate blocks here
     def TryDraw(self, NumBlocks):
-        self.pPlayer.SetPluginData(DRAW_KEY, None)
+        if self.IsOneUse:
+            self.pPlayer.SetPluginData(DRAW_KEY, None)
         Limit = int(self.pPlayer.ServerControl.ConfigValues.GetValue("drawcommands", self.pPlayer.GetRank(), "2147483647"))
         if NumBlocks > Limit:
             self.pPlayer.SendMessage("&RYou are only allowed to draw %d blocks. Proposed action would affect %d blocks" % (Limit, NumBlocks))
@@ -379,6 +392,33 @@ class PasteAction(DrawAction):
                     Index += 1
         self.pPlayer.SendMessage("&SPasting complete.")
         
+class DestroyTowerAction(DrawAction):
+    def __init__(self, pPlayer):
+        DrawAction.__init__(self, pPlayer)
+        self.IsLogged = False
+        self.IsOneUse = False
+        self.DisallowMapChanges = False
+        self.BusyDrawing = False
+        self.X, self.Y, self.Z = -1, -1, -1
         
+    def OnAttemptPlaceBlock(self, pWorld, BlockValue, x, y, z):
+        if self.BusyDrawing:
+            return
+        self.X = x
+        self.Y = y
+        self.Z = z
+        self.PreDraw()
         
+    def PreDraw(self):
+        self.TryDraw(0)
+        
+    def DoDraw(self):
+        self.BusyDrawing = True
+        BadBlock = self.pPlayer.GetWorld().GetBlock(self.X, self.Y, self.Z)
+        for z in xrange(self.Z, -1, -1):
+            if self.pPlayer.GetWorld().GetBlock(self.X, self.Y, z) == BadBlock:
+                self.DrawBlock(self.X, self.Y, z, BLOCK_AIR)
+            else:
+                break
+        self.BusyDrawing = False
         

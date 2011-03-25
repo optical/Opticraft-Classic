@@ -430,25 +430,7 @@ class World(object):
         if not AutomatedChange and val in DisabledBlocks and pPlayer.GetBlockOverride() != val:
             pPlayer.SendMessage("&RThat block is disabled!")
             return False
-        if pPlayer.GetTowerCmd() == True and val == 0:
-            BadBlock = self.Blocks[self._CalculateOffset(x, y, z)]
-            while True:
-                CurBlock = self.Blocks[self._CalculateOffset(x, y, z)]
-                if CurBlock == BadBlock and self.CheckZones(pPlayer, x, y, z):
-                    self.Blocks[self._CalculateOffset(x, y, z)] = chr(0)
-                    Packet = OptiCraftPacket(SMSG_BLOCKSET)
-                    Packet.WriteInt16(x)
-                    Packet.WriteInt16(z)
-                    Packet.WriteInt16(y)
-                    Packet.WriteByte(0)
-                    self.SendPacketToAll(Packet)
-                    z -= 1
-                    if z == 0:
-                        return True
-                else:
-                    return True
-            #Destroy the tower of shit
-
+        
         #Zone creation
         if pPlayer.IsCreatingZone():
             zData = pPlayer.GetZoneData()
