@@ -163,6 +163,7 @@ class DrawAction(object):
         self.DisallowMapChanges = True
         self.IsLogged = True
         self.IsOneUse = True
+        self.EnableWorldLocking = True
         
     def OnAttemptPlaceBlock(self, pWorld, BlockValue, x, y, z):
         pass
@@ -177,7 +178,7 @@ class DrawAction(object):
         if NumBlocks > Limit:
             self.pPlayer.SendMessage("&RYou are only allowed to draw %d blocks. Proposed action would affect %d blocks" % (Limit, NumBlocks))
         else:
-            if NumBlocks > LOCK_LEVEL:
+            if NumBlocks > LOCK_LEVEL and self.EnableWorldLocking:
                 self.pPlayer.GetWorld().Lock()
             TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]", time.localtime())
             LogLine = "%s User %s (%s) used draw command (%s) on map %s, changed %d blocks\n" % (TimeFormat,
@@ -187,7 +188,7 @@ class DrawAction(object):
             if LogFile is not None:
                 LogFile.write(LogLine)
             self.DoDraw()
-            if NumBlocks > LOCK_LEVEL:
+            if NumBlocks > LOCK_LEVEL and self.EnableWorldLocking:
                 self.pPlayer.GetWorld().UnLock()
     def DoDraw(self):
         pass        
@@ -350,6 +351,10 @@ class CopyInformation(object):
         self.Blocks = array.array('B')
         
 class CopyAction(TwoStepDrawAction):
+    def __init__(self, pPlayer):
+        TwoStepDrawAction.__init__(self, pPlayer)
+        self.EnableWorldLocking = False
+        
     def OnFirstBlockPlaced(self, pWorld, BlockValue, x, y, z):
         self.pPlayer.SendMessage("&SNow place the second block to define the area")
         
