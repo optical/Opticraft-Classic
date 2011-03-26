@@ -79,6 +79,8 @@ class SocketManager(object):
         self.ClosingSockets = set() #Sockets which need to be terminated.
         self.ClosingPlayers = dict()
         self.ServerControl = ServerControl
+        self.RecievedBytes = 0
+        self.SentBytes = 0
 
     def Terminate(self, Crash):
         '''Stop the listening sockets'''
@@ -165,6 +167,7 @@ class SocketManager(object):
             if len(data) > 0:
                 pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
                 pPlayer.PushRecvData(data)
+                self.RecievedBytes += len(data)
             else:
                 #a recv call which returns nothing usually means a dead socket
                 if Socket in wlist:
@@ -185,6 +188,7 @@ class SocketManager(object):
                 if error_no != errno.EWOULDBLOCK:
                     self._RemoveSocket(Socket)
                 continue
+            self.SentBytes += result
             Buffer = pPlayer.GetOutBuffer()
             Buffer.truncate(0)
             Buffer.write(ToSend[result:])

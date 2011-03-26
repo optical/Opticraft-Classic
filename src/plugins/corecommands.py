@@ -305,6 +305,7 @@ class sInfoCmd(CommandObject):
         pPlayer.SendMessage("&SCurrently &V%d &Susers online. Peak online: &V%d" % (pPlayer.ServerControl.NumPlayers, pPlayer.ServerControl.PeakPlayers), False)
         pPlayer.SendMessage("&SUsing &V%.2f%% &Scpu in the last minute, &V%.2f%% &Soverall." % (pPlayer.ServerControl.GetCurrentCpuUsage()[0], pPlayer.ServerControl.GetTotalCpuUsage()[0]))
         pPlayer.SendMessage("&V%dMB &Sof memory used with &V%d &Sactive threads." % (pPlayer.ServerControl.GetMemoryUsage(), threading.activeCount()))
+        pPlayer.SendMessage("&SBandwidth in the last minute. Down: &V%s&S. Up: &V%s" % (pPlayer.ServerControl.GetCurrentBwRate(False), pPlayer.ServerControl.GetCurrentBwRate(True)))
         pPlayer.SendMessage("&STotal worlds: &V%d &S(&V%d &Sactive, &V%d &Sidle)" % (len(WorldData[0]) + len(WorldData[1]), len(WorldData[0]), len(WorldData[1])), False)
         pPlayer.SendMessage("&SCurrent uptime: &V%s." % pPlayer.ServerControl.GetUptimeStr(), False)
 class VersionCmd(CommandObject):
