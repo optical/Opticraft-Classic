@@ -285,9 +285,13 @@ class ServerController(object):
         self.AuthPlayers = set() #Players without a world (Logging in)
         self.PlayersPendingRemoval = set() #Players to remove from our set at the end of a cycle.
         self.ShuttingDown = False
-        self.LastCpuCheck = 0
+        self.LastResourceCheck = 0
         self.InitialCpuTimes = os.times()
         self.LastCpuTimes = 0
+        self.LastUploadBytes = 0
+        self.LastDownloadBytes = 0
+        self.CurrentUploadRate = 0.0 #Bytes per second
+        self.CurrentDownloadRate = 0.0
         self.LoadResults = Queue.Queue()
         self.PlayerDBThread = PlayerDbThread(self)
         self.PlayerDBThread.start()
@@ -621,6 +625,25 @@ class ServerController(object):
         if not ret:
             return 0
         return mem_struct.PrivateUsage / 1024.0 / 1024.0
+    
+    def UpdateBWUsage(self):
+        UploadDelta = self.SockManager.SentBytes - self.LastUploadBytes
+        DownloadDelta = self.SockManager.RecievedBytes - self.LastDownloadBytes
+        self.LastUploadBytes = self.SockManager.SentBytes
+        self.LastDownloadBytes = self.SockManager.RecievedBytes
+        self.CurrentUploadRate = UploadDelta / 60.0
+        self.CurrentDownloadRate = DownloadDelta / 60.0
+    
+    def GetCurrentBwRate(self, IsUpload):
+        '''Returns a formatted string of BW rate
+        ...eg: 1666 bytes/s = 1KB/s'''
+        Rate = self.CurrentUploadRate if IsUpload else self.CurrentDownloadRate
+        Unit = "B"
+        if Rate > 1024:
+            Unit = "KB"
+            Rate /= 1024
+        return "%d%s/s" % (Rate, Unit)
+    
     def GetCurrentCpuUsage(self):
         '''Returns the last 60 seconds of cpu usage in a tuple of (Total,user,system)'''
         if self.LastCpuTimes == 0:
@@ -730,10 +753,11 @@ class ServerController(object):
                 #Send a SMSG_KEEPALIVE packet to all our clients across all worlds.
                 for pPlayer in self.PlayerSet:
                     pPlayer.SendPacket(Packet)
-            if self.LastCpuCheck + 60 < self.Now:
+            if self.LastResourceCheck + 60 < self.Now:
                 self.LastCpuTimes = self.CurrentCpuTimes
                 self.CurrentCpuTimes = os.times()
-                self.LastCpuCheck = self.Now
+                self.LastResourceCheck = self.Now
+                self.UpdateBWUsage()
 
             if self.PeriodicAnnounceFrequency:
                 if self.LastAnnounce + self.PeriodicAnnounceFrequency < self.Now:
