@@ -515,14 +515,24 @@ class Player(object):
                     self.World.SendPacketToAll(OrientationPacket)                
                 else:
                     return #Saves bandwidth. No need to redistribute something we just sent..
+                
             elif o == self.O and p == self.P:
-                #position only update
-                PositionPacket = OptiCraftPacket(SMSG_POSITION_UDPDATE)
-                PositionPacket.WriteByte(self.Id)
-                PositionPacket.WriteSByte(x - self.X)
-                PositionPacket.WriteSByte(z - self.Z)
-                PositionPacket.WriteSByte(y - self.Y)
-                self.World.SendPacketToAll(PositionPacket)                
+                #try position only update
+                dx = x - self.X
+                dy = y - self.Y
+                dz = z - self.Z
+                if dx >= -128 and dx <= 127 and dy >= -128 and dy <= 127 and dz >= -128 and dz <= 127:
+                    PositionPacket = OptiCraftPacket(SMSG_POSITION_UDPDATE)
+                    PositionPacket.WriteByte(self.Id)
+                    PositionPacket.WriteSByte(dx)
+                    PositionPacket.WriteSByte(dz)
+                    PositionPacket.WriteSByte(dy)
+                    self.World.SendPacketToAll(PositionPacket)
+                else:
+                    #Outside range. need to send full update
+                    #cheaper to just reuse packet, even though bad practice
+                    Packet.data = Packet.data[0] + chr(self.Id) + Packet.data[2:]
+                    self.World.SendPacketToAll(Packet)          
             else:
                 #Full Update
                 #cheaper to just reuse packet, even though bad practice
