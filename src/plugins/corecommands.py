@@ -1032,6 +1032,9 @@ class RenameWorldCmd(CommandObject):
         if FoundWorld == False:
             for pWorld in ActiveWorlds:
                 if pWorld.Name.lower() == OldName:
+                    if pWorld.CurrentSaveThread is not None and pWorld.CurrentSaveThread.isAlive():
+                        #Wait until the world has finished being saved
+                        pWorld.CurrentSaveThread.join()
                     os.rename("Worlds/%s.save" % pWorld.Name, "Worlds/%s.save" % NewName)
                     #Close the SQL Connection if its active
                     if pWorld.DBConnection is not None:
@@ -1154,6 +1157,8 @@ class DeleteWorldCmd(CommandObject):
                 pWorld.Unload()
                 if pWorld.IOThread.isAlive():
                     pWorld.IOThread.join() #Block until the thread is finished its jobs
+                if pWorld.CurrentSaveThread is not None and pWorld.CurrentSaveThread.isAlive():
+                    pWorld.CurrentSaveThread.join() #Block until it is finished saving the world
                 
         #Get the lists again, they may of changed at this stage of the process
         #(If the world was active, it will now be in the idle list due to being unloaded)

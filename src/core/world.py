@@ -34,6 +34,7 @@ import shutil
 import sqlite3 as dbapi
 import threading
 import Queue
+import copy
 from array import array
 from core.opticraftpacket import OptiCraftPacket
 from core.constants import *
@@ -58,6 +59,75 @@ class BlockChange(object):
     def __init__(self, Offset, Value):
         self.Offset = Offset
         self.Value = Value
+        
+class SaveTask(threading.Thread):
+    '''Saves the world to disk asynchronously'''
+    def __init__(self, pWorld, Verbose):
+        '''Copy all the relevant data'''
+        threading.Thread.__init__(self)
+        self.pWorld = pWorld
+        self.X, self.Y, self.Z = pWorld.X, pWorld.Y, pWorld.Z
+        self.SpawnX, self.SpawnY, self.SpawnZ = pWorld.SpawnX, pWorld.SpawnY, pWorld.SpawnZ
+        self.SpawnOrientation, self.SpawnPitch = pWorld.SpawnOrientation, pWorld.SpawnPitch
+        self.MetaData = copy.copy(pWorld.MetaData)
+        self.Blocks = copy.copy(pWorld.Blocks)
+        self.Name = pWorld.Name
+        self.Verbose = Verbose
+        self.CompressionLevel = pWorld.CompressionLevel
+        
+    def run(self):
+        self.Save(self.Verbose)
+    def Save(self, Verbose = True):
+        '''The map file is a file of the following format:
+        int16 VersionNumber
+        int16 X
+        int16 Y
+        int16 Z
+        int16 SpawnX
+        int16 SpawnY
+        int16 SpawnZ
+        int16 SpawnOrientation
+        int16 SpawnPitch
+        int32 MetaDataLength (number of elements)
+              MetaDataLength *2 Length delimited strings of Key/Value
+        array* gzipped Blockstore till EOF
+        '''
+        start = time.time()
+        try:
+            #Save to a temp file. Then copy it over. (If we crash during this, the old save is unchanged)
+            #...Crashes may occur if we run out of memory, so do not change this!
+            fHandle = open("Worlds/%s.temp" % (self.Name), 'wb')
+        except:
+            Console.Error("World", "Failed to saved world %s to disk." % self.Name)
+        fHandle.write(struct.pack("h", 1)) #Map version number
+        fHandle.write(struct.pack("h", self.X))
+        fHandle.write(struct.pack("h", self.Y))
+        fHandle.write(struct.pack("h", self.Z))
+        fHandle.write(struct.pack("h", self.SpawnX))
+        fHandle.write(struct.pack("h", self.SpawnY))
+        fHandle.write(struct.pack("h", self.SpawnZ))
+        fHandle.write(struct.pack("h", self.SpawnOrientation))
+        fHandle.write(struct.pack("h", self.SpawnPitch))
+        #Meta data saving.
+        fHandle.write(struct.pack("i", len(self.MetaData))) #Number of elements to be saved
+        for Key in self.MetaData:
+            fHandle.write(World._MakeLengthString(Key))
+            fHandle.write(World._MakeLengthString(self.MetaData[Key]))
+        #Block Array
+        gzipHandle = gzip.GzipFile(fileobj = fHandle, mode = "wb", compresslevel = self.CompressionLevel)
+        gzipHandle.write(self.Blocks.tostring())
+        gzipHandle.close()
+        fHandle.close()
+        try:
+            shutil.copy("Worlds/%s.temp" % (self.Name), "Worlds/%s.save" % (self.Name))
+            os.remove("Worlds/%s.temp" % (self.Name))
+        except:
+            Console.Warning("World", "Failed to save world %s. Trying again soon" % self.Name)
+            return
+        if Verbose:
+            Console.Out("World", "Saved world %s in %dms" % (self.Name, int((time.time() - start) * 1000)))
+            #self.SendNotice("Saved world %s in %dms" % (self.Name, int((time.time() - start) * 1000)))
+
 class AsynchronousIOThread(threading.Thread):
     '''Performs operations on the sqlite DB asynchronously to avoid long blocking
     ...waits for the disk'''
@@ -189,6 +259,7 @@ class World(object):
         self.LogFlushThreshold = int(self.ServerControl.ConfigValues.GetValue("worlds", "LogFlushThreshold", 100000))
         self.DisableBots = bool(int(self.ServerControl.ConfigValues.GetValue("server", "DisableBots", "0")))
         self.IOThread = None
+        self.CurrentSaveThread = None
         self.AsyncBlockChanges = Queue.Queue()
         self.IdleTimeout = 0 #How long must the world be unoccupied until it unloads itself from memory
         self.IdleStart = 0 #Not idle.
@@ -255,33 +326,38 @@ class World(object):
         array* gzipped Blockstore till EOF
         '''
         start = time.time()
+        rHandle = cStringIO.StringIO()
+        fHandle = None
         try:
             fHandle = open("Worlds/" + self.Name + '.save', 'rb')
         except:
             Console.Warning("World", "Failed to open up save file for world %s!" % self.Name)
             return False
         try:
-            Version = struct.unpack("h", fHandle.read(2))[0] #Unused for now
+            rHandle.write(fHandle.read())
+            fHandle.close()
+            rHandle.seek(0)
+            Version = struct.unpack("h", rHandle.read(2))[0] #Unused for now
             if Version != 1:
                 Console.Error("World", "Unknown map version %d found on world %s. Unable to load." % (Version, self.Name))
                 return False
-            self.X = struct.unpack("h", fHandle.read(2))[0]
-            self.Y = struct.unpack("h", fHandle.read(2))[0]
-            self.Z = struct.unpack("h", fHandle.read(2))[0]
-            self.SpawnX = struct.unpack("h", fHandle.read(2))[0]
-            self.SpawnY = struct.unpack("h", fHandle.read(2))[0]
-            self.SpawnZ = struct.unpack("h", fHandle.read(2))[0]
-            self.SpawnOrientation = struct.unpack("h", fHandle.read(2))[0]
-            self.SpawnPitch = struct.unpack("h", fHandle.read(2))[0]
-            MetaLength = struct.unpack("i", fHandle.read(4))[0]
+            self.X = struct.unpack("h", rHandle.read(2))[0]
+            self.Y = struct.unpack("h", rHandle.read(2))[0]
+            self.Z = struct.unpack("h", rHandle.read(2))[0]
+            self.SpawnX = struct.unpack("h", rHandle.read(2))[0]
+            self.SpawnY = struct.unpack("h", rHandle.read(2))[0]
+            self.SpawnZ = struct.unpack("h", rHandle.read(2))[0]
+            self.SpawnOrientation = struct.unpack("h", rHandle.read(2))[0]
+            self.SpawnPitch = struct.unpack("h", rHandle.read(2))[0]
+            MetaLength = struct.unpack("i", rHandle.read(4))[0]
             for i in xrange(MetaLength):
-                Key = World._ReadLengthString(fHandle)
-                Value = World._ReadLengthString(fHandle)
+                Key = World._ReadLengthString(rHandle)
+                Value = World._ReadLengthString(rHandle)
                 self.MetaData[Key] = Value
-            gzipHandle = gzip.GzipFile(fileobj = fHandle, mode = "rb")
+            gzipHandle = gzip.GzipFile(fileobj = rHandle, mode = "rb")
             self.Blocks.fromstring(gzipHandle.read())
             gzipHandle.close()                
-            fHandle.close()
+            rHandle.close()
             Console.Out("World", "Loaded world %s in %dms" % (self.Name, int((time.time() - start) * 1000)))
             #Ensure the data is not corrupt in some way
             assert(len(self.Blocks) == self.X * self.Y * self.Z)
@@ -313,41 +389,10 @@ class World(object):
               MetaDataLength *2 Length delimited strings of Key/Value
         array* gzipped Blockstore till EOF
         '''
-        start = time.time()
-        try:
-            #Save to a temp file. Then copy it over. (If we crash during this, the old save is unchanged)
-            #...Crashes may occur if we run out of memory, so do not change this!
-            fHandle = open("Worlds/%s.temp" % (self.Name), 'wb')
-        except:
-            Console.Error("World", "Failed to saved world %s to disk." % self.Name)
-        fHandle.write(struct.pack("h", 1)) #Map version number
-        fHandle.write(struct.pack("h", self.X))
-        fHandle.write(struct.pack("h", self.Y))
-        fHandle.write(struct.pack("h", self.Z))
-        fHandle.write(struct.pack("h", self.SpawnX))
-        fHandle.write(struct.pack("h", self.SpawnY))
-        fHandle.write(struct.pack("h", self.SpawnZ))
-        fHandle.write(struct.pack("h", self.SpawnOrientation))
-        fHandle.write(struct.pack("h", self.SpawnPitch))
-        #Meta data saving.
-        fHandle.write(struct.pack("i", len(self.MetaData))) #Number of elements to be saved
-        for Key in self.MetaData:
-            fHandle.write(World._MakeLengthString(Key))
-            fHandle.write(World._MakeLengthString(self.MetaData[Key]))
-        #Block Array
-        gzipHandle = gzip.GzipFile(fileobj = fHandle, mode = "wb", compresslevel = self.CompressionLevel)
-        gzipHandle.write(self.Blocks.tostring())
-        gzipHandle.close()
-        fHandle.close()
-        try:
-            shutil.copy("Worlds/%s.temp" % (self.Name), "Worlds/%s.save" % (self.Name))
-            os.remove("Worlds/%s.temp" % (self.Name))
-        except:
-            pass
-        if Verbose:
-            Console.Out("World", "Saved world %s in %dms" % (self.Name, int((time.time() - start) * 1000)))
-            self.SendNotice("Saved world %s in %dms" % (self.Name, int((time.time() - start) * 1000)))
-        self.LastSave = start
+        #Saving is done in another thread to prevent blocking writes in the main thread
+        self.CurrentSaveThread = SaveTask(self, Verbose)
+        self.CurrentSaveThread.start()
+        self.LastSave = self.ServerControl.Now
 
     def Backup(self, Verbose = True):
         '''Performs a backup of the current save file'''
@@ -588,7 +633,7 @@ class World(object):
             pPlayer.Disconnect("The world you were on was deleted. Please reconnect")
             pPlayer.SetWorld(None)
         self.ServerControl.UnloadWorld(self)
-        self.Save(False)
+        self.Save(True)
         self.Unloaded = True
         if self.LogBlocks:
             self.FlushBlockLog()
