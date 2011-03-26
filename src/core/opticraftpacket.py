@@ -40,6 +40,8 @@ class OptiCraftPacket(object):
         #Once again - these are NOT safe. Passing an argument of the incorrect type will throw exceptions.
     def WriteByte(self, data):
         self.data += struct.pack("B", data)
+    def WriteSByte(self, data):
+        self.data += struct.pack("b", data)        
     def WriteString(self, data):
         self.data += (data + ((64 - len(data)) * ' '))
     def WriteInt16(self, data):

@@ -248,10 +248,6 @@ class Player(object):
         return self.AboutCmd
     def SetAboutCmd(self, Value):
         self.AboutCmd = Value
-    def GetTowerCmd(self):
-        return self.TowerCmd
-    def SetTowerCmd(self, Value):
-        self.TowerCmd = Value
     def GetLastAction(self):
         return self.LastAction
     def IsAuthenticated(self):
@@ -495,8 +491,7 @@ class Player(object):
             y = Packet.GetInt16()
             o = Packet.GetByte()
             p = Packet.GetByte()
-            if x == self.X and y == self.Y and z == self.Z and o == self.O and p == self.P:
-                return #Saves bandwidth. No need to redistribute something we just sent..
+            
             if self.IsFrozen:
                 if self.CalcDistance(x / 32, y / 32, z / 32) < 2:
                     return
@@ -508,11 +503,33 @@ class Player(object):
                 NewPacket.WriteByte(self.O)
                 NewPacket.WriteByte(self.P)
                 self.SendPacket(NewPacket)
-                return
+                return            
+            
+            if x == self.X and y == self.Y and z == self.Z:
+                if o != self.O or p != self.P:
+                    #Partial update
+                    OrientationPacket = OptiCraftPacket(SMSG_ORIENTATION_UPDATE)
+                    OrientationPacket.WriteByte(self.Id)
+                    OrientationPacket.WriteByte(o)
+                    OrientationPacket.WriteByte(p)
+                    self.World.SendPacketToAll(OrientationPacket)                
+                else:
+                    return #Saves bandwidth. No need to redistribute something we just sent..
+            elif o == self.O and p == self.P:
+                #position only update
+                PositionPacket = OptiCraftPacket(SMSG_POSITION_UDPDATE)
+                PositionPacket.WriteByte(self.Id)
+                PositionPacket.WriteSByte(x - self.X)
+                PositionPacket.WriteSByte(z - self.Z)
+                PositionPacket.WriteSByte(y - self.Y)
+                self.World.SendPacketToAll(PositionPacket)                
+            else:
+                #Full Update
+                #cheaper to just reuse packet, even though bad practice
+                Packet.data = Packet.data[0] + chr(self.Id) + Packet.data[2:]
+                self.World.SendPacketToAll(Packet)  
+                         
             self.SetLocation(x, y, z, o, p)
-            #cheaper to just reuse packet, even though bad practice
-            Packet.data = Packet.data[0] + chr(self.Id) + Packet.data[2:]
-            self.World.SendPacketToAll(Packet)
 
     def HandleBlockChange(self, Packet):
         if self.World is not None:
@@ -629,7 +646,6 @@ class Player(object):
         self.NewId = -1 #New ID For changing worlds
         self.AboutCmd = False
         self.PaintCmd = False
-        self.TowerCmd = False
         self.Rank = 'guest'
         self.RankLevel = ServerControl.GetRankLevel('guest')
         self.Invisible = False
