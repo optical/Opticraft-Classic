@@ -213,6 +213,9 @@ class TwoStepDrawAction(DrawAction):
     def OnAttemptPlaceBlock(self, pWorld, BlockValue, x, y, z):
         if BlockValue == BLOCK_AIR and not self.AllowAir:
             return
+        if pWorld.WithinBounds(x, y, z) == False:
+            self.pPlayer.SendMessage("&RCoordinate is outside map bounds.")
+            return
         if self.TempX == -1:
             self.TempX = x
             self.TempY = y
