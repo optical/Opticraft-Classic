@@ -95,6 +95,7 @@ class AsynchronousIOThread(threading.Thread):
             elif Task[0] == "SHUTDOWN":
                 self.Running = False
                 self.World = None
+                self.DBConnection.commit()
                 self.DBConnection.close()
             elif Task[0] == "CONNECT":
                 #Connect/Reconnect to the DB.
