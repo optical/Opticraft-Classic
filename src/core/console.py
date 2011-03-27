@@ -59,11 +59,11 @@ elif platform.system() == 'Linux' or platform.system() == 'Darwin':
     #Unix ANSI Colour codes
     ENABLE_COLOUR = True
     TRED = "\033[22;31m"
-    TGREEN = "\033[22;32m"
+    TGREEN = "\033[01;32m"
     TYELLOW = "\033[01;33m"
     TNORMAL = "\033[22;37m"
-    TWHITE = "\033[0m"
-    TBLUE = "\033[1;34m"
+    TWHITE = "\033[1;37m"
+    TBLUE = "\033[1;36m"
 else:
     #Unsure if this platform supports ANSI colour codes, so lets assume not.
     ENABLE_COLOUR = False
@@ -96,7 +96,7 @@ class OConsole(object):
         elif self.FileLogging == False and Value == True:
             self.LogHandle = open("Logs/console.log", "a")
         self.FileLogging = Value
-    def Write(self, Value, IsColour=False):
+    def Write(self, Value, IsColour = False):
         stdout.write(Value)
         if self.FileLogging and IsColour == False:
             self.LogHandle.write(Value)
