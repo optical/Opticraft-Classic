@@ -732,6 +732,9 @@ class ServerController(object):
                         if pWorld.IsFull() == False:
                             NewWorld = pWorld
                             break
+                    if NewWorld is None: 
+                        if len(self.IdleWorlds) > 0:
+                            NewWorld = self.LoadWorld(self.IdleWorlds[0])
                 else:
                     if self.ActiveWorlds[0].IsFull() == False:
                         NewWorld = self.ActiveWorlds[0]
