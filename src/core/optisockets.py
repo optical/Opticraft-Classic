@@ -36,7 +36,7 @@ from core.constants import SMSG_DISCONNECT
 class SocketBindFailException(Exception):
     pass
 class ListenSocket(object):
-    def __init__(self, Host, Port, BackLog = 5):
+    def __init__(self, Host, Port, BackLog = 120):
         self.Socket = socket.socket()
         #This allows the server to restart instantly instead of waiting around
         self.Socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
