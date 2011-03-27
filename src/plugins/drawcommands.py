@@ -35,7 +35,7 @@ from core.console import *
 
 DRAW_KEY = "draw_plugin"
 COPY_KEY = "draw_plugin_copy_data"
-LOCK_LEVEL = 10000 #10,000 block changes results in the map being resent to prevent lag
+LOCK_LEVEL = 35000 #35,000 block changes results in the map being resent to prevent lag
 
 class DrawCommandPlugin(PluginBase):
     def OnLoad(self):
