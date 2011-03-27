@@ -43,7 +43,7 @@ from core.console import *
 
 #Used for deciding whether to lock a map when undoing actions
 #Tweak appropriately
-LOCK_LEVEL = 10000 #Number of blocks needed in order to force a map lock
+LOCK_LEVEL = 35000 #Number of blocks needed in order to force a map lock
 
 class BlockLog(object):
     __slots__ = ['Username', 'Time', 'Value']
