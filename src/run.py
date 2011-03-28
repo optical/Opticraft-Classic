@@ -50,7 +50,7 @@ def Main():
         ServerControl.Run()
     except BaseException, e:
         ExceptionType = type(e)
-        Crash = ExceptionType not in [KeyboardInterrupt, SighupException, SigkillException]
+        Crash = ExceptionType not in [KeyboardInterrupt, SigkillException]
         if Crash:
             Console.Error("Shutdown", "The server has encountered a critical error and is shutting down.")
             Console.Error("Shutdown", "Details about the error can be found in CrashLog.txt")

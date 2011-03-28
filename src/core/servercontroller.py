@@ -50,8 +50,6 @@ from core.console import *
 from core.ircrelay import RelayBot
 class SigkillException(Exception):
     pass
-class SighupException(Exception):
-    pass
 class PlayerDbThread(threading.Thread):
     '''This thread performs asynchronous querys on the player databases, specifically for loading
     and saving player data'''
@@ -692,8 +690,6 @@ class ServerController(object):
         self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set RankedBy = ? where Username = ?", (Initiator.GetName(), Username.lower())])
     def HandleKill(self, SignalNumber, Frame):
         raise SigkillException
-    def HandleSighup(self, SignalNumer, Frame):
-        raise SighupException
     def Run(self):
         '''Main Thread from the application. Runs The sockets and worlds'''
         self.Running = True
@@ -706,8 +702,7 @@ class ServerController(object):
                 pass
 
         if platform.system() == 'Linux':
-            signal.signal(signal.SIGTERM, self.HandleKill)
-            signal.signal(signal.SIGHUP, self.HandleSighup)
+            signal.signal(signal.SIGTERM, self.HandleKill))
         Console.Out("Startup", "Startup procedure completed in %.0fms" % ((time.time() - self.StartTime) * 1000))
         Console.Out("Server", "Press Ctrl-C at any time to shutdown the sever safely.")
         self.PluginMgr.OnServerStart()
