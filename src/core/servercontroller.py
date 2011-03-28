@@ -702,7 +702,7 @@ class ServerController(object):
                 pass
 
         if platform.system() == 'Linux':
-            signal.signal(signal.SIGTERM, self.HandleKill))
+            signal.signal(signal.SIGTERM, self.HandleKill)
         Console.Out("Startup", "Startup procedure completed in %.0fms" % ((time.time() - self.StartTime) * 1000))
         Console.Out("Server", "Press Ctrl-C at any time to shutdown the sever safely.")
         self.PluginMgr.OnServerStart()
