@@ -61,11 +61,10 @@ class BlockChange(object):
         self.Value = Value
         
 class SaveTask(threading.Thread):
-    '''Saves the world to disk asynchronously'''
+    '''Saves the world to disk asynchronously'''   
     def __init__(self, pWorld, Verbose):
         '''Copy all the relevant data'''
         threading.Thread.__init__(self)
-        self.pWorld = pWorld
         self.X, self.Y, self.Z = pWorld.X, pWorld.Y, pWorld.Z
         self.SpawnX, self.SpawnY, self.SpawnZ = pWorld.SpawnX, pWorld.SpawnY, pWorld.SpawnZ
         self.SpawnOrientation, self.SpawnPitch = pWorld.SpawnOrientation, pWorld.SpawnPitch
@@ -77,6 +76,8 @@ class SaveTask(threading.Thread):
         
     def run(self):
         self.Save(self.Verbose)
+        del self.Blocks
+        
     def Save(self, Verbose = True):
         '''The map file is a file of the following format:
         int16 VersionNumber
@@ -172,12 +173,24 @@ class AsynchronousIOThread(threading.Thread):
                 self._ConnectTask()
 
     def _ExecuteTask(self, Query, Parameters):
+        '''Performs a query, but does not return any data'''
         try:
             self.DBConnection.execute(Query, Parameters)
             self.DBConnection.commit()
         except dbapi.OperationalError:
             Console.Warning("IOThread", "Failed to execute Query. Trying again soon")
             self.Tasks.put(["EXECUTE", Query, Parameters])
+    
+    def _AsynchronousQuery(self, Query, Parameters, kwArgs):
+        '''Performs a query and returns the a list of Rows back'''
+        try:
+            Result = self.DBConnection.execute(Query, Parameters)
+        except Exception, e:
+            pass
+        
+        
+        
+    
     def _ConnectTask(self):
         self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" % self.WorldName)
         self.DBConnection.text_factory = str
@@ -634,6 +647,7 @@ class World(object):
             pPlayer.SetWorld(None)
         self.ServerControl.UnloadWorld(self)
         self.Save(True)
+        self.CurrentSaveThread = None
         self.Unloaded = True
         if self.LogBlocks:
             self.FlushBlockLog()

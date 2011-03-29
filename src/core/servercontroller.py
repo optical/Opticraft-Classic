@@ -1000,13 +1000,15 @@ class ServerController(object):
             if len(Word) >= 60:
                 return #Prevent crazy bugs due to this crappy string system
             if len(OutStr) + len(Word) > 63:
-                if len(OutStr) > 2 and OutStr[-1] in LocalColourchars and OutStr[-2] == '&':
+                if len(OutStr) > 2 and chr(OutStr[-1]) in LocalColourchars and chr(OutStr[-2]) == '&':
                     OutStr = OutStr[:-2]
                 self.SendMessageToAll(str(OutStr))
                 OutStr = bytearray(NewLine)
             OutStr += ' '
             OutStr += Word
             
+        if len(OutStr) > 2 and chr(OutStr[-1]) in LocalColourchars and chr(OutStr[-2]) == '&':
+                OutStr = OutStr[:-2]
         self.SendMessageToAll(str(OutStr))
     def SendPacketToAll(self, Packet):
         '''Distributes a packet to all clients on a map
