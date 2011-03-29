@@ -26,7 +26,7 @@
 #  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from core.servercontroller import ServerController, SighupException, SigkillException
+from core.servercontroller import ServerController, SigkillException
 import traceback
 import time
 import os
