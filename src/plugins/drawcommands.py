@@ -185,7 +185,7 @@ class DrawAction(object):
                     self.pPlayer.GetName(), self.pPlayer.GetIP(), self.__class__.__name__,
                     self.pPlayer.GetWorld().Name, NumBlocks)
             LogFile = self.pPlayer.ServerControl.CommandHandle.LogFile
-            if LogFile is not None:
+            if LogFile is not None and self.IsLogged:
                 LogFile.write(LogLine)
             self.DoDraw()
             if NumBlocks > LOCK_LEVEL and self.EnableWorldLocking:
