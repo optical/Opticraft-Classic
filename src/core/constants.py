@@ -249,6 +249,52 @@ import string
 DisabledBlocks = set([BLOCK_WATER, BLOCK_STILLWATER, BLOCK_LAVA, BLOCK_STILLLAVA, BLOCK_HARDROCK])
 DisabledChars = ''.join([c for c in map(chr, range(256)) if c not in string.ascii_letters + string.digits + string.punctuation + string.whitespace]) + '&\r\n'
 ColourChars = frozenset('1234567890abcedfABCEDF')
+
+def ParseWordAsTime(Word):
+    '''Returns the number of seconds in a given time span.
+    eg: "1m2w3d5h" returns 4078800 (1 month, 2 weeks, 3 days, 5hours)'''
+    HourMultiplier = 3600
+    DayMultiplier = HourMultiplier * 24
+    WeekMultiplier = DayMultiplier * 7
+    MonthMultiplier = DayMultiplier * 30
+    YearMultiplier = WeekMultiplier * 52
+    Duration = 0
+    i = 0
+    while i < len(Word):
+        if Word[i].isdigit() == False:
+            return Duration
+        NumberString = ''
+        
+        while i < len(Word)and Word[i].isdigit():
+            NumberString += Word[i]
+            i += 1
+            
+        if i >= len(Word):
+            return - 1
+        
+        Num = int(NumberString)
+        Char = Word[i].lower()
+        Multi = 0
+        if Char == "h":
+            Multi = HourMultiplier
+        elif Char == "d":
+            Multi = DayMultiplier
+        elif Char == "w":
+            Multi = WeekMultiplier
+        elif Char == "m":
+            Multi = MonthMultiplier
+        elif Char == "y":
+            Multi = YearMultiplier
+        else:
+            return - 1
+        
+        Duration += Multi * Num
+        i += 1
+        while i < len(Word) and Word[i].isdigit() == False:
+            i += 1
+    
+    return Duration
+
 #Taken from http://snipplr.com/view/5713/python-elapsedtime-human-readable-time-span-given-total-seconds/
 def ElapsedTime(seconds, suffixes = [' year', ' week', ' day', ' hour', ' minute', ' second'], add_s = True, separator = ' '):
     """
