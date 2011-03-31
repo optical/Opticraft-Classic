@@ -92,7 +92,7 @@ class Commands(PluginBase):
         #OPERATOR COMMANDS HERE #
         #########################
         self.AddCommand("solid", SolidCmd, 'operator', 'Allows you to place adminium', '', 0)
-        self.AddCommand("ban", BanCmd, 'operator', 'Bans a player from the server', 'Incorrect syntax! Usage: /ban <username>', 1)
+        self.AddCommand("ban", BanCmd, 'operator', 'Bans a player from the server', 'Incorrect syntax! Usage: /ban <username> <duration>', 1)
         self.AddCommand("unban", UnbanCmd, 'operator', 'Unbans a player from the server', 'Incorrect syntax! Usage: /unban <username>', 1)
         self.AddCommand("kick", KickCmd, 'operator', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)
         self.AddCommand("freeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1)
@@ -109,7 +109,7 @@ class Commands(PluginBase):
         #ADMIN COMMANDS HERE #
         ######################
         self.AddCommand("addipban", AddIPBanCmd, 'admin', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username>', 1)
-        self.AddCommand("ipban", AddIPBanCmd, 'admin', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username>', 1, Alias = True)
+        self.AddCommand("ipban", AddIPBanCmd, 'admin', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username> <duration>', 1, Alias = True)
         self.AddCommand("delipban", DelIPBanCmd, 'admin', 'Removes an IP ban', 'Incorrect syntax! Usage: /delipban <ip/username>', 1)
         self.AddCommand("save", SaveCmd, 'admin', 'Saves all actively running worlds', '', 0)
         self.AddCommand("backup", BackupCmd, 'admin', 'Backs up all actively running worlds', '', 0)
@@ -368,6 +368,12 @@ class PlayerInfoCmd(CommandObject):
             pPlayer.SendMessage("&STheir last ip was &V%s" % (Row["LastIp"]))
             if Row["BannedBy"] != '':
                 pPlayer.SendMessage("&SThey were banned by &V%s" % (Row["BannedBy"]))
+                Date = pPlayer.ServerControl.GetUsernameBanExpiryDate(Username)
+                if Date is not None:
+                    if Date == 0:
+                        pPlayer.SendMessage("&SThis is a &Vpermanent &Sban")
+                    else:
+                        pPlayer.SendMessage("&SBan expires on &V%s" % (time.ctime(Date)))
             if Row["RankedBy"] != '':
                 pPlayer.SendMessage("&STheir rank was set by &V%s" % (Row["RankedBy"]))
 
@@ -624,13 +630,24 @@ class BanCmd(CommandObject):
     '''Ban command handler. Bans a username (permanently)'''
     def Run(self, pPlayer, Args, Message):
         Username = Args[0]
-        if ":" in Username:
-            pPlayer.SendMessage("&RThat is not a valid username!")
-            return
         if pPlayer.ServerControl.GetRankLevel(pPlayer.ServerControl.GetRank(Username)) >= pPlayer.GetRankLevel():
             pPlayer.SendMessage("&RYou may not ban someone with the same rank or higher then yours")
             return
-        Result = pPlayer.ServerControl.AddBan(pPlayer, Username, 0) #TODO: Parse input so we can enter expiry!
+        if len(Args) == 1:
+            pPlayer.SendMessage("&RBans require a duration. Eg: /ban joe 1day. 0 for permanent")
+            return
+        Duration = Args[1]
+        print Duration
+        if Duration != '0':
+            Duration = ParseWordAsTime(Args[1])
+            if Duration == -1:
+                pPlayer.SendMessage("&RThat is an invalid timespan. Eg: 1d2h for 1 day and 2 hours")
+                return
+            Duration += int(pPlayer.ServerControl.Now)
+        else:
+            Duration = 0
+        
+        Result = pPlayer.ServerControl.AddBan(pPlayer, Username, Duration)
         if Result:
             pPlayer.ServerControl.SendNotice("%s was banned by %s" % (Username, pPlayer.GetName()))
         pPlayer.SendMessage("&SSuccessfully banned &V%s" % (Username))
@@ -778,13 +795,25 @@ class AddIPBanCmd(CommandObject):
     '''Handler for the /ipban command. Bans an IP Address from the server'''
     def Run(self, pPlayer, Args, Message):
         Arg = Args[0]
+        if len(Args) == 1:
+            pPlayer.SendMessage("&RBans require a duration. Eg: /ban joe 1day. 0 for permanent")
+            return        
+        Duration = Args[1]
+        if Duration != '0':
+            Duration = ParseWordAsTime(Args[1])
+            if Duration == -1:
+                pPlayer.SendMessage("&RThat is an invalid timespan. Eg: 1d2h for 1 day and 2 hours")
+                return
+            Duration += int(pPlayer.ServerControl.Now)
+        else:
+            Duration = 0        
         #Check to see if this is a user...
         Target = pPlayer.ServerControl.GetPlayerFromName(Arg)
         if Target is not None:
             if Target.GetRankLevel() >= pPlayer.GetRankLevel():
                 pPlayer.SendMessage("&RYou may not ban that user.")
                 return
-            pPlayer.ServerControl.AddBan(pPlayer, Arg, 0)
+            pPlayer.ServerControl.AddBan(pPlayer, Arg, Duration)
             pPlayer.SendMessage("&SSuccessfully added username ban on \"&V%s&S\"" % Arg)
             #Set arg to the IP address so we can ban that too.
             Arg = Target.GetIP()
@@ -801,7 +830,7 @@ class AddIPBanCmd(CommandObject):
             pPlayer.SendMessage("&RThat is not a valid ip-address!")
             return
         #Must be valid
-        pPlayer.ServerControl.AddIPBan(pPlayer, Arg, 0)
+        pPlayer.ServerControl.AddIPBan(pPlayer, Arg, Duration)
         pPlayer.SendMessage("&SSuccessfully banned ip \"&V%s\"&S" % Arg)
 
 class DelIPBanCmd(CommandObject):

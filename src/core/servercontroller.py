@@ -200,6 +200,7 @@ class PlayerDbThread(threading.Thread):
 class ServerController(object):
     def __init__(self, Tag = ''):
         self.StartTime = int(time.time())
+        self.Now = time.time()
         self.ConfigValues = ConfigReader()
         self.RankStore = ConfigReader()
         self.ConfigValues.read("opticraft.ini")
@@ -329,7 +330,6 @@ class ServerController(object):
         self.LastAnnounce = 0
         self.NumPlayers = 0
         self.PeakPlayers = 0
-        self.Now = time.time()
         self.CommandHandle = CommandHandler(self)
         if self.LogChat:
             try:
@@ -339,24 +339,8 @@ class ServerController(object):
                 self.ChatLogHandle = self.PMLogHandle = None
         else:
             self.ChatLogHandle = self.PMLogHandle = None
-        #Load up banned usernames.
-        if os.path.isfile("banned.txt"):
-            try:
-                with open("banned.txt", "r") as fHandle:
-                    for line in fHandle:
-                        Tokens = line.split(":")
-                        self.BannedUsers[Tokens[0]] = int(Tokens[1])
-            except:
-                Console.Error("ServerControl", "Failed to load banned.txt!")
-        #Load up banned IP's
-        if os.path.isfile("banned-ip.txt"):
-            try:
-                with open("banned-ip.txt", "r") as fHandle:
-                    for line in fHandle:
-                        Tokens = line.split(":")
-                        self.BannedIPs[Tokens[0]] = int(Tokens[1])
-            except:
-                Console.Error("ServerControl", "Failed to load banned-ip.txt!")  
+            
+        self.LoadBans() 
         self.IPCache = dict()
         self.LoadIPCache()
         self.PluginMgr = PluginManager(self)
@@ -468,6 +452,35 @@ class ServerController(object):
         return self.WorldRankCache[Name.lower()]
     def SetWorldRank(self, Name, Rank):
         self.WorldRankCache[Name.lower()] = Rank
+    def LoadBans(self):
+        #Load up banned usernames.
+        if self.LoadBanFile("banned.txt", self.BannedUsers):
+            self.FlushBans()
+        Console.Out("ServerControl", "Loaded %d username bans" % len(self.BannedUsers))
+        if self.LoadBanFile("banned-ip.txt", self.BannedIPs):
+            self.FlushIPBans()
+        Console.Out("ServerControl", "Loaded %d ip bans" % len(self.BannedIPs))
+                
+    def LoadBanFile(self, Filename, BanCache):
+        '''Loads a ban file and returns number of expired bans, if any'''
+        NumExpired = 0
+        if os.path.exists(Filename) == False:
+            return NumExpired
+        try:
+            with open(Filename, "r") as fHandle:
+                for line in fHandle:
+                    Tokens = line.split(":")
+                    Expiry = int(Tokens[1])
+                    if int(self.Now) < Expiry or Expiry == 0:
+                        BanCache[Tokens[0]] = Expiry
+                    else:
+                        Console.Debug("ServerControl", "Expired ban on %s" % Tokens[0])
+                        NumExpired += 1
+        except Exception, e:
+            Console.Error("ServerControl", "Failed to load file %s - %s" % (Filename, e))
+        return NumExpired
+            
+                
     def LoadIPCache(self):
         try:
             Console.Debug("IPCache", "Attempting to load IP Cache")
@@ -867,7 +880,16 @@ class ServerController(object):
                 return False
         else:
             return False
-
+        
+    def GetUsernameBanExpiryDate(self, Username):
+        Username = Username.lower()
+        Date = self.BannedUsers.get(Username, None)
+        if Date is not None and Date < self.Now and Date != 0:
+            del self.BannedUsers[Username]
+            self.FlushBans()
+            return None
+        return Date
+        
     def FlushBans(self):
         try:
             fHandle = open("banned.txt", "w")
