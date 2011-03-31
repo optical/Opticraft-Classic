@@ -45,6 +45,7 @@ from core.configreader import ConfigReader
 from core.zones import Zone
 from core.world import World, WorldLoadFailedException
 from core.pluginmanager import PluginManager
+from core.asynchronousquery import AsynchronousQueryResult
 from core.constants import * 
 from core.console import *
 from core.ircrelay import RelayBot
@@ -134,12 +135,27 @@ class PlayerDbThread(threading.Thread):
                 self.LoadPlayerData(Task[1])
             elif Task[0] == "SAVE_PLAYER":
                 self.SavePlayerData(Task[1])
+            elif Task[0] == "ASYNC_QUERY":
+                self._AsynchronousQuery(Task[1], Task[2], Task[3], Task[4])
             elif Task[0] == "EXECUTE":
                 self.Execute(Task[1], Task[2])
             elif Task[0] == "SHUTDOWN":
                 self.Connection.commit()
                 self.Running = False
                 self.Connection.close()
+
+    def _AsynchronousQuery(self, Query, QueryParameters, CallbackFunc, kwArgs):
+        '''Performs a query and returns the a list of Rows back'''
+        IsException = False
+        Results = list()
+        try:
+            Result = self.Connection.execute(Query, QueryParameters)
+            Results = Result.fetchall()
+        except Exception, e:
+            IsException = True
+
+        self.ServerControl.AddAsyncQueryResult(AsynchronousQueryResult(CallbackFunc, kwArgs, Results, IsException))
+
 
     def Execute(self, QueryText, Args):
         '''Executes a query on the database'''
@@ -291,6 +307,7 @@ class ServerController(object):
         self.CurrentUploadRate = 0.0 #Bytes per second
         self.CurrentDownloadRate = 0.0
         self.LoadResults = Queue.Queue()
+        self.AsynchronousQueryResults = Queue.Queue()
         self.PlayerDBThread = PlayerDbThread(self)
         self.PlayerDBThread.start()
         self.PlayerDBConnection = dbapi.connect("Player.db", timeout = 0.1)
@@ -688,6 +705,16 @@ class ServerController(object):
         with open("ranks.ini", "w") as fHandle:
             self.RankStore.write(fHandle)
         self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set RankedBy = ? where Username = ?", (Initiator.GetName(), Username.lower())])
+
+    def AsynchronousQuery(self, Query, QueryParameters, CallbackFunc, kwArgs):
+        '''Performs and query on the player DB asynchronously, calling 
+           CallbackFunc with the results when done'''
+        self.PlayerDBThread.Tasks.put(["ASYNC_QUERY", Query, QueryParameters, CallbackFunc, kwArgs])
+    
+    def AddAsyncQueryResult(self, QueryResult):
+        '''Called by the Player DB thread when a query returns'''
+        self.AsynchronousQueryResults.put(QueryResult)
+    
     def HandleKill(self, SignalNumber, Frame):
         raise SigkillException
     def Run(self):
@@ -783,7 +810,15 @@ class ServerController(object):
                 pPlayer = self.GetPlayerFromName(Username)
                 if pPlayer is not None:
                     pPlayer.LoadData(Rows)
-
+                    
+            #Check for Asynchornous Query Results
+            while True:
+                try:
+                    Result = self.AsynchronousQueryResults.get_nowait()
+                except Queue.Empty:
+                    break
+                Result.Callback()
+                
             SleepTime = 0.05 - (time.time() - self.Now)
             if 0 < SleepTime:
                 time.sleep(SleepTime)
