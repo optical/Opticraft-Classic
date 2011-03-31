@@ -48,7 +48,7 @@ class CommandObject(object):
         '''Checks player has correct permissions and number of arguments'''
         if self.Permissions != '':
             if pPlayer.HasPermission(self.Permissions) == False:
-                pPlayer.SendMessage("&RYou do not have the required permissions to use that command!")
+                pPlayer.SendMessage("&RThat command requires %s+ rank" % self.Permissions)
                 return
         Tokens = Message.split()[1:]
         Args = len(Tokens)
