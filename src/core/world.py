@@ -276,6 +276,7 @@ class World(object):
         self.LogBlocks = int(self.ServerControl.ConfigValues.GetValue("worlds", "EnableBlockHistory", 1))
         self.LogFlushThreshold = int(self.ServerControl.ConfigValues.GetValue("worlds", "LogFlushThreshold", 100000))
         self.DisableBots = bool(int(self.ServerControl.ConfigValues.GetValue("server", "DisableBots", "0")))
+        self.MinRankMessage = self.ServerControl.ConfigValues.GetValue("worlds", "MinimumBuildRankMessage", "&RYou do not have the required rank to build on this world")
         self.IOThread = None
         self.CurrentSaveThread = None
         self.AsyncBlockChanges = Queue.Queue()
@@ -461,7 +462,7 @@ class World(object):
         if val >= BLOCK_END:
             return False #Fake block type...
         if pPlayer.HasPermission(self.GetMinRank()) == False:
-            pPlayer.SendMessage("&RYou do not have the required rank to build on this world")
+            pPlayer.SendMessage(self.MinRankMessage)
             return False
         ArrayValue = self._CalculateOffset(x, y, z)
         if ord(self.Blocks[ArrayValue]) == val:
