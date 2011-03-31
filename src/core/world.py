@@ -39,6 +39,7 @@ from array import array
 from core.opticraftpacket import OptiCraftPacket
 from core.constants import *
 from core.zones import Zone
+from core.asynchronousquery import AsynchronousQueryResult
 from core.console import *
 
 #Used for deciding whether to lock a map when undoing actions
@@ -158,6 +159,8 @@ class AsynchronousIOThread(threading.Thread):
                 #Username of blocks to undo,
                 #Timestamp of oldest block allowed
                 self._UndoActionsTask(Task[1], Task[2], Task[3])
+            elif Task[0] == "ASYNC_QUERY":
+                self._AsynchronousQuery(Task[1], Task[2], Task[3], Task[4])
             elif Task[0] == "EXECUTE":
                 #Task[1] is a string such as "REPLACE INTO BlockLogs VALUES(?,?,?,?)"
                 #Task[2] is a tupe of values to subsitute into the string safely
@@ -181,15 +184,17 @@ class AsynchronousIOThread(threading.Thread):
             Console.Warning("IOThread", "Failed to execute Query. Trying again soon")
             self.Tasks.put(["EXECUTE", Query, Parameters])
     
-    def _AsynchronousQuery(self, Query, Parameters, kwArgs):
+    def _AsynchronousQuery(self, Query, QueryParameters, CallbackFunc, kwArgs):
         '''Performs a query and returns the a list of Rows back'''
+        IsException = False
+        Results = list()
         try:
-            Result = self.DBConnection.execute(Query, Parameters)
+            Result = self.DBConnection.execute(Query, QueryParameters)
+            Results = Result.fetchall()
         except Exception, e:
-            pass
-        
-        
-        
+            IsException = True
+
+        self.World.AddAsyncQueryResult(AsynchronousQueryResult(CallbackFunc, kwArgs, Results, IsException))
     
     def _ConnectTask(self):
         self.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" % self.WorldName)
@@ -274,6 +279,7 @@ class World(object):
         self.IOThread = None
         self.CurrentSaveThread = None
         self.AsyncBlockChanges = Queue.Queue()
+        self.AsyncQueryCallbacks = Queue.Queue()
         self.IdleTimeout = 0 #How long must the world be unoccupied until it unloads itself from memory
         self.IdleStart = 0 #Not idle.
         self.DBConnection = None
@@ -467,21 +473,7 @@ class World(object):
         if self.ServerControl.PluginMgr.OnAttemptPlaceBlock(self, pPlayer, val, x, y, z) == False:
             return False
         if pPlayer.GetAboutCmd() == True:
-            #Display block information
-            try:
-                BlockInfo = self.GetBlockLogEntry(x, y, z)
-            except dbapi.OperationalError:
-                pPlayer.SendMessage("&RDatabase is busy, try again in a few moments.")
-                return False
-            
-            if BlockInfo is None:
-                pPlayer.SendMessage("&SNo information available for this block (No changes made)")
-            else:
-                now = int(self.ServerControl.Now)
-                pPlayer.SendMessage("&SThis block was last changed by &V%s" % BlockInfo.Username)
-                pPlayer.SendMessage("&SThe old block was: &V%s" % GetBlockNameFromID(ord(BlockInfo.Value)))
-                pPlayer.SendMessage("&SChanged &V%s &Sago" % ElapsedTime(now - BlockInfo.Time))
-            pPlayer.SetAboutCmd(False)
+            self.HandleAboutCmd(pPlayer, x, y, z)
             return False
         #ZONES!
         if self.CheckZones(pPlayer, x, y, z) == False:
@@ -563,7 +555,45 @@ class World(object):
         '''Returns the numeric value of a block on the map
         ...Throws exception if coordinates are out of bounds'''
         return ord(self.Blocks[self._CalculateOffset(x, y, z)])
-                
+       
+    def HandleAboutCmd(self, pPlayer, x, y, z):
+        #Display block information
+        BlockInfo = self.GetBlockLogEntry(x, y, z)
+        if BlockInfo is not None:
+            self.SendAboutInfo(pPlayer, BlockInfo)
+        else:
+            #Query database
+            pPlayer.SendMessage("&SQuerying database. This may take a few moments")
+            Query = "SELECT Username,Time,Oldvalue FROM Blocklogs where Offset = ?"
+            QueryParameters = (self._CalculateOffset(x, y, z),)
+            kwArgs = {"pPlayer": pPlayer.GetName(), "ServerControl": self.ServerControl, "World":self}
+            self.AsynchronousQuery(Query, QueryParameters, World.AboutCmdCallback, kwArgs)
+            
+        pPlayer.SetAboutCmd(False)
+        
+    @staticmethod
+    def AboutCmdCallback(Results, kwArgs, isException):
+        '''Called when the query for the blocklog returns'''
+        ServerControl = kwArgs["ServerControl"]
+        self = kwArgs["World"]
+        pPlayer = ServerControl.GetPlayerFromName(kwArgs["pPlayer"])
+        if pPlayer is None:
+            return
+        if len(Results) == 0:
+            pPlayer.SendMessage("&SNo information available for this block (No changes made)")
+            return
+        Row = Results[0]
+        self.SendAboutInfo(pPlayer, BlockLog(Row[0], Row[1], chr(Row[2])))
+        
+    def SendAboutInfo(self, pPlayer, BlockInfo):
+        if BlockInfo is None:
+            pPlayer.SendMessage("&SNo information available for this block (No changes made)")
+        else:
+            now = int(self.ServerControl.Now)
+            pPlayer.SendMessage("&SThis block was last changed by &V%s" % BlockInfo.Username)
+            pPlayer.SendMessage("&SThe old block was: &V%s" % GetBlockNameFromID(ord(BlockInfo.Value)))
+            pPlayer.SendMessage("&SChanged &V%s &Sago" % ElapsedTime(now - BlockInfo.Time))        
+    
     def UndoActions(self, Username, ReversePlayer, Time):
         self.FlushBlockLog()
         #Reverse stuff in SQL DB
@@ -571,22 +601,22 @@ class World(object):
 
     def AddBlockChanges(self, BlockChangeList):
         self.AsyncBlockChanges.put(BlockChangeList)
+        
+    def AddAsyncQueryResult(self, QueryResult):
+        self.AsyncQueryCallbacks.put(QueryResult)
+
+    def AsynchronousQuery(self, Query, QueryParameters, CallbackFunc, kwArgs):
+        '''Performs and query on the player DB asynchronously, calling 
+           CallbackFunc with the results when done'''
+        self.IOThread.Tasks.put(["ASYNC_QUERY", Query, QueryParameters, CallbackFunc, kwArgs])
 
     def GetBlockLogEntry(self, X, Y, Z):
-        '''Attempts to return a Blocklog entry'''
+        '''Attempts to return a Blocklog entry from memory'''
         Offset = self._CalculateOffset(X, Y, Z)
         #First check our hashmap.
         Result = self.BlockHistory.get(Offset, None)
-        if Result != None:
-            #Easy peezy...
-            return Result
-        #Turn to SQL - This can throw an exception that needs to be handled!
-        self.DBCursor.execute("SELECT Username,Time,Oldvalue FROM Blocklogs where Offset = ?", (Offset,))
-        SQLResult = self.DBCursor.fetchone()
-        if SQLResult is None:
-            return None
-        else:
-            return BlockLog(SQLResult[0], SQLResult[1], chr(SQLResult[2]))
+        return Result
+
 
     def FlushBlockLog(self):
         '''Tells the IO Thread to Flush out the blockhistory to the disk'''
@@ -681,7 +711,7 @@ class World(object):
             while True:
                 try:
                     Data = self.AsyncBlockChanges.get_nowait()
-                except Queue.Empty:
+                except Queue.Empty:   
                     break
                 #Data is a list where the 0th element is a string of
                 #the username who initiated the block changes
@@ -705,7 +735,14 @@ class World(object):
                     Initiator.SendMessage("&R%s had no block history!" % ReversedPlayer)
                 if NumChanged > LOCK_LEVEL:
                     self.UnLock()
-
+                    
+        while True:
+            try:
+                QueryResult = self.AsyncQueryCallbacks.get_nowait()
+                QueryResult.Callback()
+            except Queue.Empty:
+                break
+            
         while len(self.JoiningPlayers) > 0:
             pPlayer = self.JoiningPlayers.pop()
             self.Players.add(pPlayer)

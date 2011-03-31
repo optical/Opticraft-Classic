@@ -334,24 +334,11 @@ class PlayerInfoCmd(CommandObject):
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
         if Target is None or Target.CanBeSeenBy(pPlayer) == False:
             #Try load some data from the DB
-            try:
-                Result = pPlayer.ServerControl.PlayerDBConnection.execute("SELECT * FROM Players where Username = ?", (Username.lower(),))
-                Row = Result.fetchone()
-                if Row is None:
-                    pPlayer.SendMessage("&RThat player does not exist!")
-                    return
-                pPlayer.SendMessage("&S%s is &ROffline. &SRank: &V%s" % (Username, pPlayer.ServerControl.GetRank(Username).capitalize()))
-                pPlayer.SendMessage("&SLast login was: &V%s &Sago" % (ElapsedTime(int(pPlayer.ServerControl.Now) - Row["LastLogin"])))
-                pPlayer.SendMessage("&SJoined on: &V%s" % (time.ctime(Row["Joined"])))
-                if pPlayer.HasPermission('operator'):
-                    pPlayer.SendMessage("&STheir last ip was &V%s" % (Row["LastIp"]))
-                    if Row["BannedBy"] != '':
-                        pPlayer.SendMessage("&SThey were banned by &V%s" % (Row["BannedBy"]))
-                    if Row["RankedBy"] != '':
-                        pPlayer.SendMessage("&STheir rank was set by &V%s" % (Row["RankedBy"]))
-
-            except dbapi.OperationalError:
-                pPlayer.SendMessage("&RThe database is busy. Try again soon")
+            pPlayer.SendMessage("&SLooking up players information. One moment.")
+            Query = "SELECT * FROM Players where Username = ?"
+            QueryParams = (Username.lower(),)
+            kwArgs = {"Username": Username, "pPlayer": pPlayer.GetName(), "ServerControl": pPlayer.ServerControl }
+            pPlayer.ServerControl.AsynchronousQuery(Query, QueryParams, PlayerInfoCmd.QueryResultCallback, kwArgs)
         else:
             pPlayer.SendMessage("&S%s has been online for &V%s" % (Target.GetName(), ElapsedTime(int(pPlayer.ServerControl.Now) - Target.GetLoginTime())))
             if pPlayer.HasPermission('operator'):
@@ -362,6 +349,28 @@ class PlayerInfoCmd(CommandObject):
             pPlayer.SendMessage("&STheir rank is &V%s" % Target.GetRank().capitalize())
             if Target.IsInvisible(): #Dont check CanBeSeenBy() - thats been done already.
                 pPlayer.SendMessage("&SThey are currently invisible")
+                
+    @staticmethod
+    def QueryResultCallback(Results, kwArgs, isException):
+        ServerControl = kwArgs["ServerControl"]
+        pPlayer = ServerControl.GetPlayerFromName(kwArgs["pPlayer"])
+        if pPlayer is None:
+            return
+        Username = kwArgs["Username"]
+        if len(Results) == 0:
+            pPlayer.SendMessage("&RThat player does not exist!")
+            return
+        Row = Results[0]
+        pPlayer.SendMessage("&S%s is &ROffline. &SRank: &V%s" % (Username, ServerControl.GetRank(Username).capitalize()))
+        pPlayer.SendMessage("&SLast login was: &V%s &Sago" % (ElapsedTime(int(ServerControl.Now) - Row["LastLogin"])))
+        pPlayer.SendMessage("&SJoined on: &V%s" % (time.ctime(Row["Joined"])))
+        if pPlayer.HasPermission('operator'):
+            pPlayer.SendMessage("&STheir last ip was &V%s" % (Row["LastIp"]))
+            if Row["BannedBy"] != '':
+                pPlayer.SendMessage("&SThey were banned by &V%s" % (Row["BannedBy"]))
+            if Row["RankedBy"] != '':
+                pPlayer.SendMessage("&STheir rank was set by &V%s" % (Row["RankedBy"]))
+
 
 
 class PlayerListCmd(CommandObject):
@@ -831,6 +840,7 @@ class WorldSetRankCmd(CommandObject):
             pWorld.SetMinRank(Rank.lower())
             pPlayer.ServerControl.SetWorldRank(pWorld.Name, Rank.lower())
             pPlayer.SendMessage("&SSuccessfully set %s to be %s only" % (pWorld.Name, Rank.capitalize()))
+
 class TempOpCmd(CommandObject):
     '''Handle for the /tempop command - gives a username temporary operator status'''
     def Run(self, pPlayer, Args, Message):
