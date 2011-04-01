@@ -143,6 +143,13 @@ class AsynchronousIOThread(threading.Thread):
         self.Tasks = Queue.Queue()
         self.Tasks.put(["CONNECT", self.WorldName])
 
+    def debug_log(self, line):
+        try:
+            with open("iodebug.txt", "a") as fHandle:
+                fHandle.write(time.strftime("%H:%M:%S ", time.localtime()) + line + "\n")
+        except:
+            pass
+    
     def run(self):
         while self.Running:
             Task = self.Tasks.get()
@@ -202,6 +209,8 @@ class AsynchronousIOThread(threading.Thread):
 
     def _FlushBlocksTask(self, Data):
         start = time.time()
+        processstage = time.time()
+        fails = 0
         for key in Data:
             SuccessfulQuery = False
             while SuccessfulQuery != True:
@@ -209,22 +218,31 @@ class AsynchronousIOThread(threading.Thread):
                     BlockInfo = Data[key]
                     self.DBConnection.execute("REPLACE INTO Blocklogs VALUES(?,?,?,?)", (key, BlockInfo.Username, BlockInfo.Time, ord(BlockInfo.Value)))
                 except dbapi.OperationalError:
+                    fails += 1
                     time.sleep(0.05) #Tiny sleep to prevent slamming the DB while its locked.
                     continue
                 else:
                     SuccessfulQuery = True
+        commit = -1
+        processstage = time.time() - processstage
         if self.Tasks.empty():
+            commit = time.time()
             self.DBConnection.commit()
+            commit = time.time() - commit
+        self.debug_log("Took %.3f seconds to flush %d block. Process = %.3f, Commit = %.3f" % (time.time() - start, len(Data), processstage, commit))
         Console.Debug("IOThread", "Flushing %d blocks took %.3f seconds!" % (len(Data), time.time() - start))
         
     def _UndoActionsTask(self, Username, ReverseName, Time):
         now = time.time()
+        select = time.time()
         try:
             SQLResult = self.DBConnection.execute("SELECT Offset,OldValue from Blocklogs where Username = ? and Time > ?", (ReverseName, now - Time))
         except dbapi.OperationalError:
             Console.Debug("IOThread", "Failed to Execute undoactions. Trying again later")
             self.Tasks.put(["UNDO_ACTIONS", Username, ReverseName, Time])
             return
+        select = time.time() - select
+        process = time.time()
         Row = SQLResult.fetchone()
         BlockChangeList = [Username, ReverseName, 0]
         NumChanged = 0
@@ -234,14 +252,22 @@ class AsynchronousIOThread(threading.Thread):
             Row = SQLResult.fetchone()
         BlockChangeList[2] = NumChanged
         self.World.AddBlockChanges(BlockChangeList)
+        process = time.time() - process
+        delete = time.time()
+        commit = 0
         try:
-            Console.Debug("IOThread", "Failed to clean up undoactions. Trying again later.")
             self.DBConnection.execute("DELETE FROM Blocklogs where Username = ? and Time > ?", (ReverseName, now - Time))
+            delete = time.time() - delete
+            commit = time.time()
             self.DBConnection.commit()
+            commit = time.time() - commit
         except dbapi.OperationalError:
+            Console.Debug("IOThread", "Failed to clean up undoactions. Trying again later.")
             self.Tasks.put(["EXECUTE"], "DELETE FROM Blocklogs where Username = ? and Time > ?", (ReverseName, now - Time))
         Console.Debug("IOThread", "%s reversed %s's actions. %d changed in %f seconds" % (Username, ReverseName, NumChanged, time.time() - now))
-
+        self.debug_log("Reversed %d of %s's actions on world %s in %.2f. select = %.2f, process = %.2f, delete = %.2f, commit = %.2f" % (
+                        NumChanged, ReverseName, self.WorldName, time.time() - now, select, process, delete, commit))
+        
     def Shutdown(self, Crash):
         self.Tasks.put(["SHUTDOWN"])
         
