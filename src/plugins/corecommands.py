@@ -637,20 +637,22 @@ class BanCmd(CommandObject):
             pPlayer.SendMessage("&RBans require a duration. Eg: /ban joe 1day. 0 for permanent")
             return
         Duration = Args[1]
-        print Duration
+        Timespan = ''
         if Duration != '0':
             Duration = ParseWordAsTime(Args[1])
             if Duration == -1:
                 pPlayer.SendMessage("&RThat is an invalid timespan. Eg: 1d2h for 1 day and 2 hours")
                 return
+            Timespan = ElapsedTime(Duration)
             Duration += int(pPlayer.ServerControl.Now)
         else:
             Duration = 0
+            Timespan = 'permanent'
         
         Result = pPlayer.ServerControl.AddBan(pPlayer, Username, Duration)
         if Result:
             pPlayer.ServerControl.SendNotice("%s was banned by %s" % (Username, pPlayer.GetName()))
-        pPlayer.SendMessage("&SSuccessfully banned &V%s" % (Username))
+        pPlayer.SendMessage("&SSuccessfully banned &V%s &Sfor &V%s" % (Username, Timespan))
 
 class UnbanCmd(CommandObject):
     '''Unban command handler. Removes a ban for a username'''
@@ -799,13 +801,16 @@ class AddIPBanCmd(CommandObject):
             pPlayer.SendMessage("&RBans require a duration. Eg: /ban joe 1day. 0 for permanent")
             return        
         Duration = Args[1]
+        Timespan = ''
         if Duration != '0':
             Duration = ParseWordAsTime(Args[1])
             if Duration == -1:
                 pPlayer.SendMessage("&RThat is an invalid timespan. Eg: 1d2h for 1 day and 2 hours")
                 return
+            Timespan = ElapsedTime(Duration)
             Duration += int(pPlayer.ServerControl.Now)
         else:
+            Timespan = 'permanent'
             Duration = 0        
         #Check to see if this is a user...
         Target = pPlayer.ServerControl.GetPlayerFromName(Arg)
@@ -814,7 +819,7 @@ class AddIPBanCmd(CommandObject):
                 pPlayer.SendMessage("&RYou may not ban that user.")
                 return
             pPlayer.ServerControl.AddBan(pPlayer, Arg, Duration)
-            pPlayer.SendMessage("&SSuccessfully added username ban on \"&V%s&S\"" % Arg)
+            pPlayer.SendMessage("&SSuccessfully added username ban on \"&V%s&S\" for &V%s" % (Arg, Timespan))
             #Set arg to the IP address so we can ban that too.
             Arg = Target.GetIP()
         #Check if IP is legit. If so, ban it.
@@ -831,7 +836,7 @@ class AddIPBanCmd(CommandObject):
             return
         #Must be valid
         pPlayer.ServerControl.AddIPBan(pPlayer, Arg, Duration)
-        pPlayer.SendMessage("&SSuccessfully banned ip \"&V%s\"&S" % Arg)
+        pPlayer.SendMessage("&SSuccessfully banned ip \"&V%s\"&S for &V%s" % (Arg, Timespan))
 
 class DelIPBanCmd(CommandObject):
     '''Handler for the /delipban command. Removes an IP Address ban'''
