@@ -40,7 +40,7 @@ from core.console import *
 
 ProfileRun = False
 
-def Main(EnablePsyco):
+def Main(EnablePsyco = True, PsycoLogging = False):
     ServerControl = None
     try:
         if ProfileRun != False:
@@ -52,6 +52,8 @@ def Main(EnablePsyco):
             try:
                 import psyco
                 psyco.full()
+                if PsycoLogging:
+                    psyco.log()
             except:
                 Console.Warning("Psyco", "It appears you do not have psyco installed. Psyco is a specialized " \
                                 + "python JIT compiler. It provides a signifcant performance boost when used with opticraft")
@@ -88,6 +90,7 @@ def Main(EnablePsyco):
 if __name__ == "__main__":
     ProfileRun = False
     UsePsyco = True
+    PsycoLogging = False
     for i in xrange(1, len(sys.argv)):
         if sys.argv[i].lower() == "-profile":
             ProfileRun = True
@@ -96,11 +99,13 @@ if __name__ == "__main__":
             gc.disable()
         elif sys.argv[i].lower() == "-disablepsyco":
             UsePsyco = False
+        elif sys.argv[i].lower() == "-psycologging":
+            PsycoLogging = True
         else:
             print "Unable to parse commandline arg: %s" % sys.argv[i]
     if ProfileRun:
         Profile.run('Main()', 'profiler-%s.pstats' % time.strftime("%d-%m-%Y_%H-%M-%S", time.gmtime()))
     else:
-        Main(UsePsyco)
+        Main(UsePsyco, PsycoLogging)
         
 
