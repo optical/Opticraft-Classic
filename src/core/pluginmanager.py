@@ -50,17 +50,17 @@ class Hooks:
 class PluginBase(object):
     #These numbers do not include the "self" argument, though all objects need to have this!
     HookSpecs = {
-    Hooks.ON_START: 0,
-    Hooks.ON_CONNECT: 1,
-    Hooks.ON_DISCONNECT: 1,
-    Hooks.ON_PLAYER_DATA_LOADED: 1,
-    Hooks.ON_KICK: 4,
-    Hooks.ON_ATTEMPT_PLACE_BLOCK: 6,
-    Hooks.ON_POST_PLACE_BLOCK: 6,
-    Hooks.ON_CHAT: 2,
-    Hooks.ON_CHANGE_WORLD: 3,
-    Hooks.ON_WORLD_LOAD: 1,
-    Hooks.ON_WORLD_UNLOAD: 1,
+        Hooks.ON_START: 0,
+        Hooks.ON_CONNECT: 1,
+        Hooks.ON_DISCONNECT: 1,
+        Hooks.ON_PLAYER_DATA_LOADED: 1,
+        Hooks.ON_KICK: 4,
+        Hooks.ON_ATTEMPT_PLACE_BLOCK: 6,
+        Hooks.ON_POST_PLACE_BLOCK: 6,
+        Hooks.ON_CHAT: 2,
+        Hooks.ON_CHANGE_WORLD: 3,
+        Hooks.ON_WORLD_LOAD: 1,
+        Hooks.ON_WORLD_UNLOAD: 1,
     }
 
     def __init__(self, PluginMgr, ServerControl, Name):
@@ -281,15 +281,38 @@ class PluginManager(object):
         for Hook in self._GetHooks(Hooks.ON_WORLD_UNLOAD):
             Hook.Function(pWorld)
 
+class JsonSerializeableObject(object):
+    '''Object which can more easily be encoded to and from json'''
+    _ValidJsonTypes = frozenset([str, int, long, bool, dict, list, None, float])
+    def _AsJson(self):
+        '''This method returns a dictionary which can be encoded as json
+        To do so it scans all attributes of the underlying object, adding
+        key,values to a new dictionary if the key and value are valid json types.
+        It does not however ensure that those values will succeed at being encoded as JSON.
+        Eg: a list with a non-json type will be returned, and an exception will be throwing
+        during the encoding process.
+        This object is intended to allow you to have reference types in your object,
+        while still being easily serialized to json'''
+        JsonDict = dict()
+        for Key, Value in self.__dict__.iteritems():
+            tKey = type(Key)
+            tValue = type(Value)
+            if tKey in JsonSerializeableObject._ValidJsonTypes and tValue in JsonSerializeableObject._ValidJsonTypes:
+                JsonDict[Key] = Value
+        return JsonDict
+    
+    def FromJson(self, JsonDict):
+        self.__dict__ = JsonDict
+        
 
 class PluginDict(object):
     '''Dictionary wrapper which ensures that key is always of type string
-    ...Optionally can alse ensure all values can be encoded to a json type'''
+    ...Optionally can also ensure all values can be encoded to a json type'''
     def __init__(self, NonJsonValues = True):
         self._dictionary = dict()
         #Nasty piece of code.
         self.NonJsonValues = NonJsonValues
-        self.ValidJsonTypes = frozenset([str, int, long, bool, dict, list, None, float])
+        self.ValidJsonTypes = frozenset([str, int, long, bool, dict, list, None, float, JsonSerializeableObject])
 
     def __getitem__(self, Key):
         if type(Key) != str:
@@ -299,10 +322,19 @@ class PluginDict(object):
     def __setitem__(self, Key, Value):
         if type(Key) != str:
             raise ValueError("Plugin Data key must be a string")
-        if self.NonJsonValues == False and type(Value) not in self.ValidJsonTypes:
-            raise ValueError("Values must be json encodeable")
-
-        self._dictionary[Key] = Value
+        if self.NonJsonValues == False:
+            Valid = False
+            for ValidType in self.ValidJsonTypes:
+                if isinstance(Value, ValidType):
+                    Valid = True
+                    break
+            if not Valid:
+                raise ValueError("Values must be json encodeable")
+        if type(Value) != JsonSerializeableObject:
+            self._dictionary[Key] = Value
+        else:
+            self._dictionary[Key] = Value._AsJson()
+            
     def __delitem__(self, Key):
         del self._dictionary[Key]
 
