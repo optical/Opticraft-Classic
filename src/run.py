@@ -40,13 +40,25 @@ from core.console import *
 
 ProfileRun = False
 
-def Main():
+def Main(EnablePsyco):
     ServerControl = None
     try:
         if ProfileRun != False:
             ServerControl = ServerController(Tag = ' (Profile mode)')
         else:
             ServerControl = ServerController()
+            
+        if EnablePsyco:
+            try:
+                import psyco
+                psyco.full()
+            except:
+                Console.Warning("Psyco", "It appears you do not have psyco installed. Psyco is a specialized " \
+                                + "python JIT compiler. It provides a signifcant performance boost when used with opticraft")
+                Console.Warning("Psyco", "Psyco is easy to install and setup. See: http://psyco.sourceforge.net/download.html")
+            else:
+                Console.Out("Psyco", "Psyco JIT is now running.")
+
         ServerControl.Run()
     except BaseException, e:
         ExceptionType = type(e)
@@ -75,17 +87,20 @@ def Main():
     
 if __name__ == "__main__":
     ProfileRun = False
+    UsePsyco = True
     for i in xrange(1, len(sys.argv)):
         if sys.argv[i].lower() == "-profile":
             ProfileRun = True
         elif sys.argv[i].lower() == "-disablegc":
             import gc
             gc.disable()
+        elif sys.argv[i].lower() == "-disablepsyco":
+            UsePsyco = False
         else:
             print "Unable to parse commandline arg: %s" % sys.argv[i]
     if ProfileRun:
         Profile.run('Main()', 'profiler-%s.pstats' % time.strftime("%d-%m-%Y_%H-%M-%S", time.gmtime()))
     else:
-        Main()
+        Main(UsePsyco)
         
 
