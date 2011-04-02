@@ -210,19 +210,15 @@ class AsynchronousIOThread(threading.Thread):
     def _FlushBlocksTask(self, Data):
         start = time.time()
         processstage = time.time()
-        fails = 0
-        for key in Data:
-            SuccessfulQuery = False
-            while SuccessfulQuery != True:
-                try:
-                    BlockInfo = Data[key]
-                    self.DBConnection.execute("REPLACE INTO Blocklogs VALUES(?,?,?,?)", (key, BlockInfo.Username, BlockInfo.Time, ord(BlockInfo.Value)))
-                except dbapi.OperationalError:
-                    fails += 1
-                    time.sleep(0.05) #Tiny sleep to prevent slamming the DB while its locked.
-                    continue
-                else:
-                    SuccessfulQuery = True
+        Cursor = self.DBConnection.cursor()
+        def QueryGenerator(Data):
+            for Key in Data:
+                yield (Key, Data[Key].Username, Data[Key].Time, ord(Data[Key].Value))
+        try:               
+            Cursor.executemany("REPLACE INTO Blocklogs VALUES(?,?,?,?)", QueryGenerator(Data))
+        except dbapi.OperationalError:
+            self.Tasks.put(["FLUSH", Data])
+            return
         commit = -1
         processstage = time.time() - processstage
         if self.Tasks.empty():
@@ -246,10 +242,14 @@ class AsynchronousIOThread(threading.Thread):
         Row = SQLResult.fetchone()
         BlockChangeList = [Username, ReverseName, 0]
         NumChanged = 0
-        while Row != None:
-            BlockChangeList.append(BlockChange(Row[0], Row[1]))
-            NumChanged += 1
-            Row = SQLResult.fetchone()
+        while True:
+            Rows = SQLResult.fetchmany()
+            if len(Rows) == 0:
+                break
+            for Row in Rows:
+                BlockChangeList.append(BlockChange(Row[0], Row[1]))
+                NumChanged += 1
+                
         BlockChangeList[2] = NumChanged
         self.World.AddBlockChanges(BlockChangeList)
         process = time.time() - process
