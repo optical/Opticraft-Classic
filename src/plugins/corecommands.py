@@ -35,6 +35,7 @@ import os.path
 import sqlite3 as dbapi
 import shutil
 import threading
+import multiprocessing
 
 class Commands(PluginBase):
     def OnLoad(self):
@@ -61,6 +62,7 @@ class Commands(PluginBase):
         self.AddCommand("paint", PaintCmd, 'guest', 'When you destroy a block it will be replaced by what you are currently holding', '', 0)
         self.AddCommand("sinfo", sInfoCmd, 'guest', 'Displays information about the server', '', 0)
         self.AddCommand("info", sInfoCmd, 'guest', 'Displays information about the server', '', 0, Alias = True)
+        self.AddCommand("serverreport", sInfoCmd, 'guest', 'Displays information about the server', '', 0, Alias = True)
         self.AddCommand("version", VersionCmd, 'guest', 'Displays information about the server', '', 0, Alias = True) #Hidden
         self.AddCommand("credits", CreditsCmd, 'guest', 'Displays information about the server', '', 0, Alias = True) #Hidden
         self.AddCommand("stats", StatsCmd, 'guest', 'Displays a players statistics. Usage: /stats [Username]', '', 0)
@@ -301,9 +303,10 @@ class sInfoCmd(CommandObject):
             DistData = platform.linux_distribution()
             System = "%s-%s" % (DistData[0], DistData[1])
         WorldData = pPlayer.ServerControl.GetWorlds()
+        D = multiprocessing.cpu_count() if len(Args) == 0 else 1
         pPlayer.SendMessage("&SThis server is running %s on &V%s." % (pPlayer.ServerControl.VersionString, System), False)
         pPlayer.SendMessage("&SCurrently &V%d &Susers online. Peak online: &V%d" % (pPlayer.ServerControl.NumPlayers, pPlayer.ServerControl.PeakPlayers), False)
-        pPlayer.SendMessage("&SUsing &V%.2f%% &Scpu in the last minute, &V%.2f%% &Soverall." % (pPlayer.ServerControl.GetCurrentCpuUsage()[0], pPlayer.ServerControl.GetTotalCpuUsage()[0]))
+        pPlayer.SendMessage("&SUsing &V%.2f%% &Scpu in the last minute, &V%.2f%% &Soverall." % (pPlayer.ServerControl.GetCurrentCpuUsage()[0] / D, pPlayer.ServerControl.GetTotalCpuUsage()[0] / D))
         pPlayer.SendMessage("&V%dMB &Sof memory used with &V%d &Sactive threads." % (pPlayer.ServerControl.GetMemoryUsage(), threading.activeCount()))
         pPlayer.SendMessage("&SBandwidth in the last minute. Down: &V%s&S. Up: &V%s" % (pPlayer.ServerControl.GetCurrentBwRate(False), pPlayer.ServerControl.GetCurrentBwRate(True)))
         pPlayer.SendMessage("&STotal worlds: &V%d &S(&V%d &Sactive, &V%d &Sidle)" % (len(WorldData[0]) + len(WorldData[1]), len(WorldData[0]), len(WorldData[1])), False)
