@@ -34,6 +34,7 @@ import signal
 import asyncore
 import sqlite3 as dbapi
 import threading
+import copy
 import Queue
 import ctypes
 import subprocess
@@ -606,9 +607,9 @@ class ServerController(object):
         if platform.system() == "Windows":
             return self.GetMemoryUsageWin32()
         else:
-            Result = self.GetMemoryUsageLinux()
+            Result = self.GetMemoryUsageUnix()
             if int(Result) == 0:
-                Result = self.GetMemoryUsageUnix()
+                Result = self.GetMemoryUsageLinux()
             return Result
     def GetMemoryUsageLinux(self):
         try:
@@ -891,18 +892,26 @@ class ServerController(object):
         return Date
         
     def FlushBans(self):
+        '''Writes bans to disk asynchronously'''
+        threading.Thread(target = ServerController._FlushBans, args = (copy.copy(self.BannedUsers),)).start()
+    def FlushIPBans(self):
+        threading.Thread(target = ServerController._FlushIPBans, args = (copy.copy(self.BannedIPs),)).start()
+    @staticmethod
+    def _FlushBans(BannedUsers):
         try:
             fHandle = open("banned.txt", "w")
-            for key in self.BannedUsers:
-                fHandle.write(key + ":" + str(self.BannedUsers[key]) + "\r\n")
+            for key in BannedUsers:
+                fHandle.write(key + ":" + str(BannedUsers[key]) + "\r\n")
             fHandle.close()
         except:
             pass
-    def FlushIPBans(self):
+    @staticmethod
+    def _FlushIPBans(BannedIPs):
+        '''Writes ip-bans to disk asynchronously'''
         try:
             fHandle = open("banned-ip.txt", "w")
-            for key in self.BannedIPs:
-                fHandle.write(key + ":" + str(self.BannedIPs[key]) + "\r\n")
+            for key in BannedIPs:
+                fHandle.write(key + ":" + str(BannedIPs[key]) + "\r\n")
             fHandle.close()
         except:
             pass
