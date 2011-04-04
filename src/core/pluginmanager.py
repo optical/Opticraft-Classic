@@ -118,8 +118,8 @@ class PluginManager(object):
         try:
             PluginModule = __import__("%s" % PluginFile)
             reload(PluginModule) #Ensure the most up to date version from disk is loaded
-        except ImportError:
-            Console.Warning("PluginMgr", "Plugin file %s could not be imported" % PluginFile)
+        except ImportError, e:
+            Console.Warning("PluginMgr", "Plugin file %s could not be imported (%s)" % (PluginFile, e))
             return False
         self.PluginModules.append(PluginFile.lower())
         #Search for PluginBase objects to instantiate

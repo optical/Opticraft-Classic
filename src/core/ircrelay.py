@@ -39,6 +39,8 @@ class RelayBot(IRCClient):
         self.Channel = self.ServerControl.IRCChannel.lower()
         self.GameToIrc = self.ServerControl.IRCGameToIRC
         self.IRCToGame = self.ServerControl.IRCIRCToGame
+        self.IRCJoinsToGame = self.ServerControl.IRCRelayIRCJoins
+        self.GameJoinsToIRC = self.ServerControl.IRCRelayGameJoins
         self.Host = self.ServerControl.IRCServer
         self.Port = self.ServerControl.IRCPort
         self.IdentificationMessage = self.ServerControl.IRCIdentificationMessage
@@ -49,7 +51,8 @@ class RelayBot(IRCClient):
             self.AddPacketHandler("PRIVMSG", self.HandlePrivMsg)
             self.AddPacketHandler("PART", self.OnPart)
             self.AddPacketHandler("QUIT", self.OnQuit)
-            self.AddPacketHandler("NICK", self.OnPart)
+            self.AddPacketHandler("NICK", self.OnNickChange)
+            self.AddPacketHandler("JOIN", self.OnJoin)
     def HandlePrivMsg(self, Data):
         if self.IRCToGame:
             Tokens = Data.split()
@@ -79,7 +82,10 @@ class RelayBot(IRCClient):
                 if Message[0:6] != "ACTION":
                     self.ServerControl.SendChatMessage('&3[IRC]&f-%s' % Username, Message)
                 else:
-                    self.ServerControl.SendChatMessage('&3[IRC]&5 *%s' % Username, Message[6:], NewLine="&5", NormalStart=False)
+                    self.ServerControl.SendChatMessage('&3[IRC]&5 *%s' % Username, Message[6:], NewLine = "&5", NormalStart = False)
+
+    def handle_close(self):
+        self.ServerControl.OnIRCDisconnect()
     def Connect(self):
         Console.Out("IRC", "Connecting to irc server %s on port %d" % (self.Host, self.Port))
         self.connect((self.Host, self.Port))
@@ -97,10 +103,10 @@ class RelayBot(IRCClient):
         if self.GameToIrc:
             self.SendMessage(self.Channel, '*%s6%s %s' % (RelayBot.COLOUR_CODE, From, Message))
     def HandleLogin(self, Name):
-        if self.GameToIrc:
+        if self.GameJoinsToIRC:
             self.SendMessage(self.Channel, '%s connected to the server' % Name)
     def HandleLogout(self, Name):
-        if self.GameToIrc and self.ServerControl.ShuttingDown == False:
+        if self.GameJoinsToIRC and self.ServerControl.ShuttingDown == False:
             self.SendMessage(self.Channel, '%s left the server' % Name)
 
     def OnPart(self, Data):
@@ -110,14 +116,30 @@ class RelayBot(IRCClient):
         if Channel[0] == ":":
             Channel = Channel[1:]
         if Channel.lower() == self.Channel:
+            if self.IRCJoinsToGame:
+                self.ServerControl.SendChatMessage("&3[IRC]", "&e%s has left the chat" % Username, NormalStart = False)
+                
             try:
                 del self.FloodControl[Username]
             except:
                 pass
+    
+    def OnJoin(self, Data):
+        Tokens = Data.split()
+        Username = Tokens[0][1:].split("!")[0]
+        Channel = Tokens[2]
+        if Channel[0] == ":":
+            Channel = Channel[1:]
+
+        if Username != self.Nick and self.IRCJoinsToGame:
+            self.ServerControl.SendChatMessage("&3[IRC]", "&e%s has joined the chat" % Username, NormalStart = False)
+    
     def OnNickChange(self, Data):
         Tokens = Data.split()
         Username = Tokens[0][1:].split("!")[0]
         NewNick = Tokens[2][1:]
+        if self.IRCJoinsToGame:
+            self.ServerControl.SendChatMessage("&3[IRC]", "&e%s is now known as %s" % (Username, NewNick), NormalStart = False)
         try:
             self.FloodControl[NewNick] = self.FloodControl[Username]
             del self.FloodControl[Username]
@@ -126,6 +148,8 @@ class RelayBot(IRCClient):
     def OnQuit(self, Data):
         Tokens = Data.split()
         Username = Tokens[0][1:].split("!")[0]
+        if self.IRCJoinsToGame:
+            self.ServerControl.SendChatMessage("&3[IRC]", "&e%s has left the chat" % Username, NormalStart = False)
         try:
             del self.FloodControl[Username]
         except:

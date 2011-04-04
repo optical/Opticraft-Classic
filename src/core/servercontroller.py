@@ -259,6 +259,7 @@ class ServerController(object):
         self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server", "PeriodicAnnounceFrequency", "0"))
         self.LogCommands = bool(int(self.ConfigValues.GetValue("logs", "CommandLogs", "1")))
         self.LogChat = bool(int(self.ConfigValues.GetValue("logs", "ChatLogs ", "1")))
+        self.IRCReconnect = self.Now
         self.EnableIRC = bool(int(self.ConfigValues.GetValue("irc", "EnableIRC", "0")))
         self.IRCServer = self.ConfigValues.GetValue("irc", "Server", "irc.esper.net")
         self.IRCPort = int(self.ConfigValues.GetValue("irc", "Port", "6667"))
@@ -266,6 +267,8 @@ class ServerController(object):
         self.IRCNick = self.ConfigValues.GetValue("irc", "Nickname", "Optibot")
         self.IRCGameToIRC = bool(int(self.ConfigValues.GetValue("irc", "GameChatRelay", "0")))
         self.IRCIRCToGame = bool(int(self.ConfigValues.GetValue("irc", "IrcChatRelay", "0")))
+        self.IRCRelayGameJoins = bool(int(self.ConfigValues.GetValue("irc", "GameJoinsRelay", "0")))
+        self.IRCRelayIRCJoins = bool(int(self.ConfigValues.GetValue("irc", "IrcJoinsRelay", "0")))
         self.IRCIdentificationMessage = self.ConfigValues.GetValue("irc", "IdentifyCommand", "NickServ identify")
         if self.EnableIRC:
             self.IRCInterface = RelayBot(self.IRCNick, "Opticraft", "Opticraft", self)
@@ -455,18 +458,25 @@ class ServerController(object):
         self.WorldRankCache[Name.lower()] = Rank
     def LoadBans(self):
         #Load up banned usernames.
-        if self.LoadBanFile("banned.txt", self.BannedUsers):
+        ExpiredUsernameBans = self.LoadBanFile("banned.txt", self.BannedUsers)
+        if len(ExpiredUsernameBans) > 0:
             self.FlushBans()
+        for Username in ExpiredUsernameBans:
+            self.Unban(Username, Flush = False)
         Console.Out("ServerControl", "Loaded %d username bans" % len(self.BannedUsers))
-        if self.LoadBanFile("banned-ip.txt", self.BannedIPs):
+        
+        ExpiredIPBans = self.LoadBanFile("banned-ip.txt", self.BannedIPs)
+        for IP in ExpiredIPBans:
+            self.UnbanIP(IP, Flush = False)
+        if len(ExpiredIPBans) > 0:
             self.FlushIPBans()
         Console.Out("ServerControl", "Loaded %d ip bans" % len(self.BannedIPs))
                 
     def LoadBanFile(self, Filename, BanCache):
         '''Loads a ban file and returns number of expired bans, if any'''
-        NumExpired = 0
+        Expired = []
         if os.path.exists(Filename) == False:
-            return NumExpired
+            return Expired
         try:
             with open(Filename, "r") as fHandle:
                 for line in fHandle:
@@ -476,10 +486,10 @@ class ServerController(object):
                         BanCache[Tokens[0]] = Expiry
                     else:
                         Console.Debug("ServerControl", "Expired ban on %s" % Tokens[0])
-                        NumExpired += 1
+                        Expired.append(Tokens[0])
         except Exception, e:
             Console.Error("ServerControl", "Failed to load file %s - %s" % (Filename, e))
-        return NumExpired
+        return Expired
             
                 
     def LoadIPCache(self):
@@ -736,11 +746,6 @@ class ServerController(object):
         self.Running = True
         #Start the heartbeatcontrol thread.
         self.HeartBeatControl.start()
-        if self.EnableIRC:
-            try:
-                self.IRCInterface.Connect()
-            except:
-                pass
 
         if platform.system() == 'Linux':
             signal.signal(signal.SIGTERM, self.HandleKill)
@@ -806,6 +811,15 @@ class ServerController(object):
 
             #Run the IRC Bot if enabled
             if self.EnableIRC:
+                if self.IRCReconnect != -1 and self.Now > self.IRCReconnect:
+                    try:
+                        self.IRCInterface.Connect()
+                    except Exception, e:
+                        self.OnIRCDisconnect()
+                        print e
+                    else:
+                        self.IRCReconnect = -1
+                        
                 asyncore.loop(count = 1, timeout = 0.001)
             #Remove idle players
             if self.IdlePlayerLimit != 0:
@@ -853,6 +867,10 @@ class ServerController(object):
             self.IRCInterface.OnShutdown(Crash)
             asyncore.loop(timeout = 0.01, count = 1)
 
+    def OnIRCDisconnect(self):
+        self.IRCReconnect = self.Now + 30
+        Console.Out("IRC", "Disconnected from IRC. Attempting reconnect in 30 seconds")
+
     def GetUptimeStr(self):
         return ElapsedTime((int(self.Now)) - int(self.StartTime))
 
@@ -868,16 +886,14 @@ class ServerController(object):
             if ExpiryTime == 0 or ExpiryTime > self.Now:
                 return True
             else:
-                del self.BannedUsers[pPlayer.GetName().lower()]
-                self.FlushBans()
+                self.Unban(pPlayer.GetName())
                 return False
         elif self.BannedIPs.has_key(pPlayer.GetIP()):
             ExpiryTime = self.BannedIPs[pPlayer.GetIP()]
             if ExpiryTime == 0 or ExpiryTime > self.Now:
                 return True
             else:
-                del self.BannedIPs[pPlayer.GetIP()]
-                self.FlushIPBans()
+                self.UnbanIP(pPlayer.GetIP())
                 return False
         else:
             return False
@@ -938,18 +954,20 @@ class ServerController(object):
                 self.PluginMgr.OnKick(pPlayer, Admin, 'Ip ban', True)
                 pPlayer.Disconnect("You are ip-banned from this server")
                 self.SendNotice("%s has been ip-banned by %s" % (pPlayer.GetName(), Admin.GetName()))
-    def Unban(self, Username):
+    def Unban(self, Username, Flush = True):
         if self.BannedUsers.has_key(Username.lower()) == True:
             del self.BannedUsers[Username.lower()]
-            self.FlushBans()
+            if Flush:
+                self.FlushBans()
             self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set BannedBy = '' where Username = ?", (Username.lower(),)])
             return True
         else:
             return False
-    def UnbanIP(self, IP):
+    def UnbanIP(self, IP, Flush = True):
         if self.BannedIPs.has_key(IP) == True:
             del self.BannedIPs[IP]
-            self.FlushIPBans()
+            if Flush:
+                self.FlushIPBans()
             return True
         else:
             return False
