@@ -462,13 +462,11 @@ class ServerController(object):
         if len(ExpiredUsernameBans) > 0:
             self.FlushBans()
         for Username in ExpiredUsernameBans:
-            self.Unban(Username, Flush = False)
+            self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set BannedBy = '' where Username = ?", (Username.lower(),)])
+
         Console.Out("ServerControl", "Loaded %d username bans" % len(self.BannedUsers))
         
-        ExpiredIPBans = self.LoadBanFile("banned-ip.txt", self.BannedIPs)
-        for IP in ExpiredIPBans:
-            self.UnbanIP(IP, Flush = False)
-        if len(ExpiredIPBans) > 0:
+        if len(self.LoadBanFile("banned-ip.txt", self.BannedIPs)) > 0:
             self.FlushIPBans()
         Console.Out("ServerControl", "Loaded %d ip bans" % len(self.BannedIPs))
                 
@@ -954,20 +952,19 @@ class ServerController(object):
                 self.PluginMgr.OnKick(pPlayer, Admin, 'Ip ban', True)
                 pPlayer.Disconnect("You are ip-banned from this server")
                 self.SendNotice("%s has been ip-banned by %s" % (pPlayer.GetName(), Admin.GetName()))
-    def Unban(self, Username, Flush = True):
+                
+    def Unban(self, Username):
         if self.BannedUsers.has_key(Username.lower()) == True:
             del self.BannedUsers[Username.lower()]
-            if Flush:
-                self.FlushBans()
-            self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set BannedBy = '' where Username = ?", (Username.lower(),)])
+            self.FlushBans()
             return True
         else:
             return False
-    def UnbanIP(self, IP, Flush = True):
+        
+    def UnbanIP(self, IP):
         if self.BannedIPs.has_key(IP) == True:
             del self.BannedIPs[IP]
-            if Flush:
-                self.FlushIPBans()
+            self.FlushIPBans()
             return True
         else:
             return False
