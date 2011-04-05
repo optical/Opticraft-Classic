@@ -811,6 +811,7 @@ class ServerController(object):
             if self.EnableIRC:
                 if self.IRCReconnect != -1 and self.Now > self.IRCReconnect:
                     try:
+                        self.IRCInterface = RelayBot(self.IRCNick, "Opticraft", "Opticraft", self)
                         self.IRCInterface.Connect()
                     except Exception, e:
                         self.OnIRCDisconnect()
