@@ -32,7 +32,7 @@ import math
 from core.opticraftpacket import OptiCraftPacket
 from core.constants import *
 from core.console import *
-from core.pluginmanager import PluginDict, PluginData
+from core.jsondict import PluginDict, JSONDict
 class Player(object):
     #Constructor is located at the bottom
     def ProcessPackets(self):
@@ -691,7 +691,7 @@ class Player(object):
         Console.Debug("Player", "Player object created. IP: %s" % SockAddress[0])
         self.SockBuffer = cStringIO.StringIO()
         self.TemporaryPluginData = PluginDict() #Destroyed during logout
-        self.PermanentPluginData = PluginData() #Loaded and saved to DB.
+        self.PermanentPluginData = JSONDict() #Loaded and saved to DB.
         self.OpcodeHandler = {
             CMSG_IDENTIFY: Player.HandleIdentify,
             CMSG_BLOCKCHANGE: Player.HandleBlockChange,

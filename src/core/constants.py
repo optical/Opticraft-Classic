@@ -230,23 +230,6 @@ IDFromName = InvertDictionary(BlockNamesToID)
 def GetBlockNameFromID(ID):
     return IDFromName.get(ID, None)
 
-def UnicodeToStr(obj):
-    '''Terrible function for json decoding'''
-    if type(obj) == unicode:
-        return str(obj)
-    elif type(obj) == list:
-        return [UnicodeToStr(x) for x in obj]
-    elif type(obj) == dict:
-        NewDict = {}
-        for Key, Value in obj.iteritems():
-            Key = UnicodeToStr(Key)
-            Value = UnicodeToStr(Value)
-            NewDict[Key] = Value
-            return NewDict
-        else:
-            return obj
-
-
 import string
 DisabledBlocks = set([BLOCK_WATER, BLOCK_STILLWATER, BLOCK_LAVA, BLOCK_STILLLAVA, BLOCK_HARDROCK])
 DisabledChars = ''.join([c for c in map(chr, range(256)) if c not in string.ascii_letters + string.digits + string.punctuation + string.whitespace]) + '&\r\n'
