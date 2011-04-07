@@ -41,7 +41,7 @@ from core.constants import *
 from core.zones import Zone
 from core.asynchronousquery import AsynchronousQueryResult
 from core.console import *
-
+from core.jsondict import JSONDict
 #Used for deciding whether to lock a map when undoing actions
 #Tweak appropriately
 LOCK_LEVEL = 35000 #Number of blocks needed in order to force a map lock
@@ -66,11 +66,9 @@ class SaveTask(threading.Thread):
     def __init__(self, pWorld, Verbose):
         '''Copy all the relevant data'''
         threading.Thread.__init__(self)
-        self.X, self.Y, self.Z = pWorld.X, pWorld.Y, pWorld.Z
-        self.SpawnX, self.SpawnY, self.SpawnZ = pWorld.SpawnX, pWorld.SpawnY, pWorld.SpawnZ
-        self.SpawnOrientation, self.SpawnPitch = pWorld.SpawnOrientation, pWorld.SpawnPitch
         self.MetaData = copy.copy(pWorld.MetaData)
         self.Blocks = copy.copy(pWorld.Blocks)
+        self.DataStore = pWorld.DataStore
         self.Name = pWorld.Name
         self.Verbose = Verbose
         self.CompressionLevel = pWorld.CompressionLevel
@@ -82,17 +80,10 @@ class SaveTask(threading.Thread):
     def Save(self, Verbose = True):
         '''The map file is a file of the following format:
         int16 VersionNumber
-        int16 X
-        int16 Y
-        int16 Z
-        int16 SpawnX
-        int16 SpawnY
-        int16 SpawnZ
-        int16 SpawnOrientation
-        int16 SpawnPitch
-        int32 MetaDataLength (number of elements)
-              MetaDataLength *2 Length delimited strings of Key/Value
-        array* gzipped Blockstore till EOF
+        int32 MetaDataSize in bytes
+        JSON MetaDataObject (dictionary of string -> value)
+        int32 DataBlockSize in bytes
+        JSON DataBlock (dictionary of string -> value)
         '''
         start = time.time()
         try:
@@ -101,24 +92,18 @@ class SaveTask(threading.Thread):
             fHandle = open("Worlds/%s.temp" % (self.Name), 'wb')
         except:
             Console.Error("World", "Failed to saved world %s to disk." % self.Name)
-        fHandle.write(struct.pack("h", 1)) #Map version number
-        fHandle.write(struct.pack("h", self.X))
-        fHandle.write(struct.pack("h", self.Y))
-        fHandle.write(struct.pack("h", self.Z))
-        fHandle.write(struct.pack("h", self.SpawnX))
-        fHandle.write(struct.pack("h", self.SpawnY))
-        fHandle.write(struct.pack("h", self.SpawnZ))
-        fHandle.write(struct.pack("h", self.SpawnOrientation))
-        fHandle.write(struct.pack("h", self.SpawnPitch))
-        #Meta data saving.
-        fHandle.write(struct.pack("i", len(self.MetaData))) #Number of elements to be saved
-        for Key in self.MetaData:
-            fHandle.write(World._MakeLengthString(Key))
-            fHandle.write(World._MakeLengthString(self.MetaData[Key]))
-        #Block Array
-        gzipHandle = gzip.GzipFile(fileobj = fHandle, mode = "wb", compresslevel = self.CompressionLevel)
+        fHandle.write(struct.pack("h", World.VERSION))
+        JSONMetaData = self.MetaData.AsJson()
+        fHandle.write(struct.pack("h", len(JSONMetaData)))
+        fHandle.write(JSONMetaData)
+        CompressedBlocks = cStringIO.StringIO("wb")
+        gzipHandle = gzip.GzipFile(fileobj = CompressedBlocks, mode = "wb", compresslevel = self.CompressionLevel)
         gzipHandle.write(self.Blocks.tostring())
         gzipHandle.close()
+        self.DataStore[DataStoreKey.Blocks] = CompressedBlocks.getvalue()
+        JSONDataStore = self.DataStore.AsJson()
+        fHandle.write(struct.pack("h", len(JSONDataStore)))
+        fHandle.write(JSONDataStore)
         fHandle.close()
         try:
             shutil.copy("Worlds/%s.temp" % (self.Name), "Worlds/%s.save" % (self.Name))
@@ -129,7 +114,8 @@ class SaveTask(threading.Thread):
         if Verbose:
             Console.Out("World", "Saved world %s in %dms" % (self.Name, int((time.time() - start) * 1000)))
             #self.SendNotice("Saved world %s in %dms" % (self.Name, int((time.time() - start) * 1000)))
-
+    
+    
 class AsynchronousIOThread(threading.Thread):
     '''Performs operations on the sqlite DB asynchronously to avoid long blocking
     ...waits for the disk'''
@@ -273,7 +259,28 @@ class AsynchronousIOThread(threading.Thread):
         
 class WorldLoadFailedException(Exception):
     pass
+
+class MetaDataKey(object):
+    '''Enum for all required (core) metadata keys'''
+    X = "X"
+    Y = "Y"
+    Z = "Z"
+    SpawnX = "SpawnX"
+    SpawnY = "SpawnY"
+    SpawnZ = "SpawnZ"
+    SpawnOrientation = "SpawnOrientation"
+    SpawnPitch = "SpawnPitch"
+    MinimumBuildRank = "MinimumBuildRank"
+    MinimumJoinRank = "MinimumJoinRank"
+    CreationDate = "CreationDate"
+    IsHidden = "Hidden"
+    
+class DataStoreKey(object):
+    '''Enum for all required datablock keys'''
+    Blocks = "Blocks"  
+      
 class World(object):
+    VERSION = 2
     def __init__(self, ServerControl, Name, NewMap = False, NewX = -1, NewY = -1, NewZ = -1):
         self.Blocks = array("c")
         self.BlockCache = cStringIO.StringIO()
@@ -284,9 +291,8 @@ class World(object):
         self.JoiningPlayers = list()
         self.Name = Name
         self.X, self.Y, self.Z = -1, -1, -1
-        self.SpawnX, self.SpawnY, self.SpawnZ = -1, -1, -1
-        self.SpawnOrientation, self.SpawnPitch = 0, 0
-        self.MetaData = dict()
+        self.MetaData = JSONDict()
+        self.DataStore = JSONDict()
         self.ServerControl = ServerControl
         self.BlockHistory = dict()
         self.PlayerIDs = range(127)
@@ -347,29 +353,14 @@ class World(object):
         self.Zones = list()
         self.ServerControl.InsertZones(self) #Servercontrol manages all the zones
         self.ServerControl.PluginMgr.OnWorldLoad(self)
-
-    @staticmethod
-    def _ReadLengthString(FileHandle):
-        Val = struct.unpack("i", FileHandle.read(4))[0]
-        return FileHandle.read(Val)
-    @staticmethod
-    def _MakeLengthString(String):
-        return struct.pack("i", len(String)) + String
     
     def Load(self):
         '''The map file is a file of the following format:
         int16 VersionNumber
-        int16 X
-        int16 Y
-        int16 Z
-        int16 SpawnX
-        int16 SpawnY
-        int16 SpawnZ
-        int16 SpawnOrientation
-        int16 SpawnPitch
-        int32 MetaDataLength (number of elements)
-              MetaDataLength *2 Length delimited strings of Key/Value
-        array* gzipped Blockstore till EOF
+        int32 MetaDataSize in bytes
+        JSON MetaDataObject (dictionary of string -> value)
+        int32 DataBlockSize in bytes
+        JSON DataBlock (dictionary of string -> value)
         '''
         start = time.time()
         rHandle = cStringIO.StringIO()
@@ -384,38 +375,33 @@ class World(object):
             fHandle.close()
             rHandle.seek(0)
             Version = struct.unpack("h", rHandle.read(2))[0] #Unused for now
-            if Version != 1:
-                Console.Error("World", "Unknown map version %d found on world %s. Unable to load." % (Version, self.Name))
+            if Version == 1:
+                Console.Error("World", "You have not ran the update script for upgrading from version 0.1 to 0.2. See the Readme for more information!")
+                raise Exception
+            elif Version != World.VERSION:
+                Console.Error("World", "Unknown map version (%d) found on world %s. Unable to load." % (Version, self.Name))
                 return False
-            self.X = struct.unpack("h", rHandle.read(2))[0]
-            self.Y = struct.unpack("h", rHandle.read(2))[0]
-            self.Z = struct.unpack("h", rHandle.read(2))[0]
-            self.SpawnX = struct.unpack("h", rHandle.read(2))[0]
-            self.SpawnY = struct.unpack("h", rHandle.read(2))[0]
-            self.SpawnZ = struct.unpack("h", rHandle.read(2))[0]
-            self.SpawnOrientation = struct.unpack("h", rHandle.read(2))[0]
-            self.SpawnPitch = struct.unpack("h", rHandle.read(2))[0]
-            MetaLength = struct.unpack("i", rHandle.read(4))[0]
-            for i in xrange(MetaLength):
-                Key = World._ReadLengthString(rHandle)
-                Value = World._ReadLengthString(rHandle)
-                self.MetaData[Key] = Value
-            gzipHandle = gzip.GzipFile(fileobj = rHandle, mode = "rb")
+            MetaDataLength = struct.unpack("i", rHandle.read(4))[0]
+            #MetaData is managed by ServerControl, seek ahead and get copy from it.
+            rHandle.seek(os.SEEK_CUR, MetaDataLength)
+            self.MetaData = self.ServerControl.GetWorldMetaData(self)
+            DataStoreLength = struct.unpack("i", rHandle.read(4))[0]
+            self.DataStore = JSONDict.FromJSON(rHandle.read(DataStoreLength))
+            #Data store contains the gzipped version of the block array
+            #Setup an unzipped version in memory.
+            BlockHandle = cStringIO.StringIO(self.GetDataStoreEntry(DataStoreKey.Blocks))
+            gzipHandle = gzip.GzipFile(fileobj = BlockHandle, mode = "rb")
             self.Blocks.fromstring(gzipHandle.read())
-            gzipHandle.close()                
+            gzipHandle.close()
+            BlockHandle.close()          
             rHandle.close()
+            
+            #MetaData setup
+            self.SetCoordinatesFromMetaData()
             Console.Out("World", "Loaded world %s in %dms" % (self.Name, int((time.time() - start) * 1000)))
+            
             #Ensure the data is not corrupt in some way
             assert(len(self.Blocks) == self.X * self.Y * self.Z)
-            try:
-                int(self.MetaData["hidden"])
-            except:
-                self.MetaData["hidden"] = "0"
-            try:
-                if self.ServerControl.IsValidRank(self.MetaData["minrank"]) == False:
-                    raise Exception()
-            except:
-                self.MetaData["minrank"] = "guest"
         except:
             Console.Warning("World", "Failed to load map '%s'.save The save file is out of date or corrupt." % self.Name)
             return False
@@ -423,17 +409,10 @@ class World(object):
     def Save(self, Verbose = True):
         '''The map file is a file of the following format:
         int16 VersionNumber
-        int16 X
-        int16 Y
-        int16 Z
-        int16 SpawnX
-        int16 SpawnY
-        int16 SpawnZ
-        int16 SpawnOrientation
-        int16 SpawnPitch
-        int32 MetaDataLength (number of elements)
-              MetaDataLength *2 Length delimited strings of Key/Value
-        array* gzipped Blockstore till EOF
+        int32 MetaDataSize in bytes
+        JSON MetaDataObject (dictionary of string -> value)
+        int32 DataBlockSize in bytes
+        JSON DataBlock (dictionary of string -> value)
         '''
         #Saving is done in another thread to prevent blocking writes in the main thread
         self.CurrentSaveThread = SaveTask(self, Verbose)
@@ -453,6 +432,64 @@ class World(object):
             self.SendNotice("Backed up world in %dms" % (int((time.time() - start) * 1000)))
         self.LastBackup = start
 
+    def SetCoordinatesFromMetaData(self):
+        '''Sets up basic convenience member data from the metadata
+        ...This is only done for X, Y, and Z as they cannot ever change'''
+        self.X = self.GetMetaDataEntry(MetaDataKey.X)
+        self.Y = self.GetMetaDataEntry(MetaDataKey.Y)
+        self.Z = self.GetMetaDataEntry(MetaDataKey.Z)
+    
+    #####################################################
+    #            Meta-Data acessors and mutators        #
+    #####################################################
+    def GetMetaDataEntry(self, Key):
+        return self.MetaData[Key]
+    def SetMetaDataEntry(self, Key, Value):
+        self.MetaData[Key] = Value
+    def HasMetaDataEntry(self, Key):
+        return Key in self.MetaData
+    
+    def GetSpawnX(self):
+        return self.GetMetaDataEntry(MetaDataKey.SpawnX)
+    def SetSpawnX(self, Value):
+        self.SetMetaDataEntry(MetaDataKey.SpawnX, Value)
+    def GetSpawnY(self):
+        return self.GetMetaDataEntry(MetaDataKey.SpawnY)
+    def SetSpawnY(self, Value):
+        self.SetMetaDataEntry(MetaDataKey.SpawnY, Value)
+    def GetSpawnZ(self):
+        return self.GetMetaDataEntry(MetaDataKey.SpawnZ)    
+    def SetSpawnZ(self, Value):
+        self.SetMetaDataEntry(MetaDataKey.SpawnZ, Value)
+    def GetSpawnOrientation(self):
+        return self.GetMetaDataEntry(MetaDataKey.SpawnOrientation)
+    def SetSpawnOrientation(self, Value):
+        self.SetMetaDataEntry(MetaDataKey.SpawnOrientation, Value)
+    def GetSpawnPitch(self):
+        return self.GetMetaDataEntry(MetaDataKey.SpawnPitch)
+    def SetSpawnPitch(self, Value):
+        self.SetMetaDataEntry(MetaDataKey.SpawnPitch, Value)
+    
+    def IsHidden(self):
+        return self.GetMetaDataEntry(MetaDataKey.IsHidden)
+    def SetHidden(self, Value):
+        self.SetMetaDataEntry(MetaDataKey.IsHidden, Value)
+        
+    def GetMinimumBuildRank(self):
+        return self.GetMetaDataEntry(MetaDataKey.MinimumBuildRank)
+    def SetMinimumBuildRank(self, Value):
+        self.SetMetaDataEntry(MetaDataKey.MinimumBuildRank, Value)
+    def GetMinimumJoinRank(self):
+        return self.GetMetaDataEntry(MetaDataKey.MinimumJoinRank)
+    def SetMinimumJoinRank(self, Value):
+        return self.SetMetaDataEntry(MetaDataKey.MinimumJoinRank, Value)
+    
+    def GetCreationDate(self):
+        return self.GetMetaDataEntry(MetaDataKey.CreationDate)
+    def SetCreationDate(self, Value):
+        return self.SetMetaDataEntry(MetaDataKey.CreationDate, Value)
+    
+    #End of MetaData Accessors and mutators
     def InsertZone(self, pZone):
         self.Zones.append(pZone)
     def GetZone(self, Name):
@@ -653,23 +690,24 @@ class World(object):
 
     def SetSpawn(self, x, y, z, o, p):
         '''Sets the worlds default spawn position. Stored in the format the client uses (pixels)'''
-        self.SpawnX = x
-        self.SpawnY = y
-        self.SpawnZ = z
-        self.SpawnOrientation = o
-        self.SpawnPitch = p
+        self.SetSpawnX(x)
+        self.SetSpawnY(y)
+        self.SetSpawnZ(z)
+        self.SetSpawnOrientation(o)
+        self.SetSpawnPitch(p)
 
 
 
     def GenerateGenericWorld(self, x = 512, y = 512, z = 96):
+        '''Generates a flatgrass world'''
         self.X, self.Y, self.Z = x, y, z
         GrassLevel = self.Z / 2
         SandLevel = GrassLevel - 2
-        self.SpawnY = self.Y / 2 * 32
-        self.SpawnX = self.X / 2 * 32
-        self.SpawnZ = (self.Z / 2 + 2) * 32 + 51
-        self.SpawnOrientation = 0
-        self.SpawnPitch = 0
+        self.SetSpawnX(self.X / 2 * 32)
+        self.SetSpawnY(self.Y / 2 * 32)
+        self.SetSpawnZ((self.Z / 2 + 2) * 32 + 51)
+        self.SetSpawnOrientation(0)
+        self.SetSpawnPitch(0)
         self.Blocks = array('c')
         for z in xrange(self.Z):
             if z < SandLevel:
@@ -686,16 +724,6 @@ class World(object):
         self.IsDirty = True
         self.Save(False)
 
-    def SetMetaData(self, Key, Value):
-        self.MetaData[Key] = Value
-    def IsHidden(self):
-        return int(self.MetaData["hidden"])
-    def SetHidden(self, Value):
-        self.SetMetaData("hidden", str(Value))
-    def GetMinRank(self):
-        return self.MetaData["minrank"]
-    def SetMinRank(self, Value):
-        self.SetMetaData("minrank", Value)
     def Unload(self):
         #Remove players..
         for pPlayer in self.Players:
@@ -863,16 +891,16 @@ class World(object):
         Packet2.WriteInt16(self.Y)
         pPlayer.SendPacket(Packet2)
 
-        pPlayer.SetLocation(self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnOrientation, self.SpawnPitch)
+        pPlayer.SetLocation(self.GetSpawnX(), self.GetSpawnY(), self.GetSpawnZ(), self.GetSpawnOrientation(), self.GetSpawnPitch())
         Packet3 = OptiCraftPacket(SMSG_SPAWNPOINT)
         Packet3.WriteByte(255)
         Packet3.WriteString("")
         if pPlayer.GetSpawnPosition()[0] == -1:
-            Packet3.WriteInt16(self.SpawnX)
-            Packet3.WriteInt16(self.SpawnZ)
-            Packet3.WriteInt16(self.SpawnY)
-            Packet3.WriteByte(self.SpawnOrientation)
-            Packet3.WriteByte(self.SpawnPitch)
+            Packet3.WriteInt16(self.GetSpawnX())
+            Packet3.WriteInt16(self.GetSpawnZ())
+            Packet3.WriteInt16(self.GetSpawnY())
+            Packet3.WriteByte(self.GetSpawnOrientation())
+            Packet3.WriteByte(self.GetSpawnPitch())
         else:
             Location = pPlayer.GetSpawnPosition()
             pPlayer.SetSpawnPosition(-1, -1, -1, -1, -1)
