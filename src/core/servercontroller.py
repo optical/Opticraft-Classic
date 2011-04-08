@@ -362,7 +362,7 @@ class ServerController(object):
             if FileName[-5:] != ".save":
                 continue
             WorldName = FileName[:-5]
-            self.WorldRankCache[WorldName.lower()], self.WorldHideCache[WorldName.lower()] = World.GetCacheValues(WorldName, self)
+            self.WorldRankCache[WorldName.lower()], self.WorldHideCache[WorldName.lower()] = World.GetMetaData(WorldName)
             if WorldName == self.ConfigValues.GetValue("worlds", "DefaultName", "Main"):
                 #The default world is always loaded
                 continue
@@ -578,7 +578,7 @@ class ServerController(object):
         self.Zones.append(pZone)
     def AddWorld(self, WorldName):
         self.IdleWorlds.append(WorldName)
-        self.WorldRankCache[WorldName.lower()], self.WorldHideCache[WorldName.lower()] = World.GetCacheValues(WorldName, self)
+        self.WorldRankCache[WorldName.lower()], self.WorldHideCache[WorldName.lower()] = World.GetMetaData(WorldName)
     def InsertZones(self, pWorld):
         '''Gives the world all its zones to worry about'''
         for pZone in self.Zones:

@@ -698,6 +698,10 @@ class World(object):
 
 
 
+    def InitialiseBuiltInMetaData(self):
+        pass
+    
+    
     def GenerateGenericWorld(self, x = 512, y = 512, z = 96):
         '''Generates a flatgrass world'''
         self.X, self.Y, self.Z = x, y, z
@@ -719,9 +723,10 @@ class World(object):
             else:
                 Block = chr(BLOCK_AIR)
             self.Blocks.fromstring((self.X * self.Y) * Block)
-        self.MetaData["hidden"] = '0'
-        self.MetaData["minrank"] = "guest"
         self.IsDirty = True
+        self.InitialiseBuiltInMetaData()
+        self.InitialiseBuiltInDataStore()
+        
         self.Save(False)
 
     def Unload(self):
@@ -1000,25 +1005,24 @@ class World(object):
         for pPlayer in self.Players:
             if pPlayer != Client:
                 pPlayer.OutBuffer.write(Data)
+                
     @staticmethod
-    def GetCacheValues(Name, ServerControl):
+    def GetMetaData(Name):
+        '''Loads metadata from the world file, return type is the MetaDataDictionary
+        ...It does not ensure the metadata contains all necessary keys'''
         try:
-            fHandle = open("Worlds/%s.save" % Name)
-            fHandle.seek(18)
-            NumElements = struct.unpack("i", fHandle.read(4))[0]
-            MinRank = 'guest'
-            Hidden = 0
-            for i in xrange(NumElements):
-                Key = World._ReadLengthString(fHandle)
-                Value = World._ReadLengthString(fHandle)
-                if Key == "hidden":
-                    Hidden = int(Value)
-                elif Key == "minrank":
-                    MinRank = Value
-            fHandle.close()
-            assert(MinRank.capitalize() in ServerControl.RankNames)
-        except AssertionError:
-            MinRank = 'guest'
-        finally:
-            return MinRank, Hidden
+            with open("Worlds/%s.save" % Name) as fHandle:
+                Version = struct.unpack("i", fHandle.read(4))[0]
+                if Version == 1:
+                    Console.Error("World", "You have not run the 0.1 to 0.2 update. Refer to the readme for more information")
+                    raise Exception("World file %s out of date" % Name)
+                elif Version != World.VERSION:
+                    raise Exception("World file %s has unknown version" % Name)
+                MetaDataLen = struct.unpack("i", fHandle.read(4))
+                EncodedJson = fHandle.read(MetaDataLen)
+                MetaData = JSONDict.FromJSON(EncodedJson)
+                return MetaData
+        except:
+            pass
+        return None
 
