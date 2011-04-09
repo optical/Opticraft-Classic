@@ -376,7 +376,11 @@ class PlayerInfoCmd(CommandObject):
                     if Date == 0:
                         pPlayer.SendMessage("&SThis is a &Vpermanent &Sban")
                     else:
-                        pPlayer.SendMessage("&SBan expires on &V%s" % (time.ctime(Date)))
+                        try:
+                            pPlayer.SendMessage("&SBan expires on &V%s" % (time.ctime(Date)))
+                        except ValueError:
+                            #This happens when a bans is so long, it goes beyond the platforms time_t size (32/64bits). The ban is basically permanent if this happens.
+                            pPlayer.SendMessage("&SThis is a &Vpermanent &SBan")
             if Row["RankedBy"] != '':
                 pPlayer.SendMessage("&STheir rank was set by &V%s" % (Row["RankedBy"]))
 
