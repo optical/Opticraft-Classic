@@ -45,6 +45,7 @@ class Hooks:
     ON_CHANGE_WORLD = 8
     ON_WORLD_LOAD = 9
     ON_WORLD_UNLOAD = 10
+    ON_WORLD_METADATA_LOAD = 11
 
 class PluginBase(object):
     #These numbers do not include the "self" argument, though all objects need to have this!
@@ -60,6 +61,7 @@ class PluginBase(object):
         Hooks.ON_CHANGE_WORLD: 3,
         Hooks.ON_WORLD_LOAD: 1,
         Hooks.ON_WORLD_UNLOAD: 1,
+        Hooks.ON_WORLD_METADATA_LOAD: 1
     }
 
     def __init__(self, PluginMgr, ServerControl, Name):
@@ -279,3 +281,8 @@ class PluginManager(object):
         '''Called when a world is unloaded'''
         for Hook in self._GetHooks(Hooks.ON_WORLD_UNLOAD):
             Hook.Function(pWorld)
+            
+    def OnWorldMetaDataLoad(self, WorldName):
+        '''Called when the worlds meta data is loaded and deserialized'''
+        for Hook in self._GetHooks(Hooks.ON_WORLD_METADATA_LOAD):
+            Hook.Function(WorldName)
