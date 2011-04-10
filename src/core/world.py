@@ -38,7 +38,6 @@ import copy
 from array import array
 from core.opticraftpacket import OptiCraftPacket
 from core.constants import *
-from core.zones import Zone
 from core.asynchronousquery import AsynchronousQueryResult
 from core.console import *
 from core.jsondict import JSONDict
@@ -355,8 +354,6 @@ class World(object):
                 self.GenerateGenericWorld(NewX, NewY, NewZ)
         self.NetworkSize = struct.pack("!i", self.X * self.Y * self.Z)
 
-        self.Zones = list()
-        self.ServerControl.InsertZones(self) #Servercontrol manages all the zones
         self.ServerControl.PluginMgr.OnWorldLoad(self)
     
     def Load(self):
@@ -541,18 +538,6 @@ class World(object):
     ########################################
     #End of DataStore Accessors and mutators#
     ########################################    
-    def InsertZone(self, pZone):
-        self.Zones.append(pZone)
-    def GetZone(self, Name):
-        Name = Name.lower()
-        for pZone in self.Zones:
-            if pZone.Name.lower() == Name:
-                return pZone
-        return None
-    def GetZones(self):
-        return self.Zones
-    def DeleteZone(self, pZone):
-        self.Zones.remove(pZone)
 
     def SetIdleTimeout(self, Time):
         self.IdleTimeout = Time
@@ -590,41 +575,16 @@ class World(object):
         if pPlayer.GetAboutCmd() == True:
             self.HandleAboutCmd(pPlayer, x, y, z)
             return False
-        #ZONES!
-        if self.CheckZones(pPlayer, x, y, z) == False:
-            return False
+        
         if not AutomatedChange and val in DisabledBlocks and pPlayer.GetBlockOverride() != val:
             pPlayer.SendMessage("&RThat block is disabled!")
             return False
         
-        #Zone creation
-        if pPlayer.IsCreatingZone():
-            zData = pPlayer.GetZoneData()
-            if zData["Phase"] == 1:
-                #Placing the first corner of the zone.
-                zData["X1"] = x
-                zData["Y1"] = y
-                zData["Z1"] = z
-                zData["Phase"] = 2
-                pPlayer.SendMessage("&SNow place the final corner for the zone.")
-                return True
-            elif zData["Phase"] == 2:
-                FileName = Zone.Create(zData["Name"], zData["X1"], x, zData["Y1"], y, zData["Z1"] - 1, z - 1, zData["Height"], zData["Owner"], self.Name)
-                pZone = Zone(FileName, self.ServerControl)
-                self.Zones.append(pZone)
-                self.ServerControl.AddZone(pZone)
-                pPlayer.SendMessage("&SSuccessfully created zone \"%s\"" % zData["Name"])
-                #hide the starting block for the zone
-                self.SendBlock(pPlayer, zData["X1"], zData["Y1"], zData["Z1"])
-                pPlayer.FinishCreatingZone()
-                return False
-
         #Temporary code to make "steps" function normally.
         if val == BLOCK_STEP and z > 0:
             BlockBelow = self._CalculateOffset(x, y, z - 1)
             if ord(self.Blocks[BlockBelow]) == BLOCK_STEP:
-                if self.CheckZones(pPlayer, x, y, z - 1) != False:
-                    self.SetBlock(None, x, y, z - 1, BLOCK_DOUBLESTEP)
+                if  self.AttemptSetBlock(pPlayer, x, y, z - 1, BLOCK_DOUBLESTEP, ResendToClient, AutomatedChange):
                     return False
         if ord(self.Blocks[ArrayValue]) == BLOCK_HARDROCK:
             if pPlayer.HasPermission(self.ServerControl.AdmincreteRank) == False:
@@ -658,14 +618,6 @@ class World(object):
         else:
             self.SendPacketToAll(Packet)
         
-    def CheckZones(self, pPlayer, x, y, z):
-        for pZone in self.Zones:
-            if pZone.IsInZone(x, y, z):
-                if pZone.CanBuild(pPlayer) == False:
-                    pPlayer.SendMessage("&RYou cannot build in zone \"%s\"" % pZone.Name)
-                    return False
-        return True
-    
     def GetBlock(self, x, y, z):
         '''Returns the numeric value of a block on the map
         ...Throws exception if coordinates are out of bounds'''

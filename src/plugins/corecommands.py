@@ -74,14 +74,6 @@ class Commands(PluginBase):
         self.AddCommand("me", EmoteCmd, 'guest', 'Emotes an aceiont', 'Incorrect syntax! Usage: /me <message>', 1)
         self.AddCommand("emote", EmoteCmd, 'guest', 'Emotes an aceiont', 'Incorrect syntax! Usage: /emote <message>', 1, Alias = True)
         self.AddCommand("r", ReplyCmd, 'guest', 'Replys to the last person who sent you a PM', 'Incorrect syntax! Usage: /reply <Message>', 1)
-        #Zone commands
-        self.AddCommand("zinfo", ZoneInfoCmd, 'guest', 'Returns information on a zone.', 'Incorrect syntax! Usage: /zinfo <zone>', 1)
-        self.AddCommand("zlist", ZoneListCmd, 'guest', 'Lists all zones on the map', '', 0)
-        self.AddCommand("ztest", ZoneTestCmd, 'guest', 'Checks to see if you are in a zone.', '', 0)
-        self.AddCommand("zaddbuilder", AddZoneBuilderCmd, 'guest', 'Adds a builder to a zone', 'Incorrect syntax! Usage: /zaddbuilder <zone> <username>', 2)
-        self.AddCommand("zdelbuilder", DelZoneBuilderCmd, 'guest', 'Deletes a builder from a zone', 'Incorrect syntax! Usage: /zdelbuilder <zone> <username>', 2)
-        self.AddCommand("zsetrank", zSetMinRankCmd, 'guest', 'Changes the minimum non zone-builder rank required to build on this zone', 'Incorrect syntax! Usage: /zsetrank <zone> <rank>', 2)
-        self.AddCommand("zsetowner", zChangeOwnerCmd, 'guest', 'Changes the owner of a zone', 'Incorrect syntax! Usage: /zsetowner <zone> <username>', 2)
 
         ########################
         #BUILDER COMMANDS HERE #
@@ -120,8 +112,6 @@ class Commands(PluginBase):
         self.AddCommand("wbuildrank", WorldSetBuildRankCmd, 'admin', 'Sets the minimum rank to build on a world', 'Incorrect syntax. Usage: /wbuildrank <world> <rank>', 2)
         self.AddCommand("wjoinrank", WorldSetAccessRankCmd, 'admin', 'Sets the minimum rank to join a world', 'Incorrect syntax. Usage: /wjoinrank <world> <rank>', 2)
         self.AddCommand("waccessrank", WorldSetAccessRankCmd, 'admin', 'Sets the minimum rank to join a world', 'Incorrect syntax. Usage: /wjoinrank <world> <rank>', 2, Alias = True)
-        self.AddCommand("zCreate", ZCreateCmd, 'admin', 'Creates a restricted zone', 'Incorrect syntax. Usage: /zCreate <name> <owner> <height>', 3)
-        self.AddCommand("zDelete", ZDeleteCmd, 'admin', 'Deletes a restricted zone', 'Incorrect syntax. Usage: /zDelete <name>', 1)
         self.AddCommand("createworld", CreateWorldCmd, 'admin', 'Creates a new world.', 'Incorrect syntax. Usage: /createworld <name> <length> <width> <height>', 4)
         self.AddCommand("setdefaultworld", SetDefaultWorldCmd, 'admin', 'Sets the world you specify to be the default one', 'Incorrect syntax. Usage: /setdefaultworld <name>', 1)
         self.AddCommand("renameworld", RenameWorldCmd, 'admin', 'Renames a world', 'Incorrect syntax! Usage: /renameworld <oldname> <newname>', 2)
@@ -434,137 +424,6 @@ class ReplyCmd(CommandObject):
             pPlayer.SendMessage("&RNo one recently sent you a PM!")
             return
         pPlayer.HandlePrivateMessage("%s %s" % (pPlayer.GetLastPM(), ' '.join(Args)))
-
-class ZoneInfoCmd(CommandObject):
-    '''Zone info command handler. Returns information on a zone'''
-    def Run(self, pPlayer, Args, Message):
-        Name = Args[0]
-        pZone = pPlayer.GetWorld().GetZone(Name)
-        if pZone is None:
-            pPlayer.SendMessage("&RNo such zone exists on this map")
-            return
-        pPlayer.SendMessage("&SName: &V%s" % pZone.Name)
-        pPlayer.SendMessage("&SOwner: &V%s" % pZone.Owner)
-        pPlayer.SendMessage("&SMinimum rank: &V%s" % pZone.MinRank.capitalize())
-        pPlayer.SendMessage("&S---Builders---")
-        Num = 0
-        for Builder in pZone.Builders:
-            pPlayer.SendMessage('&V%s' % Builder)
-            Num += 1
-        if Num == 0:
-            pPlayer.SendMessage("This zone has no builders")
-class ZoneListCmd(CommandObject):
-    '''Zone list command handler. Lists all zones on a map'''
-    def Run(self, pPlayer, Args, Message):
-        Zones = pPlayer.GetWorld().GetZones()
-        ZoneNames = str("&S")
-        for pZone in Zones:
-            ZoneNames += pZone.Name + ' '
-        if len(Zones) > 0:
-            pPlayer.SendMessage("&SThe following zones are active on this map:")
-            pPlayer.SendMessage(ZoneNames)
-        else:
-            pPlayer.SendMessage("&SThis map has no zones!")
-class ZoneTestCmd(CommandObject):
-    '''Command handler for the /ztest command. Checks to see if you are in a zone'''
-    def Run(self, pPlayer, Args, Message):
-        x, y, z = pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ()
-        x /= 32
-        y /= 32
-        z -= 50
-        z /= 32
-        x = int(x)
-        y = int(y)
-        z = int(z)
-        #O_O
-        Zones = pPlayer.GetWorld().GetZones()
-        for pZone in Zones:
-            if pZone.IsInZone(x, y, z):
-                pPlayer.SendMessage("&SIt appears you are in zone \"&V%s&S\"" % pZone.Name)
-                return
-        pPlayer.SendMessage("&SIt does not seem like you are in any zone.")
-
-class AddZoneBuilderCmd(CommandObject):
-    '''Add zone builder handler. This adds a builder to a zone'''
-    def Run(self, pPlayer, Args, Message):
-        ZoneName = Args[0]
-        Username = Args[1]
-        pZone = pPlayer.GetWorld().GetZone(ZoneName)
-        if pZone is None:
-            pPlayer.SendMessage("&RNo such zone exists on this map")
-            return
-        if pPlayer.GetName().lower() != pZone.Owner.lower():
-            if pPlayer.HasPermission('owner') == False:
-                pPlayer.SendMessage("&RYou are not allowed to delete builders from this zone!")
-                return
-        Username = Username.lower()
-        if Username in pZone.Builders:
-            pPlayer.SendMessage("&RThat user is already a builder for this zone!")
-            return
-        pZone.AddBuilder(Username)
-        pPlayer.SendMessage("&SSuccessfully added &V%s &Sas a builder for zone \"&V%s&S\"" % (Username, pZone.Name))
-        if pPlayer.ServerControl.GetPlayerFromName(Username) is not None:
-            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&SYou have been added as a builder to zone &V%s" % pZone.Name)
-class DelZoneBuilderCmd(CommandObject):
-    '''Del zone builder handler. This deletes a builder from a zone'''
-    def Run(self, pPlayer, Args, Message):
-        ZoneName = Args[0]
-        Username = Args[1]
-        pZone = pPlayer.GetWorld().GetZone(ZoneName)
-        if pZone is None:
-            pPlayer.SendMessage("&RNo such zone exists on this map")
-            return
-        if pPlayer.GetName().lower() != pZone.Owner.lower():
-            if pPlayer.HasPermission('owner') == False:
-                pPlayer.SendMessage("&RYou are not allowed to delete builders from this zone!")
-                return
-        Username = Username.lower()
-        if Username not in pZone.Builders:
-            pPlayer.SendMessage("&RThat user is not a builder for this zone!")
-            return
-        pZone.DelBuilder(Username)
-        pPlayer.SendMessage("&SSuccessfully removed %s as a builder for zone &V\"%s&S\"" % (Username, pZone.Name))
-        if pPlayer.ServerControl.GetPlayerFromName(Username) is not None:
-            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&SYou have been removed as a builder from zone &V\"%s&S\"" % pZone.Name)
-
-class zSetMinRankCmd(CommandObject):
-    '''Handler for the zSetMinRank command. Changes the minimum rank to build in a zone'''
-    def Run(self, pPlayer, Args, Message):
-        ZoneName = Args[0]
-        Rank = Args[1]
-        if pPlayer.ServerControl.IsValidRank(Rank) != True:
-            pPlayer.SendMessage("&RInvalid rank! Valid ranks are: %s" % pPlayer.ServerControl.GetExampleRanks())
-            return
-        pZone = pPlayer.GetWorld().GetZone(ZoneName)
-        if pZone is None:
-            pPlayer.SendMessage("&RNo such zone exists on this map")
-            return
-        if pPlayer.GetName().lower() != pZone.Owner.lower():
-            if pPlayer.HasPermission('owner') == False:
-                pPlayer.SendMessage("&RYou are not allowed to change the minimum rank required in this zone!")
-                return
-        pZone.SetMinRank(Rank.lower())
-        pPlayer.SendMessage("&SMinimum non-builder ranked required to build in zone \"&V%s&S\" is now &V%s" % (pZone.Name, Rank.capitalize()))
-
-class zChangeOwnerCmd(CommandObject):
-    '''zChangeOwner command handler. This changes the owner of a zone'''
-    def Run(self, pPlayer, Args, Message):
-        ZoneName = Args[0]
-        Username = Args[1]
-        pZone = pPlayer.GetWorld().GetZone(ZoneName)
-        if pZone is None:
-            pPlayer.SendMessage("&RNo such zone exists on this map")
-            return
-        if pPlayer.GetName().lower() != pZone.Owner.lower():
-            if pPlayer.HasPermission('owner') == False:
-                pPlayer.SendMessage("&RYou are not allowed to change this zones owner!")
-                return
-        Username = Username.lower()
-        pZone.ChangeOwner(Username)
-        pPlayer.SendMessage("&SSuccessfully changed the owner of zone &V\"%s&S\" to &V%s" % (pZone.Name, Username))
-        if pPlayer.ServerControl.GetPlayerFromName(Username) is not None:
-            pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&SYou have been set as the owner of zone &V\"%s&S\"" % pZone.Name)
-
 ########################
 #BUILDER COMMANDS HERE #
 ########################
@@ -913,41 +772,7 @@ class TempOpCmd(CommandObject):
         Target.SendMessage("&SYou have been granted temporary operator privlidges by &V%s" % pPlayer.GetName())
         pPlayer.SendMessage("&V%s &Sis now a temporary operator" % Username)
 
-class ZCreateCmd(CommandObject):
-    def Run(self, pPlayer, Args, Message):
-        Name = Args[0]
-        if Name.isalnum() == False:
-            pPlayer.SendMessage("&RInvalid name!")
-            return
-        Owner = Args[1]
-        Height = Args[2]
-        try:
-            Height = int(Height)
-        except:
-            pPlayer.SendMessage("&RHeight must be a valid integer")
-            return
-        if Height <= 0:
-            pPlayer.SendMessage("&RHeight must be at least 1!")
-        if pPlayer.GetWorld().GetZone(Name) is not None:
-            pPlayer.SendMessage("&RA Zone with that name already exists!")
-            return
-        pPlayer.SendMessage("&SYou have started the zone creation process. Please place a block where you want the first corner of the zone to be")
-        pPlayer.SendMessage("&SRemember, zones are cuboids. You will place two blocks to represent the zone")
-        pPlayer.StartZone(Name, Owner, Height)
 
-class ZDeleteCmd(CommandObject):
-    '''Delete zone handler. This deletes a zone from a map'''
-    def Run(self, pPlayer, Args, Message):
-        ZoneName = Args[0]
-        pZone = pPlayer.GetWorld().GetZone(ZoneName)
-        if pZone is None:
-            pPlayer.SendMessage("&RNo such zone exists on this map")
-            return
-        pPlayer.GetWorld().DeleteZone(pZone)
-        pPlayer.ServerControl.DeleteZone(pZone)
-        pPlayer.SendMessage("&SSuccessfully deleted zone &V\"%s&S\"" % pZone.Name)
-        pZone.Delete()
-        
 class CreateWorldCmd(CommandObject):
     '''Handles the world cretion command'''
     def Run(self, pPlayer, Args, Message):

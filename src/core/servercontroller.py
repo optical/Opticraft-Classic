@@ -43,7 +43,6 @@ from core.opticraftpacket import OptiCraftPacket
 from core.optisockets import SocketManager
 from core.commandhandler import CommandHandler
 from core.configreader import ConfigReader
-from core.zones import Zone
 from core.world import World, WorldLoadFailedException, WorldRequiresUpdateException, MetaDataKey
 from core.pluginmanager import PluginManager
 from core.asynchronousquery import AsynchronousQueryResult
@@ -214,8 +213,6 @@ class ServerController(object):
             os.mkdir("Worlds")
         if os.path.exists("Backups") == False:
             os.mkdir("Backups")
-        if os.path.exists("Zones") == False:
-            os.mkdir("Zones")
         if os.path.exists("Logs") == False:
             os.mkdir("Logs")
         if os.path.exists("Templates") == False:
@@ -352,8 +349,6 @@ class ServerController(object):
         self.LoadRules()
         self.Greeting = list()
         self.LoadGreeting()
-        self.Zones = list()
-        self.LoadZones()
         self.LoadWorlds()
         #write out pid to opticraft.pid
         try:
@@ -580,6 +575,7 @@ class ServerController(object):
         try:
             MetaDataBlock = World.GetMetaData(WorldName)
             self.WorldMetaDataCache[WorldName.lower()] = MetaDataBlock
+            self.PluginMgr.OnWorldMetaDataLoad(WorldName)
         except WorldRequiresUpdateException, e:
             raise e
         except Exception, e:
@@ -597,32 +593,8 @@ class ServerController(object):
         '''Removes the worlds meta data from the cache'''
         del self.WorldMetaDataCache[WorldName.lower()]
     
-    def LoadZones(self):
-        '''Loads up all the Zone objects into memory'''
-        Files = os.listdir("Zones")
-        for File in Files:
-            if len(File) < 4:
-                continue
-            if File[-3:] != "ini":
-                continue
-            pZone = Zone(File, self)
-            self.Zones.append(pZone)
-    def AddZone(self, pZone):
-        self.Zones.append(pZone)
     def AddWorld(self, WorldName):
         self.IdleWorlds.append(WorldName)
-
-    def InsertZones(self, pWorld):
-        '''Gives the world all its zones to worry about'''
-        for pZone in self.Zones:
-            if pZone.Map == pWorld.Name:
-                pWorld.InsertZone(pZone)
-    def GetZones(self):
-        return self.Zones
-    def DeleteZone(self, pZone):
-        '''if pZone is a new zone it wont be in our list'''
-        if pZone in self.Zones:
-            self.Zones.remove(pZone)
 
     def LoadAnnouncements(self):
         Items = self.ConfigValues.GetItems("announcements")

@@ -400,21 +400,6 @@ class Player(object):
         Packet.WriteByte(p)
         self.SendPacket(Packet)
 
-    def IsCreatingZone(self):
-        return self.CreatingZone
-    def GetZoneData(self):
-        return self.ZoneData
-
-    def StartZone(self, Name, Owner, Height):
-        self.ZoneData["Name"] = Name
-        self.ZoneData["Owner"] = Owner
-        self.ZoneData["Height"] = Height
-        self.ZoneData["Phase"] = 1
-        self.CreatingZone = True
-    def FinishCreatingZone(self):
-        self.zData = dict()
-        self.CreatingZone = False
-
     def SetLastPM(self, Username):
         self.LastPmUsername = Username
     def GetLastPM(self):
@@ -659,8 +644,6 @@ class Player(object):
         self.Rank = 'guest'
         self.RankLevel = ServerControl.GetRankLevel('guest')
         self.Invisible = False
-        self.CreatingZone = False
-        self.ZoneData = dict()
         self.LoginTime = int(self.ServerControl.Now)
         self.BannedBy = ''
         self.RankedBy = ''

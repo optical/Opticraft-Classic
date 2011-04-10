@@ -42,29 +42,55 @@ def UnicodeToStr(obj):
         return NewDict
     else:
         return obj
-
+class NonJsonType(object):
+    pass
 class JsonSerializeableObject(object):
     '''Object which can more easily be encoded to and from json'''
-    _ValidJsonTypes = frozenset([str, int, long, bool, dict, list, None, float])
+    _ValidJsonTypes = frozenset([str, unicode, int, long, bool, dict, list, None, float])
     def _AsJson(self):
         '''This method returns a dictionary which can be encoded as json
         To do so it scans all attributes of the underlying object, adding
         key,values to a new dictionary if the key and value are valid json types.
-        It does not however ensure that those values will succeed at being encoded as JSON.
-        Eg: a list with a non-json type will be returned, and an exception will be throwing
-        during the encoding process.
+        Lists and dictionary will be recursively reconstructed
         This object is intended to allow you to have reference types in your object,
         while still being easily serialized to json'''
-        JsonDict = dict()
-        for Key, Value in self.__dict__.iteritems():
-            tKey = type(Key)
-            tValue = type(Value)
-            if tKey in JsonSerializeableObject._ValidJsonTypes and tValue in JsonSerializeableObject._ValidJsonTypes:
-                JsonDict[Key] = Value
-        return JsonDict
+        return self.__AsJson(self.__dict__)
+    @staticmethod 
+    def __AsJson(Value):
+        '''Helper for _AsJson'''
+        ValueType = type(Value)
+        if ValueType == dict:
+            NewDict = dict()
+            for Key, DictValue in Value.iteritems():
+                Key = JsonSerializeableObject.__AsJson(Key)
+                DictValue = JsonSerializeableObject.__AsJson(DictValue)
+                if DictValue is NonJsonType or Key is NonJsonType:
+                    continue
+                NewDict[Key] = DictValue
+            return NewDict
+        elif ValueType == list:
+            NewList = list()
+            for Item in Value:
+                Item = JsonSerializeableObject.__AsJson(Item)
+                if Item is NonJsonType:
+                    continue
+                NewList.append(Item)
+            return NewList
+        elif ValueType == JsonSerializeableObject:
+            return JsonSerializeableObject.__AsJson(Value.__dict__)
+        elif ValueType in JsonSerializeableObject._ValidJsonTypes:
+            return Value
+        else:
+            return NonJsonType
     
     def FromJson(self, JsonDict):
-        self.__dict__ = JsonDict
+        '''Sets the objects internal dictionary to the value of the JsonDict'''
+        self.__dict__.update(JsonDict)
+        self.OnJsonLoad()
+        
+    def OnJsonLoad(self):
+        '''Called when the objects internal dictionary is loaded from JSON'''
+        pass
         
 
 class PluginDict(object):
@@ -74,7 +100,7 @@ class PluginDict(object):
         self._dictionary = dict()
         #Nasty piece of code.
         self.NonJsonValues = NonJsonValues
-        self.ValidJsonTypes = frozenset([str, int, long, bool, dict, list, None, float, JsonSerializeableObject])
+        self.ValidJsonTypes = frozenset([str, int, long, bool, dict, list, float, JsonSerializeableObject])
 
     def __getitem__(self, Key):
         if type(Key) != str:
@@ -87,7 +113,7 @@ class PluginDict(object):
         if self.NonJsonValues == False:
             Valid = False
             for ValidType in self.ValidJsonTypes:
-                if isinstance(Value, ValidType):
+                if isinstance(Value, ValidType) or Value is None:
                     Valid = True
                     break
             if not Valid:
@@ -108,16 +134,14 @@ class PluginDict(object):
         return self._dictionary.__reversed__()
     def __len__(self):
         return self._dictionary.__len__()
-    def get(self, Key, Default):
-        return self._dictionary.get(Key, Default)
-    def keys(self):
-        return self._dictionary.keys()
-    def items(self):
-        return self._dictionary.items() 
+    
+    def __getattr__(self, Name):
+        '''Try grab from our dictionary'''
+        return self._dictionary.__getattribute__(Name)
 
     def AsJSON(self):
         assert(self.NonJsonValues == False)
-        return json.dumps(self._dictionary)
+        return json.dumps(JsonSerializeableObject.__AsJson(self._dictionary))
 
     @staticmethod
     def FromJSON(JSON):
