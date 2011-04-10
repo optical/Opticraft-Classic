@@ -68,7 +68,7 @@ class ZonePlugin(PluginBase):
             ZoneData.Y2 = y
             ZoneData.Z2 = z
             ZoneData.SortCoords()
-            pZone = Zone(pPlayer.GetWorld(), ZoneData.Name, ZoneData.X1, ZoneData.Y1, ZoneData.Z1, ZoneData.X2, ZoneData.Y2, ZoneData.Z2, '', ZoneData.Owner)
+            pZone = Zone(pPlayer.GetWorld(), ZoneData.Name, ZoneData.X1, ZoneData.Y1, ZoneData.Z1, ZoneData.X2, ZoneData.Y2, ZoneData.Z2, 'builder', ZoneData.Owner)
             
             Zones = self.GetWorldZones(pWorld)
             if Zones is None:
@@ -85,7 +85,7 @@ class ZonePlugin(PluginBase):
             return True
         
         for pZone in Zones:
-            if pZone.CanBuild(pPlayer, x, y, z) == False:
+            if pZone.Check(pPlayer, x, y, z) == False:
                 pPlayer.SendMessage("&RYou cannot build in zone \"%s\"" % pZone.Name)
                 return False
         return True
@@ -93,13 +93,11 @@ class ZonePlugin(PluginBase):
     def OnWorldLoad(self, pWorld):
         '''Deserialize the Zones'''
         EncodedZones = self.GetWorldZones(pWorld)
-        Zones = ZoneList()
+        Zones = list()
         if EncodedZones is not None:
-            EmbeddedZoneList = ZoneList()
-            EncodedZones = EmbeddedZoneList.FromJson(EncodedZones)
             for eZone in EncodedZones:
                 pZone = Zone(pWorld)
-                Zone.FromJson(self, eZone)
+                Zone.FromJson(pZone, eZone)
                 Zones.append(pZone)
         pWorld.SetDataStoreEntry(ZonePlugin.ZoneKey, Zones)
                 
@@ -108,10 +106,10 @@ class ZonePlugin(PluginBase):
             
         
 class Zone(JsonSerializeableObject):
-    def __init__(self, pWorld, Name = '', X1 = 0, X2 = 0, Y1 = 0, Y2 = 0, Z1 = 0, Z2 = 0, MinimumRank = '', Owner = ''):
+    def __init__(self, pWorld, Name = '', X1 = 0, Y1 = 0, Z1 = 0, X2 = 0, Y2 = 0, Z2 = 0, MinimumRank = '', Owner = ''):
         self.pWorld = pWorld
         self.Name = Name
-        self.X1 = X2
+        self.X1 = X1
         self.X2 = X2
         self.Y1 = Y1
         self.Y2 = Y2
@@ -129,14 +127,16 @@ class Zone(JsonSerializeableObject):
         self.Builders = set(self.Builders)
     
     def Check(self, pPlayer, X, Y, Z):
-        return self.IsInZone(X, Y, Z) and self.CanBuild(pPlayer)
+        if self.IsInZone(X, Y, Z):
+            return self.CanBuild(pPlayer)
+        return True
     
     def IsInZone(self, X, Y, Z):
         return X >= self.X1 and X <= self.X2 and Y >= self.Y1 and Y <= self.Y2 and Z >= self.Z1 and Z <= self.Z2
         
     def CanBuild(self, pPlayer):
         if pPlayer.HasPermission(self.MinimumRank) == False:
-            if pPlayer.GetName.lower() not in self.Builders:
+            if pPlayer.GetName().lower() not in self.Builders:
                 if self.Owner != pPlayer.GetName().lower():
                     return False
         return True
@@ -151,34 +151,11 @@ class ZoneCreationData(object):
     
     def SortCoords(self):
         self.X1, self.Y1, self.Z1, self.X2, self.Y2, self.Z2 = self.ArrangeCoordinates(self.X1, self.Y1, self.Z1, self.X2, self.Y2, self.Z2)    
+        self.Z2 = self.Z2 + self.Height
         
     def ArrangeCoordinates(self, X1, Y1, Z1, X2, Y2, Z2):
         return min(X1, X2), min(Y1, Y2), min(Z1, Z2), max(X1, X2), max(Y1, Y2), max(Z1, Z2)   
          
-class ZoneList(JsonSerializeableObject):
-    '''A list that can be properly serialized'''
-    def __init__(self, iterable = None):
-        if iterable is not None:
-            self._list = list(iterable)
-        else:
-            self._list = list()
-    def __getitem__(self, Key):
-        return self._list[Key]
-    def __setitem__(self, Key, Value):
-        self._list[Key] = Value
-    def __delitem__(self, Key):
-        del self._list[Key]
-    def __contains__(self, Value):
-        return Value in self._list
-    def __iter__(self):
-        return self._list.__iter__()
-    def __reversed__(self):
-        return self._list.__reversed__()
-    def __len__(self):
-        return self._list.__len__()
-    def __getattr__(self, Name):
-        return self._list.__getattribute__(Name)
-    
 ##########################
 #        Commands        #
 ##########################
@@ -262,7 +239,7 @@ class AddZoneBuilderCmd(ZoneCommand):
         if Username in pZone.Builders:
             pPlayer.SendMessage("&RThat user is already a builder for this zone!")
             return
-        pZone.Builders.Add(Username)
+        pZone.Builders.add(Username)
         pPlayer.SendMessage("&SSuccessfully added &V%s &Sas a builder for zone \"&V%s&S\"" % (Username, pZone.Name))
         if pPlayer.ServerControl.GetPlayerFromName(Username) is not None:
             pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&SYou have been added as a builder to zone &V%s" % pZone.Name)
@@ -284,7 +261,7 @@ class DelZoneBuilderCmd(ZoneCommand):
         if Username not in pZone.Builders:
             pPlayer.SendMessage("&RThat user is not a builder for this zone!")
             return
-        pZone.DelBuilder(Username)
+        pZone.Builders.remove(Username)
         pPlayer.SendMessage("&SSuccessfully removed %s as a builder for zone &V\"%s&S\"" % (Username, pZone.Name))
         if pPlayer.ServerControl.GetPlayerFromName(Username) is not None:
             pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&SYou have been removed as a builder from zone &V\"%s&S\"" % pZone.Name)
