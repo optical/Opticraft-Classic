@@ -117,7 +117,9 @@ class Commands(PluginBase):
         self.AddCommand("backup", BackupCmd, 'admin', 'Backs up all actively running worlds', '', 0)
         self.AddCommand("setspawn", SetSpawnCmd, 'admin', 'Changes the worlds default spawn location to where you are standing', '', 0)
         self.AddCommand("tempop", TempOpCmd, 'admin', 'Grants a user operator privledges until they log off', 'Incorrect syntax! Usage: /tempop <username>', 1)
-        self.AddCommand("worldsetrank", WorldSetRankCmd, 'admin', 'Sets the minimum rank to build on a world', 'Incorrect syntax. Usage: /worldsetrank <world> <rank>', 2)
+        self.AddCommand("wbuildrank", WorldSetBuildRankCmd, 'admin', 'Sets the minimum rank to build on a world', 'Incorrect syntax. Usage: /wbuildrank <world> <rank>', 2)
+        self.AddCommand("wjoinrank", WorldSetAccessRankCmd, 'admin', 'Sets the minimum rank to join a world', 'Incorrect syntax. Usage: /wjoinrank <world> <rank>', 2)
+        self.AddCommand("waccessrank", WorldSetAccessRankCmd, 'admin', 'Sets the minimum rank to join a world', 'Incorrect syntax. Usage: /wjoinrank <world> <rank>', 2, Alias = True)
         self.AddCommand("zCreate", ZCreateCmd, 'admin', 'Creates a restricted zone', 'Incorrect syntax. Usage: /zCreate <name> <owner> <height>', 3)
         self.AddCommand("zDelete", ZDeleteCmd, 'admin', 'Deletes a restricted zone', 'Incorrect syntax. Usage: /zDelete <name>', 1)
         self.AddCommand("createworld", CreateWorldCmd, 'admin', 'Creates a new world.', 'Incorrect syntax. Usage: /createworld <name> <length> <width> <height>', 4)
@@ -220,6 +222,9 @@ class JoinWorldCmd(CommandObject):
         if pPlayer.ServerControl.Now - pPlayer.GetLastWorldChange() < 5:
             pPlayer.SendMessage("&RYou cannot change worlds that often!")
             return
+        if pPlayer.ServerControl.GetRankLevel(pPlayer.ServerControl.GetWorldJoinRank(World)) > pPlayer.GetRankLevel():
+            pPlayer.SendMessage("&RYou do not have the required rank to join that world")
+            return
         for pWorld in pPlayer.ServerControl.ActiveWorlds:
             if pWorld.Name.lower() == World.lower():
                 if pWorld.IsFull():
@@ -243,12 +248,12 @@ class WorldsCmd(CommandObject):
         pPlayer.SendMessage("&SThe following worlds are available:")
         for pWorld in ActiveWorlds:
             if pWorld.IsHidden() == 0 or All:
-                OutString += pPlayer.ServerControl.RankColours[pWorld.GetMinRank()]
+                OutString += pPlayer.ServerControl.RankColours[pWorld.GetMinimumBuildRank()]
                 OutString += pWorld.Name
                 OutString += ' '
         for WorldName in IdleWorlds:
             if pPlayer.ServerControl.IsWorldHidden(WorldName) == 0 or All:
-                OutString += pPlayer.ServerControl.RankColours[pPlayer.ServerControl.GetWorldRank(WorldName)]
+                OutString += pPlayer.ServerControl.RankColours[pPlayer.ServerControl.GetWorldBuildRank(WorldName)]
                 OutString += WorldName
                 OutString += ' '
         pPlayer.SendMessage(str(OutString), False)
@@ -864,7 +869,7 @@ class DelIPBanCmd(CommandObject):
         pPlayer.ServerControl.UnbanIP(Arg)
         pPlayer.SendMessage("&SRemoved ban on ip \"&V%s&S\"" % Arg)
 
-class WorldSetRankCmd(CommandObject):
+class WorldSetBuildRankCmd(CommandObject):
     '''Sets the mimimum rank required to build on a world'''
     def Run(self, pPlayer, Args, Message):
         WorldName = Args[0].lower()
@@ -872,16 +877,27 @@ class WorldSetRankCmd(CommandObject):
         if pPlayer.ServerControl.IsValidRank(Rank) == False:
             pPlayer.SendMessage("&RThat is not a valid rank! Valid ranks:&V %s" % pPlayer.ServerControl.GetExampleRanks())
             return
-        pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
-        if pWorld is None:
-            pPlayer.SendMessage("&RCould not change rank for that world.")
-            pPlayer.SendMessage("&RTry joining that world then setting the rank.")
-            return
+        if pPlayer.ServerControl.WorldExists(WorldName):
+            pPlayer.ServerControl.SetWorldBuildRank(WorldName, Rank.lower())
+            pPlayer.SendMessage("&SWorld \"&V%s&S\" minimum build rank is now &V%s" % (WorldName, Rank))
         else:
-            pWorld.SetMinRank(Rank.lower())
-            pPlayer.ServerControl.SetWorldRank(pWorld.Name, Rank.lower())
-            pPlayer.SendMessage("&SSuccessfully set %s to be %s only" % (pWorld.Name, Rank.capitalize()))
+            pPlayer.SendMessage("&RThat world does not exist!")
 
+class WorldSetAccessRankCmd(CommandObject):
+    '''Sets the mimimum rank required to join a world'''
+    def Run(self, pPlayer, Args, Message):
+        WorldName = Args[0].lower()
+        Rank = Args[1]
+        if pPlayer.ServerControl.IsValidRank(Rank) == False:
+            pPlayer.SendMessage("&RThat is not a valid rank! Valid ranks:&V %s" % pPlayer.ServerControl.GetExampleRanks())
+            return
+        if pPlayer.ServerControl.WorldExists(WorldName):
+            pPlayer.ServerControl.SetWorldJoinRank(WorldName, Rank.lower())
+            pPlayer.SendMessage("&SWorld \"&V%s&S\" minimum join rank is now &V%s" % (WorldName, Rank))
+        else:
+            pPlayer.SendMessage("&RThat world does not exist!")
+
+            
 class TempOpCmd(CommandObject):
     '''Handle for the /tempop command - gives a username temporary operator status'''
     def Run(self, pPlayer, Args, Message):
@@ -931,6 +947,7 @@ class ZDeleteCmd(CommandObject):
         pPlayer.ServerControl.DeleteZone(pZone)
         pPlayer.SendMessage("&SSuccessfully deleted zone &V\"%s&S\"" % pZone.Name)
         pZone.Delete()
+        
 class CreateWorldCmd(CommandObject):
     '''Handles the world cretion command'''
     def Run(self, pPlayer, Args, Message):
@@ -962,8 +979,6 @@ class CreateWorldCmd(CommandObject):
             return
         pWorld = World(pPlayer.ServerControl, Name, True, X, Y, Z)
         pPlayer.ServerControl.ActiveWorlds.append(pWorld)
-        pPlayer.ServerControl.SetWorldRank(pWorld.Name, pWorld.GetMinRank())
-        pPlayer.ServerControl.SetWorldHidden(pWorld.Name, pWorld.IsHidden())
         pWorld.SetIdleTimeout(pPlayer.ServerControl.WorldTimeout)
         pPlayer.SendMessage("&SSuccessfully created world \"&V%s&S\"" % Name)
 
@@ -979,6 +994,7 @@ class LoadWorldCmd(CommandObject):
             return
         pPlayer.ServerControl.AddWorld(WorldName)
         pPlayer.SendMessage("&SSuccessfully loaded world \"&V%s&S\"!" % WorldName)
+        
 class LoadTemplateCmd(CommandObject):
     '''Handler for the /loadtemplate command'''
     def Run(self, pPlayer, Args, Message):
@@ -993,6 +1009,7 @@ class LoadTemplateCmd(CommandObject):
         shutil.copy("Templates/%s.save" % TemplateName, "Worlds/%s.save" % WorldName)
         pPlayer.ServerControl.AddWorld(WorldName)
         pPlayer.SendMessage("&SSuccessfully loaded template \"&V%s&S\"!" % TemplateName)
+        
 class ShowTemplatesCmd(CommandObject):
     '''Handler for the /showtemplates command'''
     def Run(self, pPlayer, Args, Message):
@@ -1012,6 +1029,7 @@ class ShowTemplatesCmd(CommandObject):
             pPlayer.SendMessage("&S%s" % OutStr)
         else:
             pPlayer.SendMessage("&SThere are no templates!")
+            
 class SetDefaultWorldCmd(CommandObject):
     '''Handler for the /setdefaultworld command'''
     def Run(self, pPlayer, Args, Message):
@@ -1023,31 +1041,26 @@ class SetDefaultWorldCmd(CommandObject):
             return
         pPlayer.ServerControl.SetDefaultWorld(pWorld)
         pPlayer.SendMessage("&SDefault world changed to &V\"%s\"" % pWorld.Name)
+        
 class HideWorldCmd(CommandObject):
     '''Handler for the /hideworld command'''
     def Run(self, pPlayer, Args, Message):
         WorldName = Args[0]
-        pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
-        if pWorld is None:
-            pPlayer.SendMessage("&RCould not set world to hidden.")
-            pPlayer.SendMessage("&RTry joining the world and trying again.")
-            return
-        pWorld.SetHidden(1)
-        pPlayer.ServerControl.SetWorldHidden(pWorld.Name, 1)
-        pPlayer.SendMessage("&SWorld \"&V%s&S\" is now being hidden" % pWorld.Name)
+        if pPlayer.ServerControl.WorldExists(WorldName):
+            pPlayer.ServerControl.SetWorldHidden(WorldName, True)
+            pPlayer.SendMessage("&SWorld \"&V%s&S\" is now being hidden" % WorldName)
+        else:
+            pPlayer.SendMessage("&RThat world does not exist!")
 
 class UnHideWorldCmd(CommandObject):
     '''Handler for the /unhideworld command'''
     def Run(self, pPlayer, Args, Message):
         WorldName = Args[0]
-        pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
-        if pWorld is None:
-            pPlayer.SendMessage("&RCould not unhide world.")
-            pPlayer.SendMessage("&RTry joining the world and trying again.")
-            return
-        pWorld.SetHidden(0)
-        pPlayer.ServerControl.SetWorldHidden(pWorld.Name, 0)
-        pPlayer.SendMessage("&SWorld \"&V%s&S\" is no longer being hidden" % pWorld.Name)
+        if pPlayer.ServerControl.WorldExists(WorldName):
+            pPlayer.ServerControl.SetWorldHidden(WorldName, False)
+            pPlayer.SendMessage("&SWorld \"&V%s&S\" is no long hidden" % WorldName)
+        else:
+            pPlayer.SendMessage("&RThat world does not exist!")
 
 
 class RenameWorldCmd(CommandObject):
@@ -1115,11 +1128,9 @@ class RenameWorldCmd(CommandObject):
         if os.path.exists("Backups/%s" % OldName):
             shutil.move("Backups/%s" % OldName, "Backups/%s" % NewName)
 
-        #Update the rank-cache
-        pPlayer.ServerControl.SetWorldRank(NewName, pPlayer.ServerControl.GetWorldRank(OldName))
-        pPlayer.ServerControl.SetWorldHidden(NewName, pPlayer.ServerControl.IsWorldHidden(OldName))
-        del pPlayer.ServerControl.WorldRankCache[OldName.lower()]
-        del pPlayer.ServerControl.WorldHideCache[OldName.lower()]
+        #Update the meta-data cache
+        pPlayer.ServerControl.SetWorldMetaData(NewName, pPlayer.ServerControl.GetWorldMetaData(OldName))
+        pPlayer.ServerControl.DeleteWorldMetaData(OldName)
         #Finally, change zones.
         for pZone in pPlayer.ServerControl.GetZones():
             if pZone.Map.lower() == OldName:
@@ -1228,7 +1239,6 @@ class DeleteWorldCmd(CommandObject):
                 if pPlayer.ServerControl.EnableBlockLogs:
                     os.remove("Worlds/BlockLogs/%s.db" % WorldName)
                 pPlayer.ServerControl.IdleWorlds.remove(WorldName)
-                del pPlayer.ServerControl.WorldRankCache[WorldName.lower()]
-                del pPlayer.ServerControl.WorldHideCache[WorldName.lower()]
+                pPlayer.ServerControl.DeleteWorldMetaData(WorldName)
                 pPlayer.SendMessage("&SSuccessfully deleted world \"&V%s&S\"" % WorldName)
                 return #Done...

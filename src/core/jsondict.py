@@ -39,9 +39,9 @@ def UnicodeToStr(obj):
             Key = UnicodeToStr(Key)
             Value = UnicodeToStr(Value)
             NewDict[Key] = Value
-            return NewDict
-        else:
-            return obj
+        return NewDict
+    else:
+        return obj
 
 class JsonSerializeableObject(object):
     '''Object which can more easily be encoded to and from json'''
@@ -110,10 +110,14 @@ class PluginDict(object):
         return self._dictionary.__len__()
     def get(self, Key, Default):
         return self._dictionary.get(Key, Default)
+    def keys(self):
+        return self._dictionary.keys()
+    def items(self):
+        return self._dictionary.items() 
 
     def AsJSON(self):
         assert(self.NonJsonValues == False)
-        return json.dumps(self._dictionary, ensure_ascii = True)
+        return json.dumps(self._dictionary)
 
     @staticmethod
     def FromJSON(JSON):
@@ -125,7 +129,8 @@ class PluginDict(object):
     def _FromJSON(JSON):
         '''returns a dictionary, not a plugindict'''
         TempDict = json.loads(JSON)
-        return UnicodeToStr(TempDict)
+        y = UnicodeToStr(TempDict)
+        return y
 
 
 class JSONDict(PluginDict):

@@ -175,7 +175,7 @@ class Player(object):
             OutPacket = OptiCraftPacket(SMSG_INITIAL)
             OutPacket.WriteByte(7)
             OutPacket.WriteString(self.ServerControl.Name)
-            OutPacket.WriteString("Loading world: %s%s" % (self.ServerControl.RankColours[NewWorld.GetMinRank()], NewWorld.Name))
+            OutPacket.WriteString("Loading world: %s%s" % (self.ServerControl.RankColours[NewWorld.GetMinimumBuildRank()], NewWorld.Name))
             if self.HasPermission(self.ServerControl.AdmincreteRank):
                 OutPacket.WriteByte(0x64)
             else:
@@ -185,7 +185,7 @@ class Player(object):
             self.NewWorld = NewWorld
             self.ServerControl.PluginMgr.OnChangeWorld(self, OldWorld, NewWorld)
             if self.Invisible == False:
-                self.ServerControl.SendJoinMessage("&N%s changed map to %s%s" % (self.Name, self.ServerControl.RankColours[NewWorld.GetMinRank()], NewWorld.Name))
+                self.ServerControl.SendJoinMessage("&N%s changed map to %s%s" % (self.Name, self.ServerControl.RankColours[NewWorld.GetMinimumBuildRank()], NewWorld.Name))
         else:
             #World couldn't be loaded (Probably because the block-log is still in use)
             #This is a very very rare condition which can occur on slow computers with high load (100+ users etc)
@@ -379,7 +379,7 @@ class Player(object):
             self.RankedBy = Row["RankedBy"]
             JSONData = Row["PluginData"]
             if JSONData != "":
-                self.PermanentPluginData = PluginData.FromJSON(Row["PluginData"])
+                self.PermanentPluginData = JSONDict.FromJSON(Row["PluginData"])
 
             #Update the IpLog
             Tokens = self.LastIps.split(",")

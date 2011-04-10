@@ -34,7 +34,7 @@ from threading import Thread
 from core.console import *
 class HeartBeatController(Thread):
     def __init__(self, ServerControl):
-        Thread.__init__(self)
+        Thread.__init__(self, name = "HeartBeat Thread")
         self.daemon = True
         self.LastFetch = 0
         self.FetchInterval = 45
