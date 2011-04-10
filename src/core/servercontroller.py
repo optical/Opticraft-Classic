@@ -44,7 +44,7 @@ from core.optisockets import SocketManager
 from core.commandhandler import CommandHandler
 from core.configreader import ConfigReader
 from core.zones import Zone
-from core.world import World, WorldLoadFailedException
+from core.world import World, WorldLoadFailedException, WorldRequiresUpdateException, MetaDataKey
 from core.pluginmanager import PluginManager
 from core.asynchronousquery import AsynchronousQueryResult
 from core.constants import * 
@@ -57,7 +57,7 @@ class PlayerDbThread(threading.Thread):
     and saving player data'''
     CURRENT_VERSION = 3
     def __init__(self, ServerControl):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name = "Player DB Thread")
         self.ServerControl = ServerControl
         self.Tasks = Queue.Queue()
         self.Connection = None
@@ -324,8 +324,7 @@ class ServerController(object):
         self.Running = False
         self.ActiveWorlds = list() #A list of worlds currently running.
         self.IdleWorlds = list() #Worlds which we know exist as .save data, but aren't loaded.
-        self.WorldRankCache = dict() #Dictionary of Name:Rank values for all the worlds
-        self.WorldHideCache = dict() #Dictionary of Name:Hidden values for all the worlds
+        self.WorldMetaDataCache = dict() #Key is world name, value is its meta-data
         self.BannedUsers = dict() #Dictionary of Username:expiry (in time)
         self.BannedIPs = dict() #dictionary of IP:expiry (in time)
         self.PeriodicNotices = list() #A list of strings of message we will periodicly announce
@@ -355,20 +354,7 @@ class ServerController(object):
         self.LoadGreeting()
         self.Zones = list()
         self.LoadZones()
-        Worlds = os.listdir("Worlds")
-        for FileName in Worlds:
-            if len(FileName) < 5:
-                continue
-            if FileName[-5:] != ".save":
-                continue
-            WorldName = FileName[:-5]
-            self.WorldRankCache[WorldName.lower()], self.WorldHideCache[WorldName.lower()] = World.GetMetaData(WorldName)
-            if WorldName == self.ConfigValues.GetValue("worlds", "DefaultName", "Main"):
-                #The default world is always loaded
-                continue
-            self.IdleWorlds.append(WorldName)
-        self.ActiveWorlds.append(World(self, self.ConfigValues.GetValue("worlds", "DefaultName", "Main")))
-        self.ActiveWorlds[0].SetIdleTimeout(0) #0 - never becomes idle
+        self.LoadWorlds()
         #write out pid to opticraft.pid
         try:
             pidHandle = open("opticraft.pid", "w")
@@ -399,6 +385,7 @@ class ServerController(object):
 
     def ConvertColours(self, Message):
         return Message.replace("&S", self.StaticColour).replace("&V", self.ValueColour).replace("&N", self.NoticeColour).replace("&R", self.ErrorColour)
+
     def LoadWorld(self, Name):
         '''Name will be a valid world name (case sensitive)'''
         try:
@@ -414,12 +401,14 @@ class ServerController(object):
         self.ActiveWorlds.remove(pWorld)
         self.IdleWorlds.append(pWorld.Name)
         Console.Out("World", "World %s has been unloaded." % pWorld.Name)
+
     def GetWorlds(self):
         '''Returns a tuple of lists. First element is a list of active World pointers
         ...Second element is a list of inactive World names'''
         ActiveWorlds = [pWorld for pWorld in self.ActiveWorlds]
         InactiveWorlds = [Name for Name in self.IdleWorlds]
         return (ActiveWorlds, InactiveWorlds)
+
     def GetActiveWorld(self, WorldName):
         '''Returns a pointer to an active world with name WorldName'''
         WorldName = WorldName.lower()
@@ -427,6 +416,7 @@ class ServerController(object):
             if pWorld.Name.lower() == WorldName:
                 return pWorld
         return None
+
     def WorldExists(self, Name):
         Name = Name.lower()
         for pWorld in self.ActiveWorlds:
@@ -436,6 +426,7 @@ class ServerController(object):
             if WorldName.lower() == Name:
                 return True
         return False
+    
     def SetDefaultWorld(self, pWorld):
         self.ActiveWorlds.remove(pWorld)
         self.ActiveWorlds[0].SetIdleTimeout(self.WorldTimeout)
@@ -448,14 +439,20 @@ class ServerController(object):
             fHandle.close()
         except:
             pass
+        
     def IsWorldHidden(self, Name):
-        return self.WorldHideCache[Name.lower()]
+        return self.WorldMetaDataCache[Name.lower()][MetaDataKey.IsHidden]
     def SetWorldHidden(self, Name, Value):
-        self.WorldHideCache[Name.lower()] = Value
-    def GetWorldRank(self, Name):
-        return self.WorldRankCache[Name.lower()]
-    def SetWorldRank(self, Name, Rank):
-        self.WorldRankCache[Name.lower()] = Rank
+        self.WorldMetaDataCache[Name.lower()][MetaDataKey.IsHidden] = Value
+    def GetWorldBuildRank(self, Name):
+        return self.WorldMetaDataCache[Name.lower()][MetaDataKey.MinimumBuildRank]
+    def SetWorldBuildRank(self, Name, Rank):
+        self.WorldMetaDataCache[Name.lower()][MetaDataKey.MinimumBuildRank] = Rank
+    def GetWorldJoinRank(self, Name):
+        return self.WorldMetaDataCache[Name.lower()][MetaDataKey.MinimumJoinRank]
+    def SetWorldJoinRank(self, Name, Rank):
+        self.WorldMetaDataCache[Name.lower()][MetaDataKey.MinimumJoinRank] = Rank
+        
     def LoadBans(self):
         #Load up banned usernames.
         ExpiredUsernameBans = self.LoadBanFile("banned.txt", self.BannedUsers)
@@ -564,6 +561,42 @@ class ServerController(object):
             with open("ranks.ini", "w") as fHandle:
                 self.RankStore.write(fHandle)
 
+    def LoadWorlds(self):
+        Worlds = os.listdir("Worlds")
+        for FileName in Worlds:
+            if FileName.endswith(".save") == False:
+                continue
+            WorldName = FileName[:-5]
+            self.LoadWorldMetaData(WorldName)
+            if WorldName != self.ConfigValues.GetValue("worlds", "DefaultName", "Main"):
+                #The default world is always loaded
+                self.IdleWorlds.append(WorldName)
+                
+        self.ActiveWorlds.append(World(self, self.ConfigValues.GetValue("worlds", "DefaultName", "Main")))
+        self.ActiveWorlds[0].SetIdleTimeout(0) #0 - never becomes idle
+    
+    def LoadWorldMetaData(self, WorldName):
+        '''Attempts to load the world files meta data from disk and store it in our cache'''
+        try:
+            MetaDataBlock = World.GetMetaData(WorldName)
+            self.WorldMetaDataCache[WorldName.lower()] = MetaDataBlock
+        except WorldRequiresUpdateException, e:
+            raise e
+        except Exception, e:
+            Console.Warning("Worlds", "Could not load world %s's metadata. The world is corrupt" % WorldName)
+    
+    def GetWorldMetaData(self, WorldName):
+        '''Returns the metadata block if it exists, else returns None'''
+        return self.WorldMetaDataCache.get(WorldName.lower(), None)
+    
+    def SetWorldMetaData(self, WorldName, Value):
+        '''Sets the metadata block of the world. Called when a world is created'''
+        self.WorldMetaDataCache[WorldName.lower()] = Value
+    
+    def DeleteWorldMetaData(self, WorldName):
+        '''Removes the worlds meta data from the cache'''
+        del self.WorldMetaDataCache[WorldName.lower()]
+    
     def LoadZones(self):
         '''Loads up all the Zone objects into memory'''
         Files = os.listdir("Zones")
@@ -578,7 +611,7 @@ class ServerController(object):
         self.Zones.append(pZone)
     def AddWorld(self, WorldName):
         self.IdleWorlds.append(WorldName)
-        self.WorldRankCache[WorldName.lower()], self.WorldHideCache[WorldName.lower()] = World.GetMetaData(WorldName)
+
     def InsertZones(self, pWorld):
         '''Gives the world all its zones to worry about'''
         for pZone in self.Zones:
@@ -599,16 +632,19 @@ class ServerController(object):
             return
         for Item in Items:
             self.PeriodicNotices.append(Item[1])
+
     def LoadRules(self):
         Items = self.ConfigValues.GetItems("rules")
         Items.sort(key = lambda item: item[0])
         for Item in Items:
             self.Rules.append(Item[1])
+
     def LoadGreeting(self):
         Items = self.ConfigValues.GetItems("greeting")
         Items.sort(key = lambda item: item[0])
         for Item in Items:
             self.Greeting.append(Item[1])
+  
     def GetMemoryUsage(self):
         '''Attempts to retrieve memory usage. Works on Windows and unix like operating systems
         ...Returns a float represent how many MB is in use'''
@@ -619,6 +655,7 @@ class ServerController(object):
             if int(Result) == 0:
                 Result = self.GetMemoryUsageLinux()
             return Result
+   
     def GetMemoryUsageLinux(self):
         try:
             with open("/proc/%d/status" % os.getpid()) as fHandle:
@@ -628,12 +665,14 @@ class ServerController(object):
                         return float(Tokens[1]) / 1024.0
         except:
             return 0.0
+   
     def GetMemoryUsageUnix(self):
         try:
             proc = subprocess.Popen(["ps", "-o", "vsize", "-p", str(os.getpid())], stdout = subprocess.PIPE)
             return float(proc.communicate()[0].split()[1]) / 1024.0
         except Exception, e:
             return 0.0
+    
     def GetMemoryUsageWin32(self):
         #Source: lists.ubuntu.com/archives/bazaar-commits/2009-February/011990.html
         # lifted from:
@@ -781,7 +820,7 @@ class ServerController(object):
                     pPlayer.Disconnect("The server is full!")
                 else:
                     self.SendJoinMessage('&N%s has connected. Joined map %s%s' % (pPlayer.GetName(),
-                    self.RankColours[NewWorld.GetMinRank()], NewWorld.Name))
+                    self.RankColours[NewWorld.GetMinimumBuildRank()], NewWorld.Name))
                     NewWorld.AddPlayer(pPlayer)
                     for Line in self.Greeting:
                         pPlayer.SendMessage(Line)
@@ -908,9 +947,9 @@ class ServerController(object):
         
     def FlushBans(self):
         '''Writes bans to disk asynchronously'''
-        threading.Thread(target = ServerController._FlushBans, args = (copy.copy(self.BannedUsers),)).start()
+        threading.Thread(name = "Ban Flusher", target = ServerController._FlushBans, args = (copy.copy(self.BannedUsers),)).start()
     def FlushIPBans(self):
-        threading.Thread(target = ServerController._FlushIPBans, args = (copy.copy(self.BannedIPs),)).start()
+        threading.Thread(name = "IPBan Flusher", target = ServerController._FlushIPBans, args = (copy.copy(self.BannedIPs),)).start()
     @staticmethod
     def _FlushBans(BannedUsers):
         try:

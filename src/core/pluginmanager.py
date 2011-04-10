@@ -28,7 +28,6 @@
 '''Plugin support'''
 import inspect
 from core.console import Console
-from core.constants import UnicodeToStr
 import sys
 import json
 

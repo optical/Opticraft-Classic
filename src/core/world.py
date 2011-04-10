@@ -65,7 +65,7 @@ class SaveTask(threading.Thread):
     '''Saves the world to disk asynchronously'''   
     def __init__(self, pWorld, Verbose):
         '''Copy all the relevant data'''
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name = "SaveTask (%s)" % pWorld.Name)
         self.MetaData = copy.copy(pWorld.MetaData)
         self.Blocks = copy.copy(pWorld.Blocks)
         self.DataStore = pWorld.DataStore
@@ -84,6 +84,8 @@ class SaveTask(threading.Thread):
         JSON MetaDataObject (dictionary of string -> value)
         int32 DataBlockSize in bytes
         JSON DataBlock (dictionary of string -> value)
+        int32 gzipped block size
+        gzip Blocks
         '''
         start = time.time()
         try:
@@ -93,17 +95,18 @@ class SaveTask(threading.Thread):
         except:
             Console.Error("World", "Failed to saved world %s to disk." % self.Name)
         fHandle.write(struct.pack("h", World.VERSION))
-        JSONMetaData = self.MetaData.AsJson()
-        fHandle.write(struct.pack("h", len(JSONMetaData)))
+        JSONMetaData = self.MetaData.AsJSON()
+        fHandle.write(struct.pack("i", len(JSONMetaData)))
         fHandle.write(JSONMetaData)
-        CompressedBlocks = cStringIO.StringIO("wb")
+        JSONDataStore = self.DataStore.AsJSON()
+        fHandle.write(struct.pack("i", len(JSONDataStore)))
+        fHandle.write(JSONDataStore)
+        CompressedBlocks = cStringIO.StringIO()
         gzipHandle = gzip.GzipFile(fileobj = CompressedBlocks, mode = "wb", compresslevel = self.CompressionLevel)
         gzipHandle.write(self.Blocks.tostring())
-        gzipHandle.close()
-        self.DataStore[DataStoreKey.Blocks] = CompressedBlocks.getvalue()
-        JSONDataStore = self.DataStore.AsJson()
-        fHandle.write(struct.pack("h", len(JSONDataStore)))
-        fHandle.write(JSONDataStore)
+        gzipHandle.close()        
+        fHandle.write(struct.pack("i", len(CompressedBlocks.getvalue())))
+        fHandle.write(CompressedBlocks.getvalue())
         fHandle.close()
         try:
             shutil.copy("Worlds/%s.temp" % (self.Name), "Worlds/%s.save" % (self.Name))
@@ -120,7 +123,7 @@ class AsynchronousIOThread(threading.Thread):
     '''Performs operations on the sqlite DB asynchronously to avoid long blocking
     ...waits for the disk'''
     def __init__(self, pWorld):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name = "BlockLog Thread (%s)" % pWorld.Name)
         self.daemon = True
         self.WorldName = pWorld.Name
         self.World = pWorld
@@ -259,6 +262,8 @@ class AsynchronousIOThread(threading.Thread):
         
 class WorldLoadFailedException(Exception):
     pass
+class WorldRequiresUpdateException(Exception):
+    pass
 
 class MetaDataKey(object):
     '''Enum for all required (core) metadata keys'''
@@ -272,12 +277,12 @@ class MetaDataKey(object):
     SpawnPitch = "SpawnPitch"
     MinimumBuildRank = "MinimumBuildRank"
     MinimumJoinRank = "MinimumJoinRank"
-    CreationDate = "CreationDate"
+    CreationDate = "CreationDate" #Integer value
     IsHidden = "Hidden"
     
 class DataStoreKey(object):
-    '''Enum for all required datablock keys'''
-    Blocks = "Blocks"  
+    '''Enum for all required datablock keys (None, as of yet)'''
+    pass
       
 class World(object):
     VERSION = 2
@@ -361,6 +366,8 @@ class World(object):
         JSON MetaDataObject (dictionary of string -> value)
         int32 DataBlockSize in bytes
         JSON DataBlock (dictionary of string -> value)
+        int32 gzipped blocks size
+        gzip Block
         '''
         start = time.time()
         rHandle = cStringIO.StringIO()
@@ -377,34 +384,35 @@ class World(object):
             Version = struct.unpack("h", rHandle.read(2))[0] #Unused for now
             if Version == 1:
                 Console.Error("World", "You have not ran the update script for upgrading from version 0.1 to 0.2. See the Readme for more information!")
-                raise Exception
+                raise WorldRequiresUpdateException
             elif Version != World.VERSION:
                 Console.Error("World", "Unknown map version (%d) found on world %s. Unable to load." % (Version, self.Name))
                 return False
             MetaDataLength = struct.unpack("i", rHandle.read(4))[0]
             #MetaData is managed by ServerControl, seek ahead and get copy from it.
-            rHandle.seek(os.SEEK_CUR, MetaDataLength)
-            self.MetaData = self.ServerControl.GetWorldMetaData(self)
+            rHandle.read(MetaDataLength)
+            self.MetaData = self.ServerControl.GetWorldMetaData(self.Name)
             DataStoreLength = struct.unpack("i", rHandle.read(4))[0]
             self.DataStore = JSONDict.FromJSON(rHandle.read(DataStoreLength))
-            #Data store contains the gzipped version of the block array
-            #Setup an unzipped version in memory.
-            BlockHandle = cStringIO.StringIO(self.GetDataStoreEntry(DataStoreKey.Blocks))
-            gzipHandle = gzip.GzipFile(fileobj = BlockHandle, mode = "rb")
-            self.Blocks.fromstring(gzipHandle.read())
-            gzipHandle.close()
-            BlockHandle.close()          
+            BlockSize = struct.unpack("i", rHandle.read(4))
+            gzipHandle = gzip.GzipFile(fileobj = rHandle, mode = "rb")
+            self.Blocks.fromstring(gzipHandle.read(BlockSize))
+            gzipHandle.close() 
             rHandle.close()
             
             #MetaData setup
             self.SetCoordinatesFromMetaData()
+            self.ValidateMetaData()
             Console.Out("World", "Loaded world %s in %dms" % (self.Name, int((time.time() - start) * 1000)))
             
             #Ensure the data is not corrupt in some way
             assert(len(self.Blocks) == self.X * self.Y * self.Z)
-        except:
-            Console.Warning("World", "Failed to load map '%s'.save The save file is out of date or corrupt." % self.Name)
-            return False
+            assert(self.MetaData is not None)
+        except WorldRequiresUpdateException, e:
+            raise e
+        #except Exception:
+        #    Console.Warning("World", "Failed to load map '%s'.save The save file is out of date or corrupt." % self.Name)
+        #    return False
     
     def Save(self, Verbose = True):
         '''The map file is a file of the following format:
@@ -438,6 +446,21 @@ class World(object):
         self.X = self.GetMetaDataEntry(MetaDataKey.X)
         self.Y = self.GetMetaDataEntry(MetaDataKey.Y)
         self.Z = self.GetMetaDataEntry(MetaDataKey.Z)
+    
+    def ValidateMetaData(self):
+        '''Ensures all required keys are present'''
+        assert(self.HasMetaDataEntry(MetaDataKey.X))
+        assert(self.HasMetaDataEntry(MetaDataKey.Y))
+        assert(self.HasMetaDataEntry(MetaDataKey.Z))
+        assert(self.HasMetaDataEntry(MetaDataKey.SpawnX))
+        assert(self.HasMetaDataEntry(MetaDataKey.SpawnY))
+        assert(self.HasMetaDataEntry(MetaDataKey.SpawnZ))
+        assert(self.HasMetaDataEntry(MetaDataKey.SpawnOrientation))
+        assert(self.HasMetaDataEntry(MetaDataKey.SpawnPitch))
+        assert(self.HasMetaDataEntry(MetaDataKey.CreationDate))
+        assert(self.HasMetaDataEntry(MetaDataKey.MinimumBuildRank))
+        assert(self.HasMetaDataEntry(MetaDataKey.MinimumJoinRank))
+        assert(self.HasMetaDataEntry(MetaDataKey.IsHidden))
     
     #####################################################
     #            Meta-Data acessors and mutators        #
@@ -489,7 +512,35 @@ class World(object):
     def SetCreationDate(self, Value):
         return self.SetMetaDataEntry(MetaDataKey.CreationDate, Value)
     
-    #End of MetaData Accessors and mutators
+    ########################################
+    #End of MetaData Accessors and mutators#
+    ########################################
+    
+    #####################################################
+    #            DataStore acessors and mutators        #
+    #####################################################
+    
+    def GetDataStoreEntry(self, Key):
+        return self.DataStore[Key]
+    def SetDataStoreEntry(self, Key, Value):
+        self.DataStore[Key] = Value
+    def HasDataStoreEntry(self, Key):
+        return Key in self.DataStore
+    
+    def GetGzippedBlockStore(self):
+        '''This returns the gzipped block store.
+        ...This will most likely contain the value of the store as at
+        ...The time of the world being loaded, but this is not guaranteed.
+        ...If you are looking for the actual block values. See World.Blocks (self.Blocks)'''
+        return self.GetDataStoreEntry(DataStoreKey.Blocks)
+    def SetGzippedBlockStore(self, Value):
+        '''Sets the value of the gzipped block store,
+        ...This has no real use other then to initialise it on a new world'''
+        self.SetDataStoreEntry(DataStoreKey.Blocks, Value)
+    
+    ########################################
+    #End of DataStore Accessors and mutators#
+    ########################################    
     def InsertZone(self, pZone):
         self.Zones.append(pZone)
     def GetZone(self, Name):
@@ -524,7 +575,7 @@ class World(object):
             return True #Cant set that block. But don't return False or it'll try "undo" the change!
         if val >= BLOCK_END:
             return False #Fake block type...
-        if pPlayer.HasPermission(self.GetMinRank()) == False:
+        if pPlayer.HasPermission(self.GetMinimumBuildRank()) == False:
             pPlayer.SendMessage(self.MinRankMessage)
             return False
         ArrayValue = self._CalculateOffset(x, y, z)
@@ -696,12 +747,25 @@ class World(object):
         self.SetSpawnOrientation(o)
         self.SetSpawnPitch(p)
 
-
-
     def InitialiseBuiltInMetaData(self):
+        '''Inserts all the mandatory, built in meta data
+        ...This is called after GenerateGenericWorld. 
+        ...So some values are inserted there.'''
+        self.SetMetaDataEntry(MetaDataKey.X, self.X)
+        self.SetMetaDataEntry(MetaDataKey.Y, self.Y)
+        self.SetMetaDataEntry(MetaDataKey.Z, self.Z)
+        #Spawn values should be set at this stage.
+        self.SetCreationDate(int(self.ServerControl.Now))
+        self.SetMinimumBuildRank('guest')
+        self.SetMinimumJoinRank('spectator')
+        self.SetHidden(False)
+    
+    def InitialiseBuiltInDataStore(self):
+        '''Insert all the mandatory, built in data store entries
+        ...This is called after GenerateGenericWorld. 
+        ...So some values are inserted there.'''
         pass
-    
-    
+        
     def GenerateGenericWorld(self, x = 512, y = 512, z = 96):
         '''Generates a flatgrass world'''
         self.X, self.Y, self.Z = x, y, z
@@ -717,7 +781,7 @@ class World(object):
             if z < SandLevel:
                 Block = chr(BLOCK_ROCK)
             elif z >= SandLevel and z < GrassLevel:
-                Block = chr(BLOCK_SAND)
+                Block = chr(BLOCK_DIRT)
             elif z == GrassLevel:
                 Block = chr(BLOCK_GRASS)
             else:
@@ -726,7 +790,7 @@ class World(object):
         self.IsDirty = True
         self.InitialiseBuiltInMetaData()
         self.InitialiseBuiltInDataStore()
-        
+        self.ServerControl.SetWorldMetaData(self.Name, self.MetaData)
         self.Save(False)
 
     def Unload(self):
@@ -1010,19 +1074,15 @@ class World(object):
     def GetMetaData(Name):
         '''Loads metadata from the world file, return type is the MetaDataDictionary
         ...It does not ensure the metadata contains all necessary keys'''
-        try:
-            with open("Worlds/%s.save" % Name) as fHandle:
-                Version = struct.unpack("i", fHandle.read(4))[0]
-                if Version == 1:
-                    Console.Error("World", "You have not run the 0.1 to 0.2 update. Refer to the readme for more information")
-                    raise Exception("World file %s out of date" % Name)
-                elif Version != World.VERSION:
-                    raise Exception("World file %s has unknown version" % Name)
-                MetaDataLen = struct.unpack("i", fHandle.read(4))
-                EncodedJson = fHandle.read(MetaDataLen)
-                MetaData = JSONDict.FromJSON(EncodedJson)
-                return MetaData
-        except:
-            pass
-        return None
-
+        with open("Worlds/%s.save" % Name) as fHandle:
+            Version = struct.unpack("h", fHandle.read(2))[0]
+            if Version == 1:
+                Console.Error("World", "You have not run the 0.1 to 0.2 update. Refer to the readme for more information")
+                raise WorldRequiresUpdateException("World file %s out of date" % Name)
+            elif Version != World.VERSION:
+                raise Exception("World file %s has unknown version" % Name)
+            MetaDataLen = struct.unpack("i", fHandle.read(4))[0]
+            EncodedJson = fHandle.read(MetaDataLen)
+            MetaData = JSONDict.FromJSON(EncodedJson)
+            return MetaData
+    
