@@ -274,7 +274,7 @@ class zSetMinRankCmd(ZoneCommand):
         if pPlayer.ServerControl.IsValidRank(Rank) != True:
             pPlayer.SendMessage("&RInvalid rank! Valid ranks are: %s" % pPlayer.ServerControl.GetExampleRanks())
             return
-        pZone = pPlayer.GetWorld().GetZone(ZoneName)
+        pZone = self.GetZone(pPlayer.GetWorld(), ZoneName)
         if pZone is None:
             pPlayer.SendMessage("&RNo such zone exists on this map")
             return
@@ -290,7 +290,7 @@ class zChangeOwnerCmd(ZoneCommand):
     def Run(self, pPlayer, Args, Message):
         ZoneName = Args[0]
         Username = Args[1]
-        pZone = pPlayer.GetWorld().GetZone(ZoneName)
+        pZone = self.GetZone(pPlayer.GetWorld(), ZoneName)
         if pZone is None:
             pPlayer.SendMessage("&RNo such zone exists on this map")
             return
