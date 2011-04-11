@@ -878,6 +878,7 @@ class ServerController(object):
             asyncore.loop(timeout = 0.01, count = 1)
 
     def OnIRCDisconnect(self):
+        return
         self.IRCReconnect = self.Now + 30
         Console.Out("IRC", "Disconnected from IRC. Attempting reconnect in 30 seconds")
 
