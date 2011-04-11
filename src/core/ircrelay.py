@@ -84,8 +84,8 @@ class RelayBot(IRCClient):
                 else:
                     self.ServerControl.SendChatMessage('&3[IRC]&5 *%s' % Username, Message[6:], NewLine = "&5", NormalStart = False)
 
-    def handle_close(self):
-        self.ServerControl.OnIRCDisconnect()
+    #def handle_close(self):
+        #self.ServerControl.OnIRCDisconnect()
     def Connect(self):
         Console.Out("IRC", "Connecting to irc server %s on port %d" % (self.Host, self.Port))
         self.connect((self.Host, self.Port))
