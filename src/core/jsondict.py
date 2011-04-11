@@ -143,7 +143,7 @@ class PluginDict(object):
     
     def __getattr__(self, Name):
         '''Try grab from our dictionary'''
-        return self._dictionary.__getattribute__(Name)
+        return self.__dict__['dictionary'].__getattribute__(Name)
 
     def AsJSON(self):
         assert(self.NonJsonValues == False)
