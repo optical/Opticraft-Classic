@@ -54,7 +54,6 @@ class DrawCommandPlugin(PluginBase):
             pPlayer.SetPluginData(DRAW_KEY, None)
     
     def RegisterCommands(self):
-        self.AddCommand("place", PlaceCommand, 'builder', 'Use instead of placing a block during a draw command', '', 0)
         self.AddCommand("cancel", CancelCommand, 'builder', 'Cancels your current draw command', '', 0)
         self.AddCommand("measure", MeasureCommand, 'guest', 'Measures the distance between two points', '', 0)
         self.AddCommand("cuboid", CuboidCommand, 'builder', 'Used to create large cuboids of blocks', 'Incorrect syntax! Usage: /cuboid <material>', 1)
@@ -74,14 +73,6 @@ class CancelCommand(CommandObject):
         else:
             pPlayer.SendMessage("&RYou are not currently using a draw command!")
 
-class PlaceCommand(CommandObject):
-    def Run(self, pPlayer, Args, Message):
-        DrawObject = pPlayer.GetPluginData(DRAW_KEY)
-        if DrawObject is None:
-            pPlayer.SendMessage("&RYou are not currently using a draw command!")
-        else:
-            DrawObject.OnAttemptPlaceBlock(pPlayer.GetWorld(), BLOCK_ROCK, pPlayer.GetX() / 32, pPlayer.GetY() / 32, pPlayer.GetZ() / 32)
-   
 class CuboidCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Material = ' '.join(Args)
