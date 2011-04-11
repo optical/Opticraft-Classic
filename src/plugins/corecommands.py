@@ -956,10 +956,6 @@ class RenameWorldCmd(CommandObject):
         #Update the meta-data cache
         pPlayer.ServerControl.SetWorldMetaData(NewName, pPlayer.ServerControl.GetWorldMetaData(OldName))
         pPlayer.ServerControl.DeleteWorldMetaData(OldName)
-        #Finally, change zones.
-        for pZone in pPlayer.ServerControl.GetZones():
-            if pZone.Map.lower() == OldName:
-                pZone.SetMap(NewName)
         pPlayer.SendMessage("&SSuccessfully renamed map %s to %s" % (OldName, NewName))
 
 class PluginCmd(CommandObject):
@@ -1056,11 +1052,6 @@ class DeleteWorldCmd(CommandObject):
                 #erasing time
                 WorldName = IdleWorldName
                 os.remove("Worlds/%s.save" % WorldName)
-                ZoneList = pPlayer.ServerControl.GetZones()[:] #Copy so we can erase from the list during iteration
-                for pZone in ZoneList:
-                    if pZone.Map == WorldName:
-                        pPlayer.ServerControl.DeleteZone(pZone)
-                        pZone.Delete()
                 if pPlayer.ServerControl.EnableBlockLogs:
                     os.remove("Worlds/BlockLogs/%s.db" % WorldName)
                 pPlayer.ServerControl.IdleWorlds.remove(WorldName)
