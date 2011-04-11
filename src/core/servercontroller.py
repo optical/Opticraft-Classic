@@ -595,6 +595,7 @@ class ServerController(object):
     
     def AddWorld(self, WorldName):
         self.IdleWorlds.append(WorldName)
+        self.LoadWorldMetaData(WorldName)
 
     def LoadAnnouncements(self):
         Items = self.ConfigValues.GetItems("announcements")
