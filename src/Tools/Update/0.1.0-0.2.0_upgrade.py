@@ -30,6 +30,7 @@ import struct
 import array
 import time
 import os
+import ConfigParser
 
 class World(object):
     Version = 2
@@ -117,10 +118,77 @@ def ConvertWorlds():
             
     print "Converted all worlds in %.3f seconds" % (time.time() - start)
 
+def ConvertZones():
+    start = time.time()
+    print "Loading zones...."
+    zonestart = time.time()
+    Zones = dict() #Key is worldname
+    for Filename in os.listdir('../../Zones/'):
+        if Filename.endswith('.ini'):
+            Zone = dict()
+            Conf = ConfigParser.RawConfigParser()
+            Conf.read('../../Zones/' + Filename)
+            Zone['Name'] = Conf.get('Info', 'Name')
+            Zone['X1'] = int(Conf.get('Info', 'x1'))
+            Zone['X2'] = int(Conf.get('Info', 'x2'))
+            Zone['Y1'] = int(Conf.get('Info', 'y1'))
+            Zone['Y2'] = int(Conf.get('Info', 'y2'))
+            Zone['Z1'] = int(Conf.get('Info', 'z1'))
+            Zone['Z2'] = int(Conf.get('Info', 'z2'))
+            Zone['Owner'] = Conf.get('Info', 'owner')
+            Zone['MinimumRank'] = Conf.get('Info', 'minrank')
+            Zone['Builders'] = list()
+            CurWorld = Conf.get('Info', 'map')
+            for Item, Junk in Conf.items('Builders'):
+                Zone['Builders'].append(Item)
+            ZoneList = Zones.get(Conf.get('Info', 'map'), None)
+            if ZoneList is None:
+                ZoneList = list()
+                Zones[Conf.get('Info', 'map')] = ZoneList
+            ZoneList.append(Zone)
+            print "Loaded zone %s." % Zone['Name']
+            
+    print "Loaded zones in %.3f seconds" % (time.time() - zonestart)
+    #Rewrite worlds with zone data...
+    print "Converting world zones..."
+    worldstart = time.time()
+    for WorldName in Zones:
+        #Read the world
+        with open("../../Worlds/%s.save" % WorldName, "rb") as fHandle:
+            
+            Version = struct.unpack("h", fHandle.read(2))[0]
+            if Version != World.Version:
+                Console.Error("World", "Unknown map version (%d) found on world %s. Unable to convert its zones." % (Version, self.Name))
+                return False
+            MetaDataLength = struct.unpack("i", fHandle.read(4))[0]
+            MetaData = json.loads(fHandle.read(MetaDataLength))
+            DataStoreLength = struct.unpack("i", fHandle.read(4))[0]
+            DataStore = json.loads(fHandle.read(DataStoreLength))
+            DataStore["Zones"] = Zones[WorldName]
+            BlockSize = struct.unpack("i", fHandle.read(4))[0]
+            Blocks = fHandle.read(BlockSize)
+            
+        #Write it out again
+        with open("../../Worlds/%s.save" % WorldName, "wb") as fHandle:
+            fHandle.write(struct.pack("h", World.Version))
+            JSONMetaData = json.dumps(MetaData)
+            fHandle.write(struct.pack("i", len(JSONMetaData)))
+            fHandle.write(JSONMetaData)
+            JSONDataStore = json.dumps(DataStore)
+            fHandle.write(struct.pack("i", len(JSONDataStore)))
+            fHandle.write(JSONDataStore)
+            fHandle.write(struct.pack("i", len(Blocks)))
+            fHandle.write(Blocks)
+            
+        print "Converted zones on world %s" % WorldName
+    print "Converted all world zones in %.3f seconds" % (time.time() - worldstart)
+    print "Converted all zones in %.3f seconds" % (time.time() - start)
+    
 def Main():
     start = time.time()
     print "Starting update process for version 0.1 to 0.2.."
     ConvertWorlds()
+    ConvertZones()
     print "Conversion process complete. Took %.3f seconds" % (time.time() - start)
     raw_input("Press enter to terminate")
 
