@@ -59,6 +59,7 @@ class Commands(PluginBase):
         self.AddCommand("goto", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1, Alias = True)
         self.AddCommand("gps", GPSCmd, 'guest', 'Returns your current position', '', 0)
         self.AddCommand("grass", GrassCmd, 'guest', 'Allows you to place grass', '', 0)
+        self.AddCommand("place", PlaceCommand, 'guest', 'Places a block where you are standing', '', 0)
         self.AddCommand("paint", PaintCmd, 'guest', 'When you destroy a block it will be replaced by what you are currently holding', '', 0)
         self.AddCommand("sinfo", sInfoCmd, 'guest', 'Displays information about the server', '', 0)
         self.AddCommand("info", sInfoCmd, 'guest', 'Displays information about the server', '', 0, Alias = True)
@@ -196,6 +197,11 @@ class AboutCmd(CommandObject):
         else:
             pPlayer.SendMessage("&RBlock history is disabled")
 
+class PlaceCommand(CommandObject):
+    def Run(self, pPlayer, Args, Message):
+        pPlayer.GetWorld().AttemptSetBlock(pPlayer, pPlayer.GetX() / 32, pPlayer.GetY() / 32, pPlayer.GetZ() / 32, pPlayer.LastBlock, ResendToClient = True)
+        pPlayer.SendMessage("&SBlock placed")
+        
 class JoinWorldCmd(CommandObject):
     '''Handler for the /join command. Changes the players world'''
     def Run(self, pPlayer, Args, Message):

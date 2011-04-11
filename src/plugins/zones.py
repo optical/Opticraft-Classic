@@ -49,10 +49,13 @@ class ZonePlugin(PluginBase):
         self.AddCommand("zdelbuilder", DelZoneBuilderCmd, 'guest', 'Deletes a builder from a zone', 'Incorrect syntax! Usage: /zdelbuilder <zone> <username>', 2)
         self.AddCommand("zsetrank", zSetMinRankCmd, 'guest', 'Changes the minimum non zone-builder rank required to build on this zone', 'Incorrect syntax! Usage: /zsetrank <zone> <rank>', 2)
         self.AddCommand("zsetowner", zChangeOwnerCmd, 'guest', 'Changes the owner of a zone', 'Incorrect syntax! Usage: /zsetowner <zone> <username>', 2)
-        self.AddCommand("zCreate", ZCreateCmd, 'admin', 'Creates a restricted zone', 'Incorrect syntax. Usage: /zCreate <name> <owner> <height>', 3)
+        self.AddCommand("zRename", zRenameCmd, 'admin', 'Renames a restricted zone', 'Incorrect syntax. Usage: /zRename <name> <newname>', 2)
+        self.AddCommand("zCreate", ZCreateCmd, 'admin', 'Creates a restricted zone', 'Incorrect syntax. Usage: /zCreate <name> <owner>', 2)
         self.AddCommand("zDelete", ZDeleteCmd, 'admin', 'Deletes a restricted zone', 'Incorrect syntax. Usage: /zDelete <name>', 1)
 
     def ZoneCreationCheck(self, pWorld, pPlayer, BlockValue, x, y, z):
+        if BlockValue == BLOCK_AIR:
+            return
         ZoneData = pPlayer.GetPluginData(ZonePlugin.ZoneCreationKey)
         if ZoneData is None:
             return True
@@ -142,16 +145,14 @@ class Zone(JsonSerializeableObject):
         return True
 
 class ZoneCreationData(object):
-    def __init__(self, ZoneName, Owner, Height):
+    def __init__(self, ZoneName, Owner):
         self.Name = ZoneName
-        self.Height = Height
         self.X1, self.X2, self.Y1, self.Y2, self.Z1, self.Z2 = -1, -1, -1, -1, -1, -1
         self.FirstPlacement = True
         self.Owner = Owner
     
     def SortCoords(self):
         self.X1, self.Y1, self.Z1, self.X2, self.Y2, self.Z2 = self.ArrangeCoordinates(self.X1, self.Y1, self.Z1, self.X2, self.Y2, self.Z2)    
-        self.Z2 = self.Z2 + self.Height
         
     def ArrangeCoordinates(self, X1, Y1, Z1, X2, Y2, Z2):
         return min(X1, X2), min(Y1, Y2), min(Z1, Z2), max(X1, X2), max(Y1, Y2), max(Z1, Z2)   
@@ -295,7 +296,7 @@ class zChangeOwnerCmd(ZoneCommand):
             pPlayer.SendMessage("&RNo such zone exists on this map")
             return
         if pPlayer.GetName().lower() != pZone.Owner.lower():
-            if pPlayer.HasPermission('owner') == False:
+            if pPlayer.HasPermission('admin') == False:
                 pPlayer.SendMessage("&RYou are not allowed to change this zones owner!")
                 return
         Username = Username.lower()
@@ -304,6 +305,23 @@ class zChangeOwnerCmd(ZoneCommand):
         if pPlayer.ServerControl.GetPlayerFromName(Username) is not None:
             pPlayer.ServerControl.GetPlayerFromName(Username).SendMessage("&SYou have been set as the owner of zone &V\"%s&S\"" % pZone.Name)
 
+class zRenameCmd(ZoneCommand):
+    def Run(self, pPlayer, Args, Message):  
+        Name = Args[0]
+        NewName = Args[1]
+        if NewName.isalnum() == False:
+            pPlayer.SendMessage("&RInvalid name!")
+            return
+        if self.GetZone(pPlayer.GetWorld(), NewName) is not None:
+            pPlayer.SendMessage("&RA Zone with that name already exists!")
+            return
+        pZone = self.GetZone(pPlayer.GetWorld(), Name)
+        if pZone is None:
+            pPlayer.SendMessage("&RThat zone does not exist!")
+            return
+        pZone.Name = NewName
+        pPlayer.SendMessage("&SZone \"&V%s&S\" renamed to \"&V%s&S\"" % (Name, NewName))
+        
 class ZCreateCmd(ZoneCommand):
     def Run(self, pPlayer, Args, Message):
         Name = Args[0]
@@ -311,20 +329,12 @@ class ZCreateCmd(ZoneCommand):
             pPlayer.SendMessage("&RInvalid name!")
             return
         Owner = Args[1]
-        Height = Args[2]
-        try:
-            Height = int(Height)
-        except:
-            pPlayer.SendMessage("&RHeight must be a valid integer")
-            return
-        if Height <= 0:
-            pPlayer.SendMessage("&RHeight must be at least 1!")
         if self.GetZone(pPlayer.GetWorld(), Name) is not None:
             pPlayer.SendMessage("&RA Zone with that name already exists!")
             return
-        pPlayer.SendMessage("&SYou have started the zone creation process. Please place a block where you want the first corner of the zone to be")
-        pPlayer.SendMessage("&SRemember, zones are cuboids. You will place two blocks to represent the zone")
-        pPlayer.SetPluginData(ZonePlugin.ZoneCreationKey, ZoneCreationData(Name, Owner, Height))
+        pPlayer.SendMessage("&SPlace two blocks to define the cuboid that will be the zone.")
+        pPlayer.SendMessage("&SYou can place a block using /place")
+        pPlayer.SetPluginData(ZonePlugin.ZoneCreationKey, ZoneCreationData(Name, Owner))
 
 class ZDeleteCmd(ZoneCommand):
     '''Delete zone handler. This deletes a zone from a map'''

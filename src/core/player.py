@@ -534,6 +534,7 @@ class Player(object):
             y = Packet.GetInt16()
             Mode = Packet.GetByte()
             Block = Packet.GetByte()
+            self.LastBlock = Block
             Result = None
             #Flood detection
             if self.ServerControl.BlockChangePeriod and self.Rank == 'guest':
@@ -647,6 +648,7 @@ class Player(object):
         self.LoginTime = int(self.ServerControl.Now)
         self.BannedBy = ''
         self.RankedBy = ''
+        self.LastBlock = BLOCK_ROCK
         self.LastPlayedTimeUpdate = self.LoginTime
         self.LastAction = self.LoginTime
         self.FloodPeriodCount = 0
