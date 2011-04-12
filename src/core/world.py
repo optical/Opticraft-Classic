@@ -584,7 +584,7 @@ class World(object):
         if val == BLOCK_STEP and z > 0:
             BlockBelow = self._CalculateOffset(x, y, z - 1)
             if ord(self.Blocks[BlockBelow]) == BLOCK_STEP:
-                if  self.AttemptSetBlock(pPlayer, x, y, z - 1, BLOCK_DOUBLESTEP, ResendToClient, AutomatedChange):
+                if  self.AttemptSetBlock(pPlayer, x, y, z - 1, BLOCK_DOUBLESTEP, True, AutomatedChange):
                     return False
         if ord(self.Blocks[ArrayValue]) == BLOCK_HARDROCK:
             if pPlayer.HasPermission(self.ServerControl.AdmincreteRank) == False:
