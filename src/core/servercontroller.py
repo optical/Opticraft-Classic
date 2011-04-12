@@ -955,7 +955,7 @@ class ServerController(object):
             pPlayer.Disconnect("You are banned from this server")
             return True
         else:
-            self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set BannedBy = ? where Username = ?", (Initiator.GetName(), Username.lower())])
+            self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set BannedBy = ? where Username = ?", (Initiator, Username.lower())])
             return False
     def AddIPBan(self, Initiator, IP, Expiry, Verbose = True):
         self.BannedIPs[IP] = Expiry
