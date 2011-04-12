@@ -40,7 +40,7 @@ LOCK_LEVEL = 35000 #35,000 block changes results in the map being resent to prev
 class DrawCommandPlugin(PluginBase):
     def OnLoad(self):
         self.PluginMgr.RegisterHook(self, self.OnAttemptPlaceBlock, Hooks.ON_ATTEMPT_PLACE_BLOCK)
-        self.PluginMgr.RegisterHook(self, self.OnWorldChange, Hooks.ON_CHANGE_WORLD)
+        self.PluginMgr.RegisterHook(self, self.OnWorldChange, Hooks.ON_PLAYER_CHANGE_WORLD)
         self.RegisterCommands()
         
     def OnAttemptPlaceBlock(self, pWorld, pPlayer, BlockValue, x, y, z):

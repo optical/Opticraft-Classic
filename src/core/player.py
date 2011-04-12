@@ -321,7 +321,7 @@ class Player(object):
         '''Returns values which persist in the database
         ...Key must be a string, value must be json encodeable'''
         return self.PermanentPluginData.get(Key, None)
-    def SetPermnanentPluginData(self, Key, Value):
+    def SetPermanentPluginData(self, Key, Value):
         '''Sets values which persist in the database
         ...Key must be a string, value must be json encodeable'''
         self.PermanentPluginData[Key] = Value

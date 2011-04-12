@@ -569,17 +569,19 @@ class World(object):
         #Too far away!
         if not AutomatedChange and pPlayer.CalcDistance(x, y, z) > 10 and pPlayer.GetRank() == 'guest':
             return False
-        #Plugins
-        if self.ServerControl.PluginMgr.OnAttemptPlaceBlock(self, pPlayer, val, x, y, z) == False:
-            return False
         if pPlayer.GetAboutCmd() == True:
             self.HandleAboutCmd(pPlayer, x, y, z)
-            return False
-        
+            return False  
         if not AutomatedChange and val in DisabledBlocks and pPlayer.GetBlockOverride() != val:
             pPlayer.SendMessage("&RThat block is disabled!")
             return False
-        
+        #Plugins
+        PluginResult = self.ServerControl.PluginMgr.OnAttemptPlaceBlock(self, pPlayer, val, x, y, z)
+        if PluginResult != True:
+            if PluginResult == False:
+                return False
+            else:
+                return True #Fail silently (Will rewrite this if we end up needing multiple return types for other plugin hooks
         #Temporary code to make "steps" function normally.
         if val == BLOCK_STEP and z > 0:
             BlockBelow = self._CalculateOffset(x, y, z - 1)
@@ -603,9 +605,10 @@ class World(object):
         cval = chr(val)
         if self.Blocks[ArrayValue] == cval:
             return
+        OldValue = ord(self.Blocks[ArrayValue])
         self.Blocks[ArrayValue] = cval
         self.IsDirty = True
-        self.ServerControl.PluginMgr.OnPostPlaceBlock(self, pPlayer, val, x, y, z)
+        self.ServerControl.PluginMgr.OnPostPlaceBlock(self, pPlayer, OldValue, val, x, y, z)
         if self.IsLocked == True:
             return
         Packet = OptiCraftPacket(SMSG_BLOCKSET)
