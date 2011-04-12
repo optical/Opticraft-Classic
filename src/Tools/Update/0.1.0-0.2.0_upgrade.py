@@ -58,10 +58,10 @@ class MetaDataKey(object):
     IsHidden = "Hidden"
 
 
-def ConvertWorld(WorldName):
+def ConvertWorld(Path, WorldName):
     start = time.time()
     print "Converting world %s..." % WorldName,
-    with open("../../Worlds/%s" % WorldName, "rb") as rHandle:
+    with open(Path + WorldName, "rb") as rHandle:
         Version = struct.unpack("h", rHandle.read(2))[0] #Unused for now
         if Version != 1:
             print "Unknown map version %d found on world %s. Unable to convert." % (Version, WorldName)
@@ -83,7 +83,7 @@ def ConvertWorld(WorldName):
         CompressedBlocks = rHandle.read()
         
     #Now write it out
-    with open("../../Worlds/%s" % WorldName, "wb") as fHandle:
+    with open(Path + WorldName, "wb") as fHandle:
         fHandle.write(struct.pack("h", World.Version))
         #Setup the metadata.
         NewMetaData = {}
@@ -114,9 +114,18 @@ def ConvertWorlds():
     start = time.time()
     for Filename in os.listdir('../../Worlds/'):
         if Filename.endswith('.save'):
-            ConvertWorld(Filename)
+            ConvertWorld('../../Worlds/', Filename)
             
     print "Converted all worlds in %.3f seconds" % (time.time() - start)
+
+def ConvertTemplates():
+    start = time.time()
+    for Filename in os.listdir('../../Templates/'):
+        if Filename.endswith('.save'):
+            ConvertWorld('../../Templates/', Filename)
+            
+    print "Converted all templates in %.3f seconds" % (time.time() - start)
+
 
 def ConvertZones():
     start = time.time()
@@ -188,6 +197,7 @@ def Main():
     start = time.time()
     print "Starting update process for version 0.1 to 0.2.."
     ConvertWorlds()
+    ConvertTemplates()
     ConvertZones()
     print "Conversion process complete. Took %.3f seconds" % (time.time() - start)
     raw_input("Press enter to terminate")
