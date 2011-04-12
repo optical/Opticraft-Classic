@@ -218,7 +218,7 @@ class JoinWorldCmd(CommandObject):
         if pPlayer.ServerControl.Now - pPlayer.GetLastWorldChange() < 5:
             pPlayer.SendMessage("&RYou cannot change worlds that often!")
             return
-        if pPlayer.ServerControl.GetRankLevel(pPlayer.ServerControl.GetWorldJoinRank(World)) > pPlayer.GetRankLevel():
+        if pPlayer.HasPermission(pPlayer.ServerControl.GetWorldJoinRank(World)) == False:
             pPlayer.SendMessage("&RYou do not have the required rank to join that world")
             return
         for pWorld in pPlayer.ServerControl.ActiveWorlds:
@@ -454,6 +454,7 @@ class LavaCmd(CommandObject):
         else:
             pPlayer.SetBlockOverride(BLOCK_STILLLAVA)
             pPlayer.SendMessage("&SEvery block you create will now be lava. Type /lava to disable.")
+            
 class AppearCmd(CommandObject):
     '''Appear command handler. Teleports user to specified players location'''
     def Run(self, pPlayer, Args, Message):
@@ -464,6 +465,9 @@ class AppearCmd(CommandObject):
                 if Target.GetWorld().IsFull():
                     pPlayer.SendMessage("&SYou cannot teleport to a world that is full")
                     return
+                if pPlayer.HasPermission(pPlayer.ServerControl.GetWorldJoinRank(Target.GetWorld())) == False:
+                    pPlayer.SendMessage("&RYou do not have the required rank to join that world")
+                    return                
                 pPlayer.ChangeWorld(Target.GetWorld().Name)
                 pPlayer.SetSpawnPosition(Target.GetX(), Target.GetY(), Target.GetZ(), Target.GetOrientation(), Target.GetPitch())
                 return
