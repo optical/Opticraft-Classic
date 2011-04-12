@@ -465,7 +465,7 @@ class AppearCmd(CommandObject):
                 if Target.GetWorld().IsFull():
                     pPlayer.SendMessage("&SYou cannot teleport to a world that is full")
                     return
-                if pPlayer.HasPermission(pPlayer.ServerControl.GetWorldJoinRank(Target.GetWorld())) == False:
+                if pPlayer.HasPermission(pPlayer.ServerControl.GetWorldJoinRank(Target.GetWorld().Name)) == False:
                     pPlayer.SendMessage("&RYou do not have the required rank to join that world")
                     return                
                 pPlayer.ChangeWorld(Target.GetWorld().Name)
