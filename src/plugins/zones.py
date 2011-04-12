@@ -27,7 +27,6 @@
 
 from core.pluginmanager import PluginBase, Hooks
 from core.commandhandler import CommandObject
-import time
 from core.constants import *
 from core.console import *
 from core.jsondict import JsonSerializeableObject
@@ -39,6 +38,7 @@ class ZonePlugin(PluginBase):
         self.PluginMgr.RegisterHook(self, self.OnAttemptPlaceBlockZoneCheck, Hooks.ON_ATTEMPT_PLACE_BLOCK)
         self.PluginMgr.RegisterHook(self, self.ZoneCreationCheck, Hooks.ON_ATTEMPT_PLACE_BLOCK)
         self.PluginMgr.RegisterHook(self, self.OnWorldLoad, Hooks.ON_WORLD_LOAD)
+        self.PluginMgr.RegisterHook(self, self.OnPlayerChangeWorld, Hooks.ON_PLAYER_CHANGE_WORLD)
 
         #Zone commands
         self.AddCommand("zinfo", ZoneInfoCmd, 'guest', 'Returns information on a zone.', 'Incorrect syntax! Usage: /zinfo <zone>', 1)
@@ -52,6 +52,37 @@ class ZonePlugin(PluginBase):
         self.AddCommand("zRename", zRenameCmd, 'admin', 'Renames a restricted zone', 'Incorrect syntax. Usage: /zRename <name> <newname>', 2)
         self.AddCommand("zCreate", ZCreateCmd, 'admin', 'Creates a restricted zone', 'Incorrect syntax. Usage: /zCreate <name> <owner>', 2)
         self.AddCommand("zDelete", ZDeleteCmd, 'admin', 'Deletes a restricted zone', 'Incorrect syntax. Usage: /zDelete <name>', 1)
+
+    def OnAttemptPlaceBlockZoneCheck(self, pWorld, pPlayer, BlockValue, x, y, z):
+        Zones = self.GetWorldZones(pWorld)
+        if Zones is None:
+            return True
+        
+        for pZone in Zones:
+            if pZone.Check(pPlayer, x, y, z) == False:
+                pPlayer.SendMessage("&RYou cannot build in zone \"%s\"" % pZone.Name)
+                return False
+        return True
+    
+    def OnPlayerChangeWorld(self, pPlayer, OldWorld, NewWorld):
+        ZoneData = pPlayer.GetPluginData(ZonePlugin.ZoneCreationKey)
+        if ZoneData is not None:
+            pPlayer.SendMessage("&SZone creation cancelled due to world change")
+            pPlayer.SetPluginData(ZonePlugin.ZoneCreationKey, None)
+    
+    def OnWorldLoad(self, pWorld):
+        '''Deserialize the Zones'''
+        EncodedZones = self.GetWorldZones(pWorld)
+        Zones = list()
+        if EncodedZones is not None:
+            for eZone in EncodedZones:
+                pZone = Zone(pWorld)
+                pZone.FromJson(eZone)
+                Zones.append(pZone)
+        pWorld.SetDataStoreEntry(ZonePlugin.ZoneKey, Zones)
+                
+    def GetWorldZones(self, pWorld):
+        return None if not pWorld.HasDataStoreEntry(ZonePlugin.ZoneKey) else pWorld.GetDataStoreEntry(ZonePlugin.ZoneKey)
 
     def ZoneCreationCheck(self, pWorld, pPlayer, BlockValue, x, y, z):
         if BlockValue == BLOCK_AIR:
@@ -81,32 +112,7 @@ class ZonePlugin(PluginBase):
             pPlayer.SetPluginData(ZonePlugin.ZoneCreationKey, None)
             pPlayer.SendMessage("&SSuccessfully created zone \"&V%s&S\"" % ZoneData.Name)
             return False
-    
-    def OnAttemptPlaceBlockZoneCheck(self, pWorld, pPlayer, BlockValue, x, y, z):
-        Zones = self.GetWorldZones(pWorld)
-        if Zones is None:
-            return True
-        
-        for pZone in Zones:
-            if pZone.Check(pPlayer, x, y, z) == False:
-                pPlayer.SendMessage("&RYou cannot build in zone \"%s\"" % pZone.Name)
-                return False
-        return True
-    
-    def OnWorldLoad(self, pWorld):
-        '''Deserialize the Zones'''
-        EncodedZones = self.GetWorldZones(pWorld)
-        Zones = list()
-        if EncodedZones is not None:
-            for eZone in EncodedZones:
-                pZone = Zone(pWorld)
-                Zone.FromJson(pZone, eZone)
-                Zones.append(pZone)
-        pWorld.SetDataStoreEntry(ZonePlugin.ZoneKey, Zones)
                 
-    def GetWorldZones(self, pWorld):
-        return None if not pWorld.HasDataStoreEntry(ZonePlugin.ZoneKey) else pWorld.GetDataStoreEntry(ZonePlugin.ZoneKey)
-            
         
 class Zone(JsonSerializeableObject):
     def __init__(self, pWorld, Name = '', X1 = 0, Y1 = 0, Z1 = 0, X2 = 0, Y2 = 0, Z2 = 0, MinimumRank = '', Owner = ''):

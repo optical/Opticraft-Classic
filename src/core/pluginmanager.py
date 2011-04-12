@@ -42,7 +42,7 @@ class Hooks:
     ON_ATTEMPT_PLACE_BLOCK = 5
     ON_POST_PLACE_BLOCK = 6
     ON_CHAT = 7
-    ON_CHANGE_WORLD = 8
+    ON_PLAYER_CHANGE_WORLD = 8
     ON_WORLD_LOAD = 9
     ON_WORLD_UNLOAD = 10
     ON_WORLD_METADATA_LOAD = 11
@@ -56,9 +56,9 @@ class PluginBase(object):
         Hooks.ON_PLAYER_DATA_LOADED: 1,
         Hooks.ON_KICK: 4,
         Hooks.ON_ATTEMPT_PLACE_BLOCK: 6,
-        Hooks.ON_POST_PLACE_BLOCK: 6,
+        Hooks.ON_POST_PLACE_BLOCK: 7,
         Hooks.ON_CHAT: 2,
-        Hooks.ON_CHANGE_WORLD: 3,
+        Hooks.ON_PLAYER_CHANGE_WORLD: 3,
         Hooks.ON_WORLD_LOAD: 1,
         Hooks.ON_WORLD_UNLOAD: 1,
         Hooks.ON_WORLD_METADATA_LOAD: 1
@@ -244,21 +244,25 @@ class PluginManager(object):
         for Hook in self._GetHooks(Hooks.ON_KICK):
             Hook.Function(pPlayer, Initiator, Reason, Ban)
 
+    #FailSilently is a special return type that will disallow placement, but does not let the client know it failed
+    FailSilently = -1
     def OnAttemptPlaceBlock(self, pWorld, pPlayer, BlockValue, x, y, z):
         '''Plugins may return false to disallow the block placement'''
         Allowed = True
         for Hook in self._GetHooks(Hooks.ON_ATTEMPT_PLACE_BLOCK):
             Result = Hook.Function(pWorld, pPlayer, BlockValue, x, y, z)
             if Result == False:
-                Allowed = False
+                Allowed = Result
+            if Result == PluginManager.FailSilently and Allowed != PluginManager.FailSilently:
+                Allowed = Result
         return Allowed
 
-    def OnPostPlaceBlock(self, pWorld, pPlayer, BlockValue, x, y, z):
+    def OnPostPlaceBlock(self, pWorld, pPlayer, OldValue, BlockValue, x, y, z):
         '''Called when a block is changed on the map.
         ...IMPORTANT: The pPlayer reference may be null in the event
         ...of an automated (non-player) block change!'''
         for Hook in self._GetHooks(Hooks.ON_POST_PLACE_BLOCK):
-            Hook.Function(pWorld, pPlayer, BlockValue, x, y, z)
+            Hook.Function(pWorld, pPlayer, OldValue, BlockValue, x, y, z)
 
     def OnChat(self, pPlayer, ChatMessage):
         '''Called when a player types a message
@@ -269,7 +273,7 @@ class PluginManager(object):
     def OnChangeWorld(self, pPlayer, OldWorld, NewWorld):
         '''Called when a player changes world, be it via
         .../join, /tp, /summon, or any other means'''
-        for Hook in self._GetHooks("on_changeworld"):
+        for Hook in self._GetHooks(Hooks.ON_PLAYER_CHANGE_WORLD):
             Hook.Function(pPlayer, OldWorld, NewWorld)
 
     def OnWorldLoad(self, pWorld):

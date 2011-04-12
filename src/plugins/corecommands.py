@@ -526,7 +526,7 @@ class BanCmd(CommandObject):
             Duration = 0
             Timespan = 'permanent'
         
-        Result = pPlayer.ServerControl.AddBan(pPlayer, Username, Duration)
+        Result = pPlayer.ServerControl.AddBan(pPlayer.GetName(), Username, Duration)
         if Result:
             pPlayer.ServerControl.SendNotice("%s was banned by %s" % (Username, pPlayer.GetName()))
         pPlayer.SendMessage("&SSuccessfully banned &V%s&S. Duration: &V%s" % (Username, Timespan))
@@ -556,7 +556,7 @@ class KickCmd(CommandObject):
         if Reason == '':
             Reason = "(No reason given)"
 
-        Result = pPlayer.ServerControl.Kick(pPlayer, Username, Reason)
+        Result = pPlayer.ServerControl.Kick(pPlayer.GetName(), Username, Reason)
         if Result:
             pPlayer.SendMessage("&SSuccessfully kicked &V%s" % (Username))
         else:
@@ -695,7 +695,7 @@ class AddIPBanCmd(CommandObject):
             if Target.GetRankLevel() >= pPlayer.GetRankLevel():
                 pPlayer.SendMessage("&RYou may not ban that user.")
                 return
-            pPlayer.ServerControl.AddBan(pPlayer, Arg, Duration)
+            pPlayer.ServerControl.AddBan(pPlayer.GetName(), Arg, Duration)
             pPlayer.SendMessage("&SSuccessfully added username ban on \"&V%s&S\". Duration: &V%s" % (Arg, Timespan))
             #Set arg to the IP address so we can ban that too.
             Arg = Target.GetIP()
@@ -712,7 +712,7 @@ class AddIPBanCmd(CommandObject):
             pPlayer.SendMessage("&RThat is not a valid ip-address!")
             return
         #Must be valid
-        pPlayer.ServerControl.AddIPBan(pPlayer, Arg, Duration)
+        pPlayer.ServerControl.AddIPBan(pPlayer.GetName(), Arg, Duration)
         pPlayer.SendMessage("&SSuccessfully banned ip \"&V%s\"&S. Duration: &V%s" % (Arg, Timespan))
 
 class DelIPBanCmd(CommandObject):

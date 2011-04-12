@@ -950,22 +950,23 @@ class ServerController(object):
         pPlayer = self.GetPlayerFromName(Username)
         if pPlayer is not None:
             pPlayer.IncreaseKickCount()
-            self.PluginMgr.OnKick(pPlayer, Username, 'Username ban', True)
-            pPlayer.SetBannedBy(Initiator.GetName())
+            self.PluginMgr.OnKick(pPlayer, Initiator, 'Username ban', True)
+            pPlayer.SetBannedBy(Initiator)
             pPlayer.Disconnect("You are banned from this server")
             return True
         else:
             self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set BannedBy = ? where Username = ?", (Initiator.GetName(), Username.lower())])
             return False
-    def AddIPBan(self, Admin, IP, Expiry):
+    def AddIPBan(self, Initiator, IP, Expiry, Verbose = True):
         self.BannedIPs[IP] = Expiry
         self.FlushIPBans()
         for pPlayer in self.PlayerSet:
             if pPlayer.GetIP() == IP:
                 pPlayer.IncreaseKickCount()
-                self.PluginMgr.OnKick(pPlayer, Admin, 'Ip ban', True)
+                self.PluginMgr.OnKick(pPlayer, Initiator, 'Ip ban', True)
                 pPlayer.Disconnect("You are ip-banned from this server")
-                self.SendNotice("%s has been ip-banned by %s" % (pPlayer.GetName(), Admin.GetName()))
+                if Verbose:
+                    self.SendNotice("%s has been ip-banned by %s" % (pPlayer.GetName(), Initiator))
                 
     def Unban(self, Username):
         if self.BannedUsers.has_key(Username.lower()) == True:
@@ -983,13 +984,14 @@ class ServerController(object):
         else:
             return False
 
-    def Kick(self, Operator, Username, Reason):
+    def Kick(self, Operator, Username, Reason, Verbose = True):
         pPlayer = self.GetPlayerFromName(Username)
         if pPlayer is not None:
             pPlayer.IncreaseKickCount()
             self.PluginMgr.OnKick(pPlayer, Operator, Reason, False)
-            self.SendNotice("%s was kicked by %s. Reason: %s" % (Username, Operator.GetName(), Reason))
-            pPlayer.Disconnect("You were kicked by %s. Reason: %s" % (Operator.GetName(), Reason))
+            if Verbose:
+                self.SendNotice("%s was kicked by %s. Reason: %s" % (Username, Operator, Reason))
+            pPlayer.Disconnect("You were kicked by %s. Reason: %s" % (Operator, Reason))
             return True
         return False
     def RemoveIdlePlayers(self):
