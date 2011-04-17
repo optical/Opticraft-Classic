@@ -40,7 +40,7 @@ from core.console import *
 
 ProfileRun = False
 
-def Main(EnablePsyco = True, PsycoLogging = False):
+def Main(EnablePsyco = False, PsycoLogging = False):
     ServerControl = None
     try:
         if ProfileRun != False:

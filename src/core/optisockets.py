@@ -29,9 +29,8 @@ import socket
 import errno
 from select import select
 from core.player import Player
-from core.opticraftpacket import OptiCraftPacket
+from core.packet import PacketWriter
 from core.console import *
-from core.constants import SMSG_DISCONNECT
 
 class SocketBindFailException(Exception):
     pass
@@ -117,8 +116,7 @@ class SocketManager(object):
                 try:
                     self.PlayerSockets.remove(PlayerSock)
                     try:
-                        Packet = OptiCraftPacket(SMSG_DISCONNECT)
-                        Packet.WriteString(Message)
+                        Packet = PacketWriter.MakeDisconnectPacket(Message)
                         PlayerSock.send(Packet.GetOutData())
                     except:
                         pass
