@@ -903,7 +903,7 @@ class World(object):
 
     def SendBlock(self, pPlayer, x, y, z):
         #We can trust that these coordinates will be within bounds.
-        Packet = PacketWriter.MakeBlockSetPacket(x, y, z, self.Blocks[self._CalculateOffset(x, y, z)])
+        Packet = PacketWriter.MakeBlockSetPacket(x, z, y, ord(self.Blocks[self._CalculateOffset(x, y, z)]))
         pPlayer.SendPacket(Packet)
         
     def AddPlayer(self, pPlayer, Transferring = False):
