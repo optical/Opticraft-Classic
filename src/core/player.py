@@ -403,8 +403,10 @@ class Player(object):
 
         Version, self.Name, HashedPass, Junk = PacketReader.ParseIdentificationPacket(Packet)
         self.Name = self.Name.strip()
-        HashedPass = HashedPass.strip("0")
+        HashedPass = HashedPass.strip().strip("0")
         CorrectPass = hashlib.md5(self.ServerControl.Salt + self.Name).hexdigest().strip("0")
+        print "Hashed pass = '%s'" % HashedPass
+        print "Correct pass= '%s'" % CorrectPass
         OldPass = hashlib.md5(self.ServerControl.OldSalt + self.Name).hexdigest().strip("0")
         if Version != 7:
             self.Disconnect("Your client is incompatible with this server")
