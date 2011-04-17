@@ -125,6 +125,7 @@ class Zone(JsonSerializeableObject):
         self.Z1 = Z1
         self.Z2 = Z2
         self.Builders = set()
+        self.Excluded = set()
         self.Owner = Owner
         self.MinimumRank = MinimumRank
         
@@ -134,6 +135,7 @@ class Zone(JsonSerializeableObject):
             Console.Warning("Zones", "Zone %s had invalid rank %s. Rank changed to builder" % (self.Name, self.MinimumRank))
             self.MinimumRank = 'builder'
         self.Builders = set(self.Builders)
+        self.Excluded = set(self.Excluded)
     
     def Check(self, pPlayer, X, Y, Z):
         if self.IsInZone(X, Y, Z):

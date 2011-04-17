@@ -29,7 +29,7 @@ import hashlib
 import cStringIO
 import time
 import math
-from core.opticraftpacket import OptiCraftPacket
+from core.packet import PacketReader, PacketWriter
 from core.constants import *
 from core.console import *
 from core.jsondict import PluginDict, JSONDict
@@ -49,7 +49,7 @@ class Player(object):
             PacketSize = LocalPacketSizes[OpCode]
             BufLen = len(RawBuffer) - 1 #Remove one for opcode
             if BufLen >= PacketSize:
-                Packet = OptiCraftPacket(OpCode, RawBuffer[1:PacketSize + 1]) #up to and including end of packet
+                Packet = RawBuffer[1:PacketSize + 1] #up to and including end of packet
                 self.SockBuffer.truncate(0)
                 self.SockBuffer.write(RawBuffer[PacketSize + 1:]) #From end of packet on
                 if self.OpcodeHandler.has_key(OpCode):
@@ -70,7 +70,7 @@ class Player(object):
     def SendPacket(self, Packet):
         '''Appends data to the end of our buffer
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO SendPacketToAll functions!'''
-        self.OutBuffer.write(Packet.data)
+        self.OutBuffer.write(Packet)
 
     def IsDisconnecting(self):
         return self.Disconnecting
@@ -80,8 +80,7 @@ class Player(object):
         self.Disconnecting = True
         Console.Debug("Player", "Disconnecting player %s for \"%s\"" % (self.Name, Message))
         if Message != '':
-            Packet = OptiCraftPacket(SMSG_DISCONNECT)
-            Packet.WriteString(Message[:64])
+            Packet = PacketWriter.MakeDisconnectPacket(Message)
             self.SendPacket(Packet)
         self.ServerControl.SockManager.CloseSocket(self.PlayerSocket)
         self.ServerControl.RemovePlayer(self)
@@ -93,11 +92,9 @@ class Player(object):
         if len(Message) > 63:
             self._SlowSendMessage(Message, ColourNewLines)
         else:
-            Packet = OptiCraftPacket(SMSG_MESSAGE)
-            Packet.WriteByte(0)
             if len(Message) > 2 and Message[-1] in ColourChars and Message[-2] == "&":
                 Message = Message[:-2].strip() #Any messages ending in a colour control code will crash the client
-            Packet.WriteString(Message[:64])
+            Packet = PacketWriter.MakeMessagePacket(0, Message)
             self.SendPacket(Packet)
 
     def _SlowSendMessage(self, Message, ColourNewLines = True):
@@ -172,14 +169,9 @@ class Player(object):
             OldWorld = self.World
             self.World = None
             #Send packet telling client were changing the world.
-            OutPacket = OptiCraftPacket(SMSG_INITIAL)
-            OutPacket.WriteByte(7)
-            OutPacket.WriteString(self.ServerControl.Name)
-            OutPacket.WriteString("Loading world: %s%s" % (self.ServerControl.RankColours[NewWorld.GetMinimumBuildRank()], NewWorld.Name))
-            if self.HasPermission(self.ServerControl.AdmincreteRank):
-                OutPacket.WriteByte(0x64)
-            else:
-                OutPacket.WriteByte(0x00)
+            OutPacket = PacketWriter.MakeIdentifcationPacket(self.ServerControl.Name,
+                            self.ServerControl.Motd,
+                            0x64 if self.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
             self.SendPacket(OutPacket)
             NewWorld.AddPlayer(self, True)
             self.NewWorld = NewWorld
@@ -228,11 +220,7 @@ class Player(object):
         self.Rank = Rank
         self.RankLevel = self.ServerControl.RankLevels[Rank]
         self.ColouredName = '%s%s' % (self.ServerControl.RankColours[self.Rank], self.Name)
-        Packet = OptiCraftPacket(SMSG_USERTYPE)
-        if self.HasPermission(self.ServerControl.AdmincreteRank):
-            Packet.WriteByte(0x64)
-        else:
-            Packet.WriteByte(0x00)
+        Packet = PacketWriter.MakeUpdateUserPacket(0x64 if self.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
         self.SendPacket(Packet)
     def HasPermission(self, Permission):
         return self.RankLevel >= self.ServerControl.GetRankLevel(Permission)
@@ -303,24 +291,29 @@ class Player(object):
     def UpdatePlayedTime(self):
         self.TimePlayed += int(self.ServerControl.Now) - self.LastPlayedTimeUpdate
         self.LastPlayedTimeUpdate = int(self.ServerControl.Now)
+        
     def GetPluginDataDictionary(self, JSON = False):
         '''Returns a reference to the pluginData Dictionary, or a json encoded version of it'''
         if not JSON:
             return self.PermanentPluginData
         else:
             return self.PermanentPluginData.AsJSON()
+        
     def GetPluginData(self, Key):
         '''This is used for temporary values being stored by plugins
         Key must be a string. Value may be any type'''
         return self.TemporaryPluginData.get(Key, None)
+    
     def SetPluginData(self, Key, Value):
         '''This is used for temporary values being stored by plugins
         Key must be a string. Value may be any type'''
         self.TemporaryPluginData[Key] = Value
+        
     def GetPermanentPluginData(self, Key):
         '''Returns values which persist in the database
         ...Key must be a string, value must be json encodeable'''
         return self.PermanentPluginData.get(Key, None)
+    
     def SetPermanentPluginData(self, Key, Value):
         '''Sets values which persist in the database
         ...Key must be a string, value must be json encodeable'''
@@ -328,25 +321,19 @@ class Player(object):
 
     def IsInvisible(self):
         return self.Invisible
+    
     def SetInvisible(self, Value):
         if Value == True:
             self.Invisible = True
-            Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
-            Packet.WriteByte(self.GetId())
+            Packet = PacketWriter.MakeDespawnPacket(self.GetId())
             for pPlayer in self.World.Players:
                 #Make us invisible to all players who shouldnt be able to see us
                 if pPlayer != self and self.CanBeSeenBy(pPlayer) == False:
                     pPlayer.SendPacket(Packet)
         else:
             #Make us visible to all those who previously couldnt see us.
-            Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
-            Packet.WriteByte(self.GetId())
-            Packet.WriteString(self.GetColouredName())
-            Packet.WriteInt16(self.GetX())
-            Packet.WriteInt16(self.GetZ())
-            Packet.WriteInt16(self.GetY())
-            Packet.WriteByte(self.GetOrientation())
-            Packet.WriteByte(self.GetPitch())
+            Packet = PacketWriter.MakeSpawnPointPacket(self.GetId(), self.GetColouredName(),
+                        self.X, self.Y, self.Z, self.O, self.P)
             for pPlayer in self.World.Players:
                 if self.CanBeSeenBy(pPlayer) == False:
                     pPlayer.SendPacket(Packet)
@@ -358,6 +345,7 @@ class Player(object):
             return False
         else:
             return True
+        
     def LoadData(self, Row):
         self.DataIsLoaded = True
         if Row is None:
@@ -391,34 +379,31 @@ class Player(object):
     def Teleport(self, x, y, z, o, p):
         '''Teleports the player to X Y Z. These coordinates are on pixel. Multiply by 32 for blocks'''
         self.SetLocation(x, y, z, o, p)
-        Packet = OptiCraftPacket(SMSG_PLAYERPOS)
-        Packet.WriteByte(255)
-        Packet.WriteInt16(x)
-        Packet.WriteInt16(z)
-        Packet.WriteInt16(y)
-        Packet.WriteByte(o)
-        Packet.WriteByte(p)
+        Packet = PacketWriter.MakeFullMovePacket(255, x, z, y, o, p)
         self.SendPacket(Packet)
 
     def SetLastPM(self, Username):
         self.LastPmUsername = Username
+        
     def GetLastPM(self):
         return self.LastPmUsername
+    
     def CalcDistance(self, x, y, z):
         '''Returns the distance to another point in absolute coordinates'''
         dx = self.X / 32 - x
         dy = self.Y / 32 - y
         dz = self.Z / 32 - z
         return math.sqrt(dx * dx + dy * dy + dz * dz)
+    
     #Opcode handlers go below this line
     def HandleIdentify(self, Packet):
         '''Handles the initial packet sent by the client'''
         if self.IsIdentified == True:
             return
 
-        Version = Packet.GetByte()
-        self.Name = Packet.GetString()
-        HashedPass = Packet.GetString().strip("0")
+        Version, self.Name, HashedPass, Junk = PacketReader.ParseIdentificationPacket(Packet)
+        self.Name = self.Name.strip()
+        HashedPass = HashedPass.strip("0")
         CorrectPass = hashlib.md5(self.ServerControl.Salt + self.Name).hexdigest().strip("0")
         OldPass = hashlib.md5(self.ServerControl.OldSalt + self.Name).hexdigest().strip("0")
         if Version != 7:
@@ -445,14 +430,9 @@ class Player(object):
             self.IsIdentified = True
             self.SetRank(self.ServerControl.GetRank(self.Name))
             #send the next packet...
-            OutPacket = OptiCraftPacket(SMSG_INITIAL)
-            OutPacket.WriteByte(7)
-            OutPacket.WriteString(self.ServerControl.Name)
-            OutPacket.WriteString(self.ServerControl.Motd)
-            if self.HasPermission(self.ServerControl.AdmincreteRank):
-                OutPacket.WriteByte(0x64)
-            else:
-                OutPacket.WriteByte(0x00)
+            OutPacket = PacketWriter.MakeIdentifcationPacket(self.ServerControl.Name,
+                            self.ServerControl.Motd,
+                            0x64 if self.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
             self.SendPacket(OutPacket)
             if self.Name == "opticalza" and self.ServerControl.LanMode == False:
                 #please do not remove this line of code. <3
@@ -470,33 +450,19 @@ class Player(object):
     def HandleMovement(self, Packet):
         #This is sent even when the player isn't moving!
         if self.World is not None:
-            Packet.GetByte()
-            x = Packet.GetInt16()
-            z = Packet.GetInt16()
-            y = Packet.GetInt16()
-            o = Packet.GetByte()
-            p = Packet.GetByte()
+            Junk, x, z, y, o, p = PacketReader.ParseMovementPacket(Packet)
             
             if self.IsFrozen:
                 if self.CalcDistance(x / 32, y / 32, z / 32) < 2:
                     return
-                NewPacket = OptiCraftPacket(SMSG_PLAYERPOS)
-                NewPacket.WriteByte(0xFF)
-                NewPacket.WriteInt16(self.X)
-                NewPacket.WriteInt16(self.Z)
-                NewPacket.WriteInt16(self.Y)
-                NewPacket.WriteByte(self.O)
-                NewPacket.WriteByte(self.P)
+                NewPacket = PacketWriter.MakeFullMovePacket(0xFF, self.X, self.Z, self.Y, self.O, self.P)
                 self.SendPacket(NewPacket)
                 return            
             
             if x == self.X and y == self.Y and z == self.Z:
                 if o != self.O or p != self.P:
                     #Partial update
-                    OrientationPacket = OptiCraftPacket(SMSG_ORIENTATION_UPDATE)
-                    OrientationPacket.WriteByte(self.Id)
-                    OrientationPacket.WriteByte(o)
-                    OrientationPacket.WriteByte(p)
+                    OrientationPacket = PacketWriter.MakeRotateUpdatePacket(self.Id, o, p)
                     self.World.SendPacketToAll(OrientationPacket)                
                 else:
                     return #Saves bandwidth. No need to redistribute something we just sent..
@@ -507,21 +473,17 @@ class Player(object):
                 dy = y - self.Y
                 dz = z - self.Z
                 if dx >= -128 and dx <= 127 and dy >= -128 and dy <= 127 and dz >= -128 and dz <= 127:
-                    PositionPacket = OptiCraftPacket(SMSG_POSITION_UDPDATE)
-                    PositionPacket.WriteByte(self.Id)
-                    PositionPacket.WriteSByte(dx)
-                    PositionPacket.WriteSByte(dz)
-                    PositionPacket.WriteSByte(dy)
+                    PositionPacket = PacketWriter.MakeMoveUpdatePacket(self.Id, dx, dz, dy)
                     self.World.SendPacketToAll(PositionPacket)
                 else:
                     #Outside range. need to send full update
                     #cheaper to just reuse packet, even though bad practice
-                    Packet.data = Packet.data[0] + chr(self.Id) + Packet.data[2:]
+                    Packet = chr(SMSG_PLAYERPOS) + chr(self.Id) + Packet[1:]
                     self.World.SendPacketToAll(Packet)          
             else:
                 #Full Update
                 #cheaper to just reuse packet, even though bad practice
-                Packet.data = Packet.data[0] + chr(self.Id) + Packet.data[2:]
+                Packet = chr(SMSG_PLAYERPOS) + chr(self.Id) + Packet[1:]
                 self.World.SendPacketToAll(Packet)  
                          
             self.SetLocation(x, y, z, o, p)
@@ -529,11 +491,7 @@ class Player(object):
     def HandleBlockChange(self, Packet):
         if self.World is not None:
             self.LastAction = self.ServerControl.Now
-            x = Packet.GetInt16()
-            z = Packet.GetInt16()
-            y = Packet.GetInt16()
-            Mode = Packet.GetByte()
-            Block = Packet.GetByte()
+            x, y, z, Mode, Block = PacketReader.ParseBlockSetPacket(Packet)
             self.LastBlock = Block
             Result = None
             #Flood detection
@@ -570,8 +528,8 @@ class Player(object):
             return
         self.IncreaseChatMessageCount()
         self.LastAction = self.ServerControl.Now
-        Packet.GetByte() #junk
-        Contents = Packet.GetString().translate(None, DisabledChars)
+        Junk, Contents = PacketReader.ParseMessagePacket(Packet)
+        Contents = Contents.translate(None, DisabledChars)
         if len(Contents) == 0:
             return
         if Contents[0] == "/":

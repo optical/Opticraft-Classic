@@ -36,7 +36,7 @@ import threading
 import Queue
 import copy
 from array import array
-from core.opticraftpacket import OptiCraftPacket
+from core.packet import PacketWriter
 from core.constants import *
 from core.asynchronousquery import AsynchronousQueryResult
 from core.console import *
@@ -130,13 +130,6 @@ class AsynchronousIOThread(threading.Thread):
         self.Running = True
         self.Tasks = Queue.Queue()
         self.Tasks.put(["CONNECT", self.WorldName])
-
-    def debug_log(self, line):
-        try:
-            with open("iodebug.txt", "a") as fHandle:
-                fHandle.write(time.strftime("%H:%M:%S ", time.localtime()) + line + "\n")
-        except:
-            pass
     
     def run(self):
         while self.Running:
@@ -197,7 +190,6 @@ class AsynchronousIOThread(threading.Thread):
 
     def _FlushBlocksTask(self, Data):
         start = time.time()
-        processstage = time.time()
         Cursor = self.DBConnection.cursor()
         def QueryGenerator(Data):
             for Key in Data:
@@ -207,26 +199,18 @@ class AsynchronousIOThread(threading.Thread):
         except dbapi.OperationalError:
             self.Tasks.put(["FLUSH", Data])
             return
-        commit = -1
-        processstage = time.time() - processstage
         if self.Tasks.empty():
-            commit = time.time()
             self.DBConnection.commit()
-            commit = time.time() - commit
-        self.debug_log("Took %.3f seconds to flush %d block. Process = %.3f, Commit = %.3f" % (time.time() - start, len(Data), processstage, commit))
         Console.Debug("IOThread", "Flushing %d blocks took %.3f seconds!" % (len(Data), time.time() - start))
         
     def _UndoActionsTask(self, Username, ReverseName, Time):
         now = time.time()
-        select = time.time()
         try:
             SQLResult = self.DBConnection.execute("SELECT Offset,OldValue from Blocklogs where Username = ? and Time > ?", (ReverseName, now - Time))
         except dbapi.OperationalError:
             Console.Debug("IOThread", "Failed to Execute undoactions. Trying again later")
             self.Tasks.put(["UNDO_ACTIONS", Username, ReverseName, Time])
             return
-        select = time.time() - select
-        process = time.time()
         Row = SQLResult.fetchone()
         BlockChangeList = [Username, ReverseName, 0]
         NumChanged = 0
@@ -240,22 +224,14 @@ class AsynchronousIOThread(threading.Thread):
                 
         BlockChangeList[2] = NumChanged
         self.World.AddBlockChanges(BlockChangeList)
-        process = time.time() - process
-        delete = time.time()
-        commit = 0
         try:
             self.DBConnection.execute("DELETE FROM Blocklogs where Username = ? and Time > ?", (ReverseName, now - Time))
-            delete = time.time() - delete
-            commit = time.time()
             self.DBConnection.commit()
-            commit = time.time() - commit
         except dbapi.OperationalError:
             Console.Debug("IOThread", "Failed to clean up undoactions. Trying again later.")
             self.Tasks.put(["EXECUTE"], "DELETE FROM Blocklogs where Username = ? and Time > ?", (ReverseName, now - Time))
         Console.Debug("IOThread", "%s reversed %s's actions. %d changed in %f seconds" % (Username, ReverseName, NumChanged, time.time() - now))
-        self.debug_log("Reversed %d of %s's actions on world %s in %.2f. select = %.2f, process = %.2f, delete = %.2f, commit = %.2f" % (
-                        NumChanged, ReverseName, self.WorldName, time.time() - now, select, process, delete, commit))
-        
+       
     def Shutdown(self, Crash):
         self.Tasks.put(["SHUTDOWN"])
         
@@ -611,11 +587,7 @@ class World(object):
         self.ServerControl.PluginMgr.OnPostPlaceBlock(self, pPlayer, OldValue, val, x, y, z)
         if self.IsLocked == True:
             return
-        Packet = OptiCraftPacket(SMSG_BLOCKSET)
-        Packet.WriteInt16(x)
-        Packet.WriteInt16(z)
-        Packet.WriteInt16(y)
-        Packet.WriteByte(val)
+        Packet = PacketWriter.MakeBlockSetPacket(x, y, z, val)
         if not ResendToClient:
             self.SendPacketToAllButOne(Packet, pPlayer)
         else:
@@ -858,21 +830,16 @@ class World(object):
         ...This is useful as the client lags when it recieves large volumes of chunk updates'''
         self.IsLocked = False
         for pPlayer in self.Players:
-            Packet = OptiCraftPacket(SMSG_INITIAL)
-            Packet.WriteByte(7)
-            Packet.WriteString("Reloading map...")
-            Packet.WriteString("The map is being refreshed");
-            if pPlayer.HasPermission(self.ServerControl.AdmincreteRank):
-                Packet.WriteByte(0x64)
-            else:
-                Packet.WriteByte(0x00)
+            Packet = PacketWriter.MakeIdentifcationPacket("Reloading map...",
+                        "The map is being refreshed",
+                        0x64 if pPlayer.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
             pPlayer.SetSpawnPosition(pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ(), pPlayer.GetOrientation(), pPlayer.GetPitch())
             self.SendWorld(pPlayer)
             pPlayer.SendPacket(Packet)
             
     def SendWorld(self, pPlayer):
         '''Sends the gzipped level to the client'''
-        Packet = OptiCraftPacket(SMSG_PRECHUNK)
+        Packet = chr(SMSG_PRECHUNK)
         pPlayer.SendPacket(Packet)
         if self.IsDirty:
             StringHandle = cStringIO.StringIO()
@@ -891,48 +858,32 @@ class World(object):
         while len(Chunk) > 0:
             ChunkSize = len(Chunk)
             CurBytes += ChunkSize
-            Packet = OptiCraftPacket(SMSG_CHUNK)
-            Packet.WriteInt16(ChunkSize)
-            Packet.WriteKBChunk(Chunk)
-            Packet.WriteByte(100.0 * (float(CurBytes) / float(TotalBytes)))
+            Packet = PacketWriter.MakeChunkPacket(ChunkSize, Chunk, 100 * (CurBytes / TotalBytes))
             pPlayer.SendPacket(Packet)
             Chunk = StringHandle.read(1024)
-            
+
         if self.DisableBots:
             #Sending this causes InsideBots draw commands to break
-            BadPacket = OptiCraftPacket(SMSG_INITIAL)
-            BadPacket.WriteByte(7)
-            BadPacket.WriteString("Finished loading world: %s" % self.Name)
-            BadPacket.WriteString(self.ServerControl.Motd)
-            if pPlayer.HasPermission(self.ServerControl.AdmincreteRank):
-                BadPacket.WriteByte(0x64)
-            else:
-                BadPacket.WriteByte(0x00)
+            BadPacket = PacketWriter.MakeIdentifcationPacket("Finished loading world: %s",
+                         self.ServerControl.Motd,
+                         0x64 if pPlayer.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
             pPlayer.SendPacket(BadPacket)
-        Packet2 = OptiCraftPacket(SMSG_LEVELSIZE)
-        Packet2.WriteInt16(self.X)
-        Packet2.WriteInt16(self.Z)
-        Packet2.WriteInt16(self.Y)
+            
+        Packet2 = PacketWriter.MakeLevelSizePacket(self.X, self.Z, self.Y)
         pPlayer.SendPacket(Packet2)
 
         pPlayer.SetLocation(self.GetSpawnX(), self.GetSpawnY(), self.GetSpawnZ(), self.GetSpawnOrientation(), self.GetSpawnPitch())
-        Packet3 = OptiCraftPacket(SMSG_SPAWNPOINT)
-        Packet3.WriteByte(255)
-        Packet3.WriteString("")
+
+        Packet3 = None
         if pPlayer.GetSpawnPosition()[0] == -1:
-            Packet3.WriteInt16(self.GetSpawnX())
-            Packet3.WriteInt16(self.GetSpawnZ())
-            Packet3.WriteInt16(self.GetSpawnY())
-            Packet3.WriteByte(self.GetSpawnOrientation())
-            Packet3.WriteByte(self.GetSpawnPitch())
+            Packet3 = PacketWriter.MakeSpawnPointPacket(255, "", self.GetSpawnX(), self.GetSpawnZ(), self.GetSpawnY(),
+                                                    self.GetSpawnOrientation(), self.GetSpawnPitch())
         else:
             Location = pPlayer.GetSpawnPosition()
             pPlayer.SetSpawnPosition(-1, -1, -1, -1, -1)
-            Packet3.WriteInt16(Location[0])
-            Packet3.WriteInt16(Location[2])
-            Packet3.WriteInt16(Location[1])
-            Packet3.WriteByte(Location[3])
-            Packet3.WriteByte(Location[4])
+            Packet3 = PacketWriter.MakeSpawnPointPacket(255, "", Location[0], Location[2], Location[1],
+                                                    Location[3], Location[4])            
+            
         pPlayer.SendPacket(Packet3)
         self.SendPlayerJoined(pPlayer)
         self.SendAllPlayers(pPlayer)
@@ -943,8 +894,7 @@ class World(object):
         if not ChangingMaps:
             self.Players.remove(pPlayer)
         #Send Some packets to local players...
-        Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
-        Packet.WriteByte(pPlayer.GetId())
+        Packet = PacketWriter.MakeDespawnPacket(pPlayer.GetId())
         self.SendPacketToAllButOne(Packet, pPlayer)
         self.PlayerIDs.append(pPlayer.GetId()) #release the ID
         if ChangingMaps:
@@ -953,25 +903,17 @@ class World(object):
 
     def SendBlock(self, pPlayer, x, y, z):
         #We can trust that these coordinates will be within bounds.
-        Packet = OptiCraftPacket(SMSG_BLOCKSET)
-        Packet.WriteInt16(x)
-        Packet.WriteInt16(z)
-        Packet.WriteInt16(y)
-        Packet.WriteByte(ord(self.Blocks[self._CalculateOffset(x, y, z)]))
+        Packet = PacketWriter.MakeBlockSetPacket(x, y, z, self.Blocks[self._CalculateOffset(x, y, z)])
         pPlayer.SendPacket(Packet)
+        
     def AddPlayer(self, pPlayer, Transferring = False):
         self.JoiningPlayers.append(pPlayer)
         pPlayer.SetNewId(self.PlayerIDs.pop())
 
     def SendPlayerJoined(self, pPlayer):
-        Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
-        Packet.WriteByte(pPlayer.GetId())
-        Packet.WriteString(pPlayer.GetColouredName())
-        Packet.WriteInt16(pPlayer.GetX())
-        Packet.WriteInt16(pPlayer.GetZ())
-        Packet.WriteInt16(pPlayer.GetY())
-        Packet.WriteByte(pPlayer.GetOrientation())
-        Packet.WriteByte(pPlayer.GetPitch())
+        Packet = PacketWriter.MakeSpawnPointPacket(pPlayer.GetId(), pPlayer.GetColouredName(),
+                    pPlayer.GetX(), pPlayer.GetZ(), pPlayer.GetY(),
+                    pPlayer.GetOrientation(), pPlayer.GetPitch())
         for nPlayer in self.Players:
             if nPlayer != pPlayer and pPlayer.CanBeSeenBy(nPlayer):
                 nPlayer.SendPacket(Packet)
@@ -979,51 +921,37 @@ class World(object):
     def _RemoveAllPlayersFromView(self, pPlayer):
         for nPlayer in self.Players:
             if nPlayer != pPlayer:
-                Packet = OptiCraftPacket(SMSG_PLAYERLEAVE)
-                Packet.WriteByte(nPlayer.GetId())
+                Packet = PacketWriter.MakeDespawnPacket(nPlayer.GetId())
                 pPlayer.SendPacket(Packet)
 
     def SendAllPlayers(self, Client):
         for pPlayer in self.Players:
             if pPlayer != Client and pPlayer.CanBeSeenBy(Client):
-                Packet = OptiCraftPacket(SMSG_SPAWNPOINT)
-                Packet.WriteByte(pPlayer.GetId())
-                Packet.WriteString(pPlayer.GetColouredName())
-                Packet.WriteInt16(pPlayer.GetX())
-                Packet.WriteInt16(pPlayer.GetZ())
-                Packet.WriteInt16(pPlayer.GetY())
-                Packet.WriteByte(pPlayer.GetOrientation())
-                Packet.WriteByte(pPlayer.GetPitch())
+                Packet = PacketWriter.MakeSpawnPointPacket(pPlayer.GetId(), pPlayer.GetColouredName(),
+                    pPlayer.GetX(), pPlayer.GetZ(), pPlayer.GetY(),
+                    pPlayer.GetOrientation(), pPlayer.GetPitch())
                 Client.SendPacket(Packet)
 
     def SendNotice(self, Message):
-        Packet = OptiCraftPacket(SMSG_MESSAGE)
-        Packet.WriteByte(0)
-        Message = self.ServerControl.ConvertColours(("&N" + Message))
-        Packet.WriteString(Message)
+        Packet = PacketWriter.MakeMessagePacket(0, self.ServerControl.ConvertColours(("&N" + Message)))
         self.SendPacketToAll(Packet)
         
     def SendJoinMessage(self, Message):
-        Packet = OptiCraftPacket(SMSG_MESSAGE)
-        Packet.WriteByte(0)
-        Message = self.ServerControl.ConvertColours(Message)
-        Packet.WriteString(Message[:64])
+        Packet = PacketWriter.MakeMessagePacket(0, self.ServerControl.ConvertColours(("&N" + Message)))
         for pPlayer in self.Players:
             if pPlayer.GetJoinNotifications():
                 pPlayer.SendPacket(Packet)
     def SendPacketToAll(self, Packet):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
-        Data = Packet.GetOutData()
         for pPlayer in self.Players:
-            pPlayer.OutBuffer.write(Data)
+            pPlayer.OutBuffer.write(Packet)
     def SendPacketToAllButOne(self, Packet, Client):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
-        Data = Packet.GetOutData()
         for pPlayer in self.Players:
             if pPlayer != Client:
-                pPlayer.OutBuffer.write(Data)
+                pPlayer.OutBuffer.write(Packet)
                 
     @staticmethod
     def GetMetaData(Name):

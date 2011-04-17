@@ -39,7 +39,7 @@ import Queue
 import ctypes
 import subprocess
 from core.heartbeatcontrol import HeartBeatController
-from core.opticraftpacket import OptiCraftPacket
+from core.packet import PacketWriter
 from core.optisockets import SocketManager
 from core.commandhandler import CommandHandler
 from core.configreader import ConfigReader
@@ -301,6 +301,7 @@ class ServerController(object):
         self.AuthPlayers = set() #Players without a world (Logging in)
         self.PlayersPendingRemoval = set() #Players to remove from our set at the end of a cycle.
         self.ShuttingDown = False
+        self.PreviousResourceCheck = 0
         self.LastResourceCheck = 0
         self.InitialCpuTimes = os.times()
         self.LastCpuTimes = 0
@@ -697,8 +698,8 @@ class ServerController(object):
         '''Returns the last 60 seconds of cpu usage in a tuple of (Total,user,system)'''
         if self.LastCpuTimes == 0:
             return(0.0, 0.0, 0.0)
-        User = (self.CurrentCpuTimes[0] - self.LastCpuTimes[0]) / 60.0 * 100.0
-        System = (self.CurrentCpuTimes[1] - self.LastCpuTimes[1]) / 60.0 * 100.0
+        User = (self.CurrentCpuTimes[0] - self.LastCpuTimes[0]) / float(self.LastResourceCheck - self.PreviousResourceCheck) * 100.0
+        System = (self.CurrentCpuTimes[1] - self.LastCpuTimes[1]) / float(self.LastResourceCheck - self.PreviousResourceCheck) * 100.0
         return (User + System, User, System)
     def GetTotalCpuUsage(self):
         '''Returns the average cpu usage since startup in a tuple of (Total,user,system)'''
@@ -803,14 +804,15 @@ class ServerController(object):
                 
             if self.LastKeepAlive + 1 < self.Now:
                 self.LastKeepAlive = self.Now
-                Packet = OptiCraftPacket(SMSG_KEEPALIVE)
+                Packet = chr(SMSG_KEEPALIVE)
                 #Send a SMSG_KEEPALIVE packet to all our clients across all worlds.
                 for pPlayer in self.PlayerSet:
                     pPlayer.SendPacket(Packet)
             if self.LastResourceCheck + 60 < self.Now:
                 self.LastCpuTimes = self.CurrentCpuTimes
                 self.CurrentCpuTimes = os.times()
-                self.LastResourceCheck = self.Now
+                self.PreviousResourceCheck = self.LastResourceCheck
+                self.LastResourceCheck = time.time()
                 self.UpdateBWUsage()
 
             if self.PeriodicAnnounceFrequency:
@@ -1061,26 +1063,20 @@ class ServerController(object):
         return self.SocketToPlayer[Socket]
 
     def SendNotice(self, Message):
-        Packet = OptiCraftPacket(SMSG_MESSAGE)
-        Packet.WriteByte(0)
         Message = self.ConvertColours(("&N" + Message))
-        Packet.WriteString(self.ConvertColours(Message[:64]))
+        Packet = PacketWriter.MakeMessagePacket(0, Message)        
         self.SendPacketToAll(Packet)
 
     def SendJoinMessage(self, Message):
-        Packet = OptiCraftPacket(SMSG_MESSAGE)
-        Packet.WriteByte(0)
         Message = self.ConvertColours(Message)
-        Packet.WriteString(Message[:64])
+        Packet = PacketWriter.MakeMessagePacket(0, Message)
         for pPlayer in self.PlayerSet:
             if pPlayer.GetJoinNotifications():
                 pPlayer.SendPacket(Packet)
+                
     def SendMessageToAll(self, Message):
-        Packet = OptiCraftPacket(SMSG_MESSAGE)
-        Packet.WriteByte(0)
         Message = self.ConvertColours(Message)
-        Packet.WriteString(Message)
-        
+        Packet = PacketWriter.MakeMessagePacket(0, Message)
         for pPlayer in self.PlayerSet:
             if pPlayer.IsDeafened == False:
                 pPlayer.SendPacket(Packet)
@@ -1110,9 +1106,8 @@ class ServerController(object):
     def SendPacketToAll(self, Packet):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
-        Data = Packet.GetOutData()
         for pPlayer in self.PlayerSet:
-            pPlayer.OutBuffer.write(Data)
+            pPlayer.OutBuffer.write(Packet)
 
     def SaveAllWorlds(self):
         '''This will need to be rewritten come multi-threaded worlds!'''
