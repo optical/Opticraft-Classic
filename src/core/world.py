@@ -587,7 +587,7 @@ class World(object):
         self.ServerControl.PluginMgr.OnPostPlaceBlock(self, pPlayer, OldValue, val, x, y, z)
         if self.IsLocked == True:
             return
-        Packet = PacketWriter.MakeBlockSetPacket(x, y, z, val)
+        Packet = PacketWriter.MakeBlockSetPacket(x, z, y, val)
         if not ResendToClient:
             self.SendPacketToAllButOne(Packet, pPlayer)
         else:
