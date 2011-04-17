@@ -491,7 +491,7 @@ class Player(object):
     def HandleBlockChange(self, Packet):
         if self.World is not None:
             self.LastAction = self.ServerControl.Now
-            x, y, z, Mode, Block = PacketReader.ParseBlockSetPacket(Packet)
+            x, z, y, Mode, Block = PacketReader.ParseBlockSetPacket(Packet)
             self.LastBlock = Block
             Result = None
             #Flood detection
