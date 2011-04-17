@@ -266,7 +266,7 @@ class World(object):
         self.BlockCache = cStringIO.StringIO()
         self.IsDirty = True
         self.IsLocked = False
-        self.Players = set()
+        self.Players = list()
         self.TransferringPlayers = list()
         self.JoiningPlayers = list()
         self.Name = Name
@@ -796,7 +796,7 @@ class World(object):
             
         while len(self.JoiningPlayers) > 0:
             pPlayer = self.JoiningPlayers.pop()
-            self.Players.add(pPlayer)
+            self.Players.append(pPlayer)
             pPlayer.SetWorld(self)
             pPlayer.SetId(pPlayer.GetNewId())
             self.SendWorld(pPlayer)
