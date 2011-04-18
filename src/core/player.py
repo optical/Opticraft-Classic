@@ -529,7 +529,7 @@ class Player(object):
         self.IncreaseChatMessageCount()
         self.LastAction = self.ServerControl.Now
         Junk, Contents = PacketReader.ParseMessagePacket(Packet)
-        Contents = Contents.translate(None, DisabledChars)
+        Contents = Contents.translate(None, DisabledChars).strip()
         if len(Contents) == 0:
             return
         if Contents[0] == "/":
