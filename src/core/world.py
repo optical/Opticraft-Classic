@@ -858,7 +858,7 @@ class World(object):
         while len(Chunk) > 0:
             ChunkSize = len(Chunk)
             CurBytes += ChunkSize
-            Packet = PacketWriter.MakeChunkPacket(ChunkSize, Chunk, 100 * (CurBytes / TotalBytes))
+            Packet = PacketWriter.MakeChunkPacket(ChunkSize, Chunk, int(100.0 * (float(CurBytes) / TotalBytes)))
             pPlayer.SendPacket(Packet)
             Chunk = StringHandle.read(1024)
 
