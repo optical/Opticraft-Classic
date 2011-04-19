@@ -1107,7 +1107,7 @@ class ServerController(object):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
         for pPlayer in self.PlayerSet:
-            pPlayer.OutBuffer.write(Packet)
+            pPlayer.OutBuffer.append(Packet)
 
     def SaveAllWorlds(self):
         '''This will need to be rewritten come multi-threaded worlds!'''

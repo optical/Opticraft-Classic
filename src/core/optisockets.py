@@ -134,7 +134,7 @@ class SocketManager(object):
             for wSocket in WriteableSockets:
                 pPlayer = self.ClosingPlayers[wSocket]
                 try:
-                    wSocket.send(pPlayer.GetOutBuffer().getvalue())
+                    wSocket.send(''.join(pPlayer.OutBuffer))
                 except:
                     pass
 
@@ -176,7 +176,7 @@ class SocketManager(object):
         for Socket in wlist:
             pPlayer = self.ServerControl.GetPlayerFromSocket(Socket)
             #pop data and send.
-            ToSend = pPlayer.GetOutBuffer().getvalue()
+            ToSend = ''.join(pPlayer.OutBuffer)
             if len(ToSend) == 0:
                 continue
             #Let us try send some data
@@ -187,9 +187,7 @@ class SocketManager(object):
                     self._RemoveSocket(Socket)
                 continue
             self.SentBytes += result
-            Buffer = pPlayer.GetOutBuffer()
-            Buffer.truncate(0)
-            Buffer.write(ToSend[result:])
+            pPlayer.OutBuffer = [ToSend[result:]]
 
     def CloseSocket(self, Socket):
         self.ClosingSockets.add(Socket)

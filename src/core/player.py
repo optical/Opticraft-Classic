@@ -39,7 +39,7 @@ class Player(object):
         LocalPacketSizes = PacketSizes #Micro optimization. Store reference in local scope
         ProcessingPackets = True
         while ProcessingPackets:
-            RawBuffer = self.SockBuffer.getvalue()
+            RawBuffer = ''.join(self.SockBuffer)
             if len(RawBuffer) == 0:
                 break
             OpCode = ord(RawBuffer[0])
@@ -50,27 +50,24 @@ class Player(object):
             BufLen = len(RawBuffer) - 1 #Remove one for opcode
             if BufLen >= PacketSize:
                 Packet = RawBuffer[1:PacketSize + 1] #up to and including end of packet
-                self.SockBuffer.truncate(0)
-                self.SockBuffer.write(RawBuffer[PacketSize + 1:]) #From end of packet on
-                if self.OpcodeHandler.has_key(OpCode):
-                    self.OpcodeHandler[OpCode](self, Packet)
+                self.SockBuffer = [RawBuffer[PacketSize + 1:]] #From end of packet on
+                self.OpcodeHandler[OpCode](self, Packet)
             else:
                 ProcessingPackets = False
         #Check to see if we have got too much data in our out buffer.
         #Send Queue exceeded (Default = 4MB of buffered data)
-        if self.OutBuffer.tell() > self.ServerControl.SendBufferLimit and self.Disconnecting == False:
-            Console.Debug("Player", "Disconnecting player as their send queue buffer contains %d bytes" % self.OutBuffer.tell())
-            self.Disconnect()
+        #if self.OutBuffer.tell() > self.ServerControl.SendBufferLimit and self.Disconnecting == False:
+        #    Console.Debug("Player", "Disconnecting player as their send queue buffer contains %d bytes" % self.OutBuffer.tell())
+        #    self.Disconnect()
+            
     def PushRecvData(self, Data):
         '''Called by the Socketmanager. Gives us raw data to be processed'''
-        self.SockBuffer.write(Data)
-
-    def GetOutBuffer(self):
-        return self.OutBuffer
+        self.SockBuffer.append(Data)
+    
     def SendPacket(self, Packet):
         '''Appends data to the end of our buffer
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO SendPacketToAll functions!'''
-        self.OutBuffer.write(Packet)
+        self.OutBuffer.append(Packet)
 
     def IsDisconnecting(self):
         return self.Disconnecting
@@ -630,9 +627,9 @@ class Player(object):
         self.BlockOverride = -1
         self.X, self.Y, self.Z, self.O, self.P = -1, -1, -1, -1, -1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
         self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnO, self.SpawnP = -1, -1, -1, -1, -1 #Used to spawn at a location when chaning worlds
-        self.OutBuffer = cStringIO.StringIO()
         Console.Debug("Player", "Player object created. IP: %s" % SockAddress[0])
-        self.SockBuffer = cStringIO.StringIO()
+        self.SockBuffer = list()
+        self.OutBuffer = list()
         self.TemporaryPluginData = PluginDict() #Destroyed during logout
         self.PermanentPluginData = JSONDict() #Loaded and saved to DB.
         self.OpcodeHandler = {
