@@ -945,13 +945,13 @@ class World(object):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
         for pPlayer in self.Players:
-            pPlayer.OutBuffer.write(Packet)
+            pPlayer.OutBuffer.append(Packet)
     def SendPacketToAllButOne(self, Packet, Client):
         '''Distributes a packet to all clients on a map
             *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO Player::SendPacket!'''
         for pPlayer in self.Players:
             if pPlayer != Client:
-                pPlayer.OutBuffer.write(Packet)
+                pPlayer.OutBuffer.append(Packet)
                 
     @staticmethod
     def GetMetaData(Name):
