@@ -312,7 +312,6 @@ class ServerController(object):
         self.LoadResults = Queue.Queue()
         self.AsynchronousQueryResults = Queue.Queue()
         self.PlayerDBThread = PlayerDbThread(self)
-        self.PlayerDBThread.start()
         self.PlayerDBConnection = dbapi.connect("Player.db", timeout = 0.1)
         self.PlayerDBConnection.text_factory = str
         self.PlayerDBConnection.row_factory = dbapi.Row
@@ -564,12 +563,8 @@ class ServerController(object):
                 continue
             WorldName = FileName[:-5]
             self.LoadWorldMetaData(WorldName)
-            if WorldName != self.ConfigValues.GetValue("worlds", "DefaultName", "Main"):
-                #The default world is always loaded
-                self.IdleWorlds.append(WorldName)
-                
-        self.ActiveWorlds.append(World(self, self.ConfigValues.GetValue("worlds", "DefaultName", "Main")))
-        self.ActiveWorlds[0].SetIdleTimeout(0) #0 - never becomes idle
+            #The default world is always loaded
+            self.IdleWorlds.append(WorldName)
     
     def LoadWorldMetaData(self, WorldName):
         '''Attempts to load the world files meta data from disk and store it in our cache'''
@@ -757,6 +752,12 @@ class ServerController(object):
         self.Running = True
         #Start the heartbeatcontrol thread.
         self.HeartBeatControl.start()
+        #Start the DB Thread
+        self.PlayerDBThread.start()
+        #Setup the main world.
+        self.ActiveWorlds.append(World(self, self.ConfigValues.GetValue("worlds", "DefaultName", "Main")))
+        self.ActiveWorlds[0].SetIdleTimeout(0)
+            
 
         if platform.system() == 'Linux':
             signal.signal(signal.SIGTERM, self.HandleKill)
