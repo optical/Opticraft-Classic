@@ -564,7 +564,8 @@ class ServerController(object):
             WorldName = FileName[:-5]
             self.LoadWorldMetaData(WorldName)
             #The default world is always loaded
-            self.IdleWorlds.append(WorldName)
+            if WorldName != self.ConfigValues.GetValue("worlds", "DefaultName", "Main"):
+                self.IdleWorlds.append(WorldName)
     
     def LoadWorldMetaData(self, WorldName):
         '''Attempts to load the world files meta data from disk and store it in our cache'''
@@ -835,10 +836,10 @@ class ServerController(object):
                         self.IRCReconnect = -1
                         
                 asyncore.loop(count = 1, timeout = 0.001)
-            #Remove idle players
+            #Remove idle players and lagging players
             if self.IdlePlayerLimit != 0:
                 if self.LastIdleCheck + self.IdleCheckPeriod < self.Now:
-                    self.RemoveIdlePlayers()
+                    self.RemoveInactivePlayers()
                     self.LastIdleCheck = self.Now
             #Check for SQL Results from the PlayerDBThread
             while True:
@@ -997,13 +998,20 @@ class ServerController(object):
             pPlayer.Disconnect("You were kicked by %s. Reason: %s" % (Operator, Reason))
             return True
         return False
-    def RemoveIdlePlayers(self):
+    
+    def RemoveInactivePlayers(self):
         for pPlayer in self.PlayerSet:
             if pPlayer.GetLastAction() + self.IdlePlayerLimit < self.Now:
                 if pPlayer.GetRankLevel() <= self.RankLevels['guest']:
                     pPlayer.Disconnect("You were kicked for being idle")
                     if pPlayer.IsAuthenticated():
                         self.SendNotice("%s has been kicked for being idle" % pPlayer.GetName())
+            BufferSize = 0
+            for Item in pPlayer.OutBuffer:
+                BufferSize += len(Item)
+            if BufferSize > self.SendBufferLimit:
+                Console.Debug("Player", "Disconnecting player as their send queue buffer contains %d bytes" % BufferSize)
+                pPlayer.Disconnect("")
 
     def AttemptAddPlayer(self, pPlayer):
         if len(self.PlayerSet) == self.MaxClients:

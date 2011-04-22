@@ -54,11 +54,6 @@ class Player(object):
                 self.OpcodeHandler[OpCode](self, Packet)
             else:
                 ProcessingPackets = False
-        #Check to see if we have got too much data in our out buffer.
-        #Send Queue exceeded (Default = 4MB of buffered data)
-        #if self.OutBuffer.tell() > self.ServerControl.SendBufferLimit and self.Disconnecting == False:
-        #    Console.Debug("Player", "Disconnecting player as their send queue buffer contains %d bytes" % self.OutBuffer.tell())
-        #    self.Disconnect()
             
     def PushRecvData(self, Data):
         '''Called by the Socketmanager. Gives us raw data to be processed'''
