@@ -121,6 +121,8 @@ class Commands(PluginBase):
         self.AddCommand("loadworld", LoadWorldCmd, 'admin', 'Loads a world which has been added to the Worlds folder', 'Incorrect syntax! Usage: /loadworld <name>', 1)
         self.AddCommand("loadtemplate", LoadTemplateCmd, 'admin', 'Loads a template world from the Templates directory', 'Incorrect syntax! Usage: /loadtemplate <templatename> <worldname>', 2)
         self.AddCommand("showtemplates", ShowTemplatesCmd, 'admin', 'Lists all the available world templates', '', 0)
+        self.AddCommand("maketemplate", MakeTemplateCmd, 'admin', 'Shelves a world as a template for later use', 'Incorrect syntax! Usage: /maketemplate <worldname> <templatename>', 2)
+        self.AddCommand("deletetemplate", DeleteTemplateCmd, 'admin', 'Erases a template for disk', 'Incorrect syntax! Usage: /deletetemplate <templatename>', 1)
         self.AddCommand("plugin", PluginCmd, 'admin', 'Provides the ability to list, load, unload and reload plugins', 'Incorrect syntax! Usage: /plugins <list/load/unload/reload> [plugin]', 1)
         ######################
         #OWNER COMMANDS HERE #
@@ -850,9 +852,7 @@ class ShowTemplatesCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         OutStr = bytearray()
         for File in os.listdir("Templates"):
-            if len(File) < 5:
-                continue
-            if File[-5:] != ".save":
+            if File.endswith(".save") == False:
                 continue
             TemplateName = File[:-5]
             OutStr += TemplateName
@@ -865,6 +865,48 @@ class ShowTemplatesCmd(CommandObject):
         else:
             pPlayer.SendMessage("&SThere are no templates!")
             
+class MakeTemplateCmd(CommandObject):
+    '''Handler for the /maketemplate command'''
+    def Run(self, pPlayer, Args, Message):
+        WorldName = Args[0]
+        TemplateName = Args[0]
+        if TemplateName.isalnum() == False:
+            pPlayer.SendMessage("&RInvalid name for the template!")
+            return
+        
+        if os.path.isfile("Templates/%s.save" %TemplateName):
+            pPlayer.SendMessage("&RA template with that name already exists!")
+            return
+        
+        if pPlayer.ServerControl.WorldExists(WorldName) == False:
+            pPlayer.SendMessage("&RThat world does not exist!")
+            return
+        
+        pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
+        if pWorld is not None:
+            #Make sure the file on disk is the most up to date (blocking)
+            pWorld.Save()
+            pWorld.CurrentSaveThread.join()
+        try:
+            shutil.copy("Worlds/%s.save" %WorldName, "Templates/%s.save" %TemplateName)
+        except Exception, e:
+            pPlayer.SendMessage("&RFailed to make template. Error: %s" %e)
+        else:
+            pPlayer.SendMessage("&SSuccessfully created template")
+            
+class DeleteTemplateCmd(CommandObject):
+    def Run(self, pPlayer, Args, Message):
+        TemplateName = Args[0]
+        if os.path.isfile("Templates/%s.save" %TemplateName) == False:
+            pPlayer.SendMessage("&RThat template does not exist!")
+            return
+        try:
+            os.remove("Templates/%s.save" %TemplateName)
+        except Exception, e:
+            pPlayer.SendMessage("&RCould not remove: %s" %e)
+        else:
+            pPlayer.SendMessage("&SSucessfully deleted template")
+        
 class SetDefaultWorldCmd(CommandObject):
     '''Handler for the /setdefaultworld command'''
     def Run(self, pPlayer, Args, Message):
