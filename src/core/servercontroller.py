@@ -1075,8 +1075,7 @@ class ServerController(object):
 
     def SendNotice(self, Message):
         Message = self.ConvertColours(("&N" + Message))
-        Packet = PacketWriter.MakeMessagePacket(0, Message)        
-        self.SendPacketToAll(Packet)
+        self.SendChatMessage('', Message)
 
     def SendJoinMessage(self, Message):
         Message = self.ConvertColours(Message)
@@ -1096,7 +1095,7 @@ class ServerController(object):
         LocalColourchars = ColourChars #Bring it into the local scope
         if NormalStart:
             Message = '%s: &f%s' % (From, Message)
-        else:
+        elif From != '':
             Message = '%s %s' % (From, Message)
         Words = Message.split()
         OutStr = bytearray()
