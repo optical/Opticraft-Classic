@@ -30,7 +30,7 @@ from core.commandhandler import CommandObject
 from core.console import *
 from core.constants import *
 
-from core.world import World, AsynchronousIOThread
+from core.world import World
 import os.path
 import sqlite3 as dbapi
 import shutil
@@ -954,61 +954,12 @@ class RenameWorldCmd(CommandObject):
         if pPlayer.ServerControl.WorldExists(NewName):
             pPlayer.SendMessage("&RThere is already a world with that name!")
             return
-
-        #Is it an idle world?
-        ActiveWorlds, IdleWorlds = pPlayer.ServerControl.GetWorlds()
-        FoundWorld = False
-        for WorldName in IdleWorlds:
-            if WorldName.lower() == OldName:
-                #Sure is
-                os.rename("Worlds/%s.save" % WorldName, "Worlds/%s.save" % NewName)
-                if os.path.isfile("Worlds/BlockLogs/%s.db" % WorldName):
-                    os.rename("Worlds/BlockLogs/%s.db" % WorldName, "Worlds/BlockLogs/%s.db" % NewName)
-                pPlayer.ServerControl.IdleWorlds.remove(WorldName)
-                pPlayer.ServerControl.IdleWorlds.append(NewName)
-                FoundWorld = True
-                break
-
-        #Is it an active world?
-        if FoundWorld == False:
-            for pWorld in ActiveWorlds:
-                if pWorld.Name.lower() == OldName:
-                    if pWorld.CurrentSaveThread is not None and pWorld.CurrentSaveThread.isAlive():
-                        #Wait until the world has finished being saved
-                        pWorld.CurrentSaveThread.join()
-                    os.rename("Worlds/%s.save" % pWorld.Name, "Worlds/%s.save" % NewName)
-                    #Close the SQL Connection if its active
-                    if pWorld.DBConnection is not None:
-                        pWorld.DBConnection.commit()
-                        pWorld.DBConnection.close()
-                        pWorld.DBCursor = None
-                        pWorld.DBConnection = None
-                        pWorld.IOThread.Tasks.put(["SHUTDOWN"])
-                        if pWorld.IOThread.isAlive():
-                            pWorld.IOThread.join() #Block until IOThread dies.
-                        shutil.move("Worlds/BlockLogs/%s.db" % pWorld.Name, "Worlds/BlockLogs/%s.db" % NewName)
-                        pWorld.Name = NewName
-                        pWorld.IOThread = AsynchronousIOThread(pWorld)
-                        pWorld.IOThread.start()
-                        #The copy will be removed by the IO Thread for the world.
-                        pWorld.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" % NewName)
-                        pWorld.DBCursor = pWorld.DBConnection.cursor()
-                    pWorld.Name = NewName
-                    #Are we the default map?
-                    if pPlayer.ServerControl.ConfigValues.GetValue("worlds", "DefaultName", "Main").lower() == OldName:
-                        #<_<
-                        pPlayer.ServerControl.ConfigValues.set("worlds", "DefaultName", NewName)
-                        with open("opticraft.cfg", "w") as fHandle:
-                            pPlayer.ServerControl.ConfigValues.write(fHandle)
-                    break
-        #Rename Backups
-        if os.path.exists("Backups/%s" % OldName):
-            shutil.move("Backups/%s" % OldName, "Backups/%s" % NewName)
-
-        #Update the meta-data cache
-        pPlayer.ServerControl.SetWorldMetaData(NewName, pPlayer.ServerControl.GetWorldMetaData(OldName))
-        pPlayer.ServerControl.DeleteWorldMetaData(OldName)
-        pPlayer.SendMessage("&SSuccessfully renamed map %s to %s" % (OldName, NewName))
+        try:
+            pPlayer.ServerControl.RenameWorld(OldName, NewName)
+            pPlayer.SendMessage("&SSuccessfully renamed map %s to %s" % (OldName, NewName))
+        except Exception, e:
+            pPlayer.SendMessage("&RFailed to rename world. Error: %s" %e)
+            
 
 class PluginCmd(CommandObject):
     '''Handler for the /plugins command'''
@@ -1074,6 +1025,7 @@ class FlushBlockLogCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         pPlayer.GetWorld().FlushBlockLog()
         pPlayer.SendMessage("&SWorld %s's Blocklog has been flushed to disk." % pPlayer.GetWorld().Name)
+        
 class DeleteWorldCmd(CommandObject):
     '''Deletes a world from the server'''
     def Run(self, pPlayer, Args, Message):
@@ -1086,27 +1038,9 @@ class DeleteWorldCmd(CommandObject):
         if ActiveWorlds[0].Name.lower() == WorldName:
             pPlayer.SendMessage("&RYou cannot delete the default world!")
             return
-
-        for pWorld in ActiveWorlds:
-            if pWorld.Name.lower() == WorldName:
-                pWorld.Unload()
-                if pWorld.IOThread.isAlive():
-                    pWorld.IOThread.join() #Block until the thread is finished its jobs
-                if pWorld.CurrentSaveThread is not None and pWorld.CurrentSaveThread.isAlive():
-                    pWorld.CurrentSaveThread.join() #Block until it is finished saving the world
-                
-        #Get the lists again, they may of changed at this stage of the process
-        #(If the world was active, it will now be in the idle list due to being unloaded)
-        ActiveWorlds, IdleWorlds = pPlayer.ServerControl.GetWorlds()
-        #The world should now be in an unloading/unloaded state.
-        for IdleWorldName in IdleWorlds:
-            if IdleWorldName.lower() == WorldName:
-                #erasing time
-                WorldName = IdleWorldName
-                os.remove("Worlds/%s.save" % WorldName)
-                if pPlayer.ServerControl.EnableBlockLogs:
-                    os.remove("Worlds/BlockLogs/%s.db" % WorldName)
-                pPlayer.ServerControl.IdleWorlds.remove(WorldName)
-                pPlayer.ServerControl.DeleteWorldMetaData(WorldName)
-                pPlayer.SendMessage("&SSuccessfully deleted world \"&V%s&S\"" % WorldName)
-                return #Done...
+        
+        try:
+            pPlayer.ServerControl.DeleteWorld(WorldName)
+            pPlayer.SendMessage("&SSucessfully deleted world \"&V%s&S\"" %WorldName)
+        except Exception, e:
+            pPlayer.SendMessage("&RFailed to erase world. Error: %s" %e)
