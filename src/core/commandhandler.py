@@ -94,9 +94,6 @@ class CommandHandler(object):
             CommandObj = self.CommandTable[Command]
             CommandObj.Execute(pPlayer, Message)
 
-    def AddCommand(self, Command, CmdObj, Permissions, HelpMsg, ErrorMsg, MinArgs, Alias = False):
-        self.CommandTable[Command.lower()] = CmdObj(self, Permissions, HelpMsg, ErrorMsg, MinArgs, Command, Alias)
-
     def AddCommandObj(self, CmdObj):
         self.CommandTable[CmdObj.Name.lower()] = CmdObj
         Permission = self.ServerControl.ConfigValues.GetValue("commandoverrides", CmdObj.Name, '')
@@ -106,6 +103,11 @@ class CommandHandler(object):
                 self.OverrideCommandPermissions(CmdObj, Permission)
             else:
                 Console.Warning("CommandOverride", "Failed to override command %s, rank %s does not exist" % (CmdObj.Name, Permission))
+        self._SortCommands()
+    
+    def _SortCommands(self):
+        self.CommandTable = OrderedDict(sorted(self.CommandTable.items(), key = lambda i: i[0]))
+
     def RemoveCommand(self, CmdObj):
         del self.CommandTable[CmdObj.Name.lower()]
 

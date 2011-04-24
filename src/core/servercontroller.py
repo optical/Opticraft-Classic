@@ -928,6 +928,7 @@ class ServerController(object):
         threading.Thread(name = "Ban Flusher", target = ServerController._FlushBans, args = (copy.copy(self.BannedUsers),)).start()
     def FlushIPBans(self):
         threading.Thread(name = "IPBan Flusher", target = ServerController._FlushIPBans, args = (copy.copy(self.BannedIPs),)).start()
+    
     @staticmethod
     def _FlushBans(BannedUsers):
         try:
@@ -937,6 +938,7 @@ class ServerController(object):
             fHandle.close()
         except:
             pass
+        
     @staticmethod
     def _FlushIPBans(BannedIPs):
         '''Writes ip-bans to disk asynchronously'''
