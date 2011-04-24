@@ -30,6 +30,7 @@ import time
 import platform
 import os
 import os.path
+import shutil
 import signal
 import asyncore
 import sqlite3 as dbapi
@@ -43,7 +44,7 @@ from core.packet import PacketWriter
 from core.optisockets import SocketManager
 from core.commandhandler import CommandHandler
 from core.configreader import ConfigReader
-from core.world import World, WorldLoadFailedException, WorldRequiresUpdateException, MetaDataKey
+from core.world import World, WorldLoadFailedException, WorldRequiresUpdateException, MetaDataKey, AsynchronousIOThread
 from core.pluginmanager import PluginManager
 from core.asynchronousquery import AsynchronousQueryResult
 from core.constants import * 
@@ -1127,3 +1128,100 @@ class ServerController(object):
         '''This will need to be rewritten come multi-threaded worlds!'''
         for pWorld in self.ActiveWorlds:
             pWorld.Backup()
+            
+    def DeleteWorld(self, WorldName):
+        '''Attempts to delete a world. Returns True on success. Exceptions thrown otherwise'''
+        ActiveWorlds, IdleWorlds = self.GetWorlds()
+        for pWorld in ActiveWorlds:
+            if pWorld.Name.lower() == WorldName:
+                pWorld.Unload()
+                if pWorld.IOThread.isAlive():
+                    pWorld.IOThread.join() #Block until the thread is finished its jobs
+                if pWorld.CurrentSaveThread is not None and pWorld.CurrentSaveThread.isAlive():
+                    pWorld.CurrentSaveThread.join() #Block until it is finished saving the world
+                
+        #Get the lists again, they may of changed at this stage of the process
+        #(If the world was active, it will now be in the idle list due to being unloaded)
+        ActiveWorlds, IdleWorlds = self.GetWorlds()
+        #The world should now be in an unloading/unloaded state.
+        for IdleWorldName in IdleWorlds:
+            if IdleWorldName.lower() == WorldName:
+                #erasing time
+                WorldName = IdleWorldName
+                self.IdleWorlds.remove(WorldName)
+                self.DeleteWorldMetaData(WorldName)
+                threading.Thread(name = "World removal thread (%s)" %WorldName, target = ServerController._RemoveWorld, args = (WorldName,)).start()
+                return True
+            
+    @staticmethod
+    def _RemoveWorld(WorldName):
+        '''Asynchronous call to erase the world from disk.
+        ...Called by RemoveWorld()'''
+        os.remove("Worlds/%s.save" % WorldName)
+        if os.path.isfile("Worlds/BlockLogs/%s.db" % WorldName):
+            os.remove("Worlds/BlockLogs/%s.db" % WorldName)
+    
+    def RenameWorld(self, OldName, NewName):
+        '''Attempts to rename a world. Returns True on success. Exceptions thrown otherwise'''
+        #Is it an idle world?
+        ActiveWorlds, IdleWorlds = self.GetWorlds()
+        FoundWorld = False
+        for WorldName in IdleWorlds:
+            if WorldName.lower() == OldName:
+                #Sure is
+                os.rename("Worlds/%s.save" % WorldName, "Worlds/%s.save" % NewName)
+                if os.path.isfile("Worlds/BlockLogs/%s.db" % WorldName):
+                    if os.path.isfile("Worlds/BlockLogs/%s.db" % NewName):
+                        #most likely left over from user deleting the .save but forgot about the database..
+                        os.remove("Worlds/BlockLogs/%s.db" % NewName)
+                    os.rename("Worlds/BlockLogs/%s.db" % WorldName, "Worlds/BlockLogs/%s.db" % NewName)
+                self.IdleWorlds.remove(WorldName)
+                self.IdleWorlds.append(NewName)
+                FoundWorld = True
+                break
+
+        #Is it an active world?
+        if FoundWorld == False:
+            for pWorld in ActiveWorlds:
+                if pWorld.Name.lower() == OldName:
+                    if pWorld.CurrentSaveThread is not None and pWorld.CurrentSaveThread.isAlive():
+                        #Wait until the world has finished being saved
+                        pWorld.CurrentSaveThread.join()
+                    os.rename("Worlds/%s.save" % pWorld.Name, "Worlds/%s.save" % NewName)
+                    #Close the SQL Connection if its active
+                    if pWorld.DBConnection is not None:
+                        pWorld.DBConnection.commit()
+                        pWorld.DBConnection.close()
+                        pWorld.DBCursor = None
+                        pWorld.DBConnection = None
+                        pWorld.IOThread.Tasks.put(["SHUTDOWN"])
+                        if pWorld.IOThread.isAlive():
+                            pWorld.IOThread.join() #Block until IOThread dies.
+                        if os.path.isfile("Worlds/BlockLogs/%s.db" % NewName):
+                            #most likely left over from user deleting the .save but forgot about the database..
+                            os.remove("Worlds/BlockLogs/%s.db" % NewName)    
+                        os.rename("Worlds/BlockLogs/%s.db" % pWorld.Name, "Worlds/BlockLogs/%s.db" % NewName)
+                        pWorld.Name = NewName
+                        pWorld.IOThread = AsynchronousIOThread(pWorld)
+                        pWorld.IOThread.start()
+                        pWorld.DBConnection = dbapi.connect("Worlds/BlockLogs/%s.db" % NewName)
+                        pWorld.DBCursor = pWorld.DBConnection.cursor()
+                    pWorld.Name = NewName
+                    #Are we the default map?
+                    if self.ConfigValues.GetValue("worlds", "DefaultName", "Main").lower() == OldName:
+                        self.ConfigValues.set("worlds", "DefaultName", NewName)
+                        with open("opticraft.cfg", "w") as fHandle:
+                            self.ConfigValues.write(fHandle)
+                    break
+        #Rename Backups
+        if os.path.exists("Backups/%s" % OldName):
+            if os.path.exists("Backups/%s" %NewName):
+                #Need to delete old folder (Windows...)
+                shutil.rmtree("Backups/%s" %NewName)
+            os.rename("Backups/%s" % OldName, "Backups/%s" % NewName)
+
+        #Update the meta-data cache
+        self.SetWorldMetaData(NewName, self.GetWorldMetaData(OldName))
+        self.DeleteWorldMetaData(OldName)
+        return True
+    
