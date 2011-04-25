@@ -720,14 +720,14 @@ class World(object):
         self.ServerControl.SetWorldMetaData(self.Name, self.MetaData)
         self.Save(False)
 
-    def Unload(self):
+    def Unload(self, ShouldSave = True):
         #Remove players..
         for pPlayer in self.Players:
-            #Super lazy mode =|
             pPlayer.Disconnect("The world you were on was deleted. Please reconnect")
             pPlayer.SetWorld(None)
         self.ServerControl.UnloadWorld(self)
-        self.Save(True)
+        if ShouldSave:
+            self.Save(True)
         self.CurrentSaveThread = None
         self.Unloaded = True
         if self.LogBlocks:

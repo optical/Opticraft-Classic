@@ -1131,10 +1131,11 @@ class ServerController(object):
             
     def DeleteWorld(self, WorldName):
         '''Attempts to delete a world. Returns True on success. Exceptions thrown otherwise'''
+        self.PluginMgr.OnWorldDelete(WorldName)
         ActiveWorlds, IdleWorlds = self.GetWorlds()
         for pWorld in ActiveWorlds:
             if pWorld.Name.lower() == WorldName:
-                pWorld.Unload()
+                pWorld.Unload(ShouldSave = False)
                 if pWorld.IOThread.isAlive():
                     pWorld.IOThread.join() #Block until the thread is finished its jobs
                 if pWorld.CurrentSaveThread is not None and pWorld.CurrentSaveThread.isAlive():
@@ -1163,6 +1164,7 @@ class ServerController(object):
     
     def RenameWorld(self, OldName, NewName):
         '''Attempts to rename a world. Returns True on success. Exceptions thrown otherwise'''
+        self.PluginMgr.OnWorldRename(OldName, NewName)
         #Is it an idle world?
         ActiveWorlds, IdleWorlds = self.GetWorlds()
         FoundWorld = False

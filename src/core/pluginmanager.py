@@ -46,6 +46,9 @@ class Hooks:
     ON_WORLD_LOAD = 9
     ON_WORLD_UNLOAD = 10
     ON_WORLD_METADATA_LOAD = 11
+    ON_PLAYER_POSITION_UPDATE = 12
+    ON_WORLD_RENAME = 13
+    ON_WORLD_DELETE = 14
 
 class PluginBase(object):
     #These numbers do not include the "self" argument, though all objects need to have this!
@@ -61,7 +64,10 @@ class PluginBase(object):
         Hooks.ON_PLAYER_CHANGE_WORLD: 3,
         Hooks.ON_WORLD_LOAD: 1,
         Hooks.ON_WORLD_UNLOAD: 1,
-        Hooks.ON_WORLD_METADATA_LOAD: 1
+        Hooks.ON_WORLD_METADATA_LOAD: 1,
+        Hooks.ON_PLAYER_POSITION_UPDATE: 6,
+        Hooks.ON_WORLD_RENAME: 2,
+        Hooks.ON_WORLD_DELETE: 1,
     }
 
     def __init__(self, PluginMgr, ServerControl, Name):
@@ -86,6 +92,7 @@ class PluginBase(object):
         self.PluginMgr.RegisterCommand(self, CmdObj(self.ServerControl.CommandHandle, Permissions, HelpMsg, ErrorMsg, MinArgs, Command, Alias))
 class Hook(object):
     '''Simple struct to store Hook info'''
+    __slots__ = ['Plugin', 'Function']
     def __init__(self, Plugin, Function):
         self.Plugin = Plugin
         self.Function = Function
@@ -96,14 +103,15 @@ class PluginException(Exception):
 class PluginManager(object):
     def __init__(self, ServerControl):
         self.ServerControl = ServerControl
-        self.Hooks = dict() #Value is a list, Key is a lower case string
+        self.Hooks = dict() #Value is a list, Key is an integer from Hooks.
         self.Commands = dict() #Key is string (PluginModule), value is list of commandobjects
         self.Plugins = set() # A set of PluginBase Objects.
         self.PluginModules = list() #List of loaded plugin names
-        self._Emptylist = list() #Dummy object. Used so we do not have to create empty lists when searching for hooks that dont exist
+        self.SetupHookList()
         
-    def _GetHooks(self, Name):
-        return self.Hooks.get(Name, self._Emptylist)
+    def SetupHookList(self):
+        for Key in PluginBase.HookSpecs.iterkeys():
+            self.Hooks[Key] = list()
 
     def LoadPlugins(self):
         Plugins = self.ServerControl.ConfigValues.GetItems("plugins")
@@ -221,27 +229,27 @@ class PluginManager(object):
 
     def OnServerStart(self):
         '''Called when the server finishes up its startup routine'''
-        for Hook in self._GetHooks(Hooks.ON_START):
+        for Hook in self.Hooks[Hooks.ON_START]:
             Hook.Function()
 
     def OnPlayerConnect(self, pPlayer):
         '''Called when a player successfully authenticates with the server.
         ...At this stage they will not be on a world nor have any data loaded'''
-        for Hook in self._GetHooks(Hooks.ON_CONNECT):
+        for Hook in self.Hooks[Hooks.ON_CONNECT]:
             Hook.Function(pPlayer)
     def OnPlayerDataLoaded(self, pPlayer):
         '''Called when a players data is loaded from the database'''
-        for Hook in self._GetHooks(Hooks.ON_PLAYER_DATA_LOADED):
+        for Hook in self.Hooks[Hooks.ON_PLAYER_DATA_LOADED]:
             Hook.Function(pPlayer)
 
     def OnDisconnect(self, pPlayer):
         '''Called when a player leaves the server for whatever reason (Kick,Ban,Quit,etc)'''
-        for Hook in self._GetHooks(Hooks.ON_DISCONNECT):
+        for Hook in self.Hooks[Hooks.ON_DISCONNECT]:
             Hook.Function(pPlayer)
 
     def OnKick(self, pPlayer, Initiator, Reason, Ban):
         '''Called when a player is kicked or banned. Ban is true when it is a Ban (D'oh!)'''
-        for Hook in self._GetHooks(Hooks.ON_KICK):
+        for Hook in self.Hooks[Hooks.ON_KICK]:
             Hook.Function(pPlayer, Initiator, Reason, Ban)
 
     #FailSilently is a special return type that will disallow placement, but does not let the client know it failed
@@ -249,7 +257,7 @@ class PluginManager(object):
     def OnAttemptPlaceBlock(self, pWorld, pPlayer, BlockValue, x, y, z):
         '''Plugins may return false to disallow the block placement'''
         Allowed = True
-        for Hook in self._GetHooks(Hooks.ON_ATTEMPT_PLACE_BLOCK):
+        for Hook in self.Hooks[Hooks.ON_ATTEMPT_PLACE_BLOCK]:
             Result = Hook.Function(pWorld, pPlayer, BlockValue, x, y, z)
             if Result == False:
                 Allowed = Result
@@ -261,32 +269,49 @@ class PluginManager(object):
         '''Called when a block is changed on the map.
         ...IMPORTANT: The pPlayer reference may be null in the event
         ...of an automated (non-player) block change!'''
-        for Hook in self._GetHooks(Hooks.ON_POST_PLACE_BLOCK):
+        for Hook in self.Hooks[Hooks.ON_POST_PLACE_BLOCK]:
             Hook.Function(pWorld, pPlayer, OldValue, BlockValue, x, y, z)
 
     def OnChat(self, pPlayer, ChatMessage):
         '''Called when a player types a message
         ...This fires for any message besides slash "/" commands and PM's'''
-        for Hook in self._GetHooks(Hooks.ON_CHAT):
+        for Hook in self.Hooks[Hooks.ON_CHAT]:
             Hook.Function(pPlayer, ChatMessage)
 
     def OnChangeWorld(self, pPlayer, OldWorld, NewWorld):
         '''Called when a player changes world, be it via
         .../join, /tp, /summon, or any other means'''
-        for Hook in self._GetHooks(Hooks.ON_PLAYER_CHANGE_WORLD):
+        for Hook in self.Hooks[Hooks.ON_PLAYER_CHANGE_WORLD]:
             Hook.Function(pPlayer, OldWorld, NewWorld)
 
     def OnWorldLoad(self, pWorld):
         '''Called when a world object is created'''
-        for Hook in self._GetHooks(Hooks.ON_WORLD_LOAD):
+        for Hook in self.Hooks[Hooks.ON_WORLD_LOAD]:
             Hook.Function(pWorld)
 
     def OnWorldUnload(self, pWorld):
         '''Called when a world is unloaded'''
-        for Hook in self._GetHooks(Hooks.ON_WORLD_UNLOAD):
+        for Hook in self.Hooks[Hooks.ON_WORLD_UNLOAD]:
             Hook.Function(pWorld)
             
     def OnWorldMetaDataLoad(self, WorldName):
         '''Called when the worlds meta data is loaded and deserialized'''
-        for Hook in self._GetHooks(Hooks.ON_WORLD_METADATA_LOAD):
+        for Hook in self.Hooks[Hooks.ON_WORLD_METADATA_LOAD]:
             Hook.Function(WorldName)
+    
+    def OnPlayerPositionUpdate(self, pPlayer, x, y, z, o, p):
+        '''Called when a player's position changes.
+        ...the X, Y, Z values are in map coordinates.'''
+        for Hook in self.Hooks[Hooks.ON_PLAYER_POSITION_UPDATE]:
+            Hook.Function(pPlayer, x, y, z, o, p)
+            
+    def OnWorldRename(self, OldName, NewName):
+        '''Called prior to a world being named. World still has OldName'''
+        for Hook in self.Hooks[Hooks.ON_WORLD_RENAME]:
+            Hook.Function(OldName, NewName)
+    
+    def OnWorldDelete(self, WorldName):
+        '''Called prior to a world being erased. World still exists.'''
+        for Hook in self.Hooks[Hooks.ON_WORLD_DELETE]:
+            Hook.Function(WorldName)
+        
