@@ -455,6 +455,7 @@ class Player(object):
                 if o != self.O or p != self.P:
                     #Partial update
                     OrientationPacket = PacketWriter.MakeRotateUpdatePacket(self.Id, o, p)
+                    self.ServerControl.PluginMgr.OnPlayerPositionUpdate(self, self.BlockX, self.BlockY, self.BlockZ, o, p)
                     self.World.SendPacketToAll(OrientationPacket)                
                 else:
                     return #Saves bandwidth. No need to redistribute something we just sent..
@@ -464,6 +465,15 @@ class Player(object):
                 dx = x - self.X
                 dy = y - self.Y
                 dz = z - self.Z
+                bx = x >> 5
+                by = y >> 5
+                bz = z >> 5
+                if (bx != self.BlockX or by != self.BlockY or bz != self.BlockZ):
+                    self.ServerControl.PluginMgr.OnPlayerPositionUpdate(self, bx, by, bz, o, p)
+                    self.BlockX = bx
+                    self.BlockY = by
+                    self.BlockZ = bz
+                    
                 if dx >= -128 and dx <= 127 and dy >= -128 and dy <= 127 and dz >= -128 and dz <= 127:
                     PositionPacket = PacketWriter.MakeMoveUpdatePacket(self.Id, dx, dz, dy)
                     self.World.SendPacketToAll(PositionPacket)
@@ -476,8 +486,16 @@ class Player(object):
                 #Full Update
                 #cheaper to just reuse packet, even though bad practice
                 Packet = chr(SMSG_PLAYERPOS) + chr(self.Id) + Packet[1:]
-                self.World.SendPacketToAll(Packet)  
-                         
+                self.World.SendPacketToAll(Packet) 
+                bx = x >> 5
+                by = y >> 5
+                bz = z >> 5
+                if (bx != self.BlockX or by != self.BlockY or bz != self.BlockZ):
+                    self.ServerControl.PluginMgr.OnPlayerPositionUpdate(self, bx, by, bz, o, p)
+                    self.BlockX = bx
+                    self.BlockY = by
+                    self.BlockZ = bz
+                    
             self.SetLocation(x, y, z, o, p)
 
     def HandleBlockChange(self, Packet):
@@ -624,6 +642,7 @@ class Player(object):
         #This is used for commands such as /lava, /water, and /grass
         self.BlockOverride = -1
         self.X, self.Y, self.Z, self.O, self.P = -1, -1, -1, -1, -1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
+        self.BlockX, self.BlockY, self.BlockZ = -1, -1, -1 #Player position in block coordinates (not pixels)
         self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnO, self.SpawnP = -1, -1, -1, -1, -1 #Used to spawn at a location when chaning worlds
         Console.Debug("Player", "Player object created. IP: %s" % SockAddress[0])
         self.SockBuffer = list()
