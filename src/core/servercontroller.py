@@ -1076,7 +1076,7 @@ class ServerController(object):
 
     def SendNotice(self, Message):
         Message = self.ConvertColours(("&N" + Message))
-        self.SendChatMessage('', Message)
+        self.SendChatMessage('', Message, NormalStart = False)
 
     def SendJoinMessage(self, Message):
         Message = self.ConvertColours(Message)
