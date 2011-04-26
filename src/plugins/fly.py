@@ -41,8 +41,8 @@ class FlyPlugin(PluginBase):
         if pFlyData is not None:
             NewGlassBlocks = set()
             pWorld = pPlayer.GetWorld()
-            for px in xrange(x -3, x + 3):
-                for py in xrange(y - 3, y + 3):
+            for px in xrange(x -3, x + 4):
+                for py in xrange(y - 3, y + 4):
                     for pz in xrange(z - 3, z - 1):
                         if pWorld.WithinBounds(px, py, pz) and pWorld.GetBlock(px, py, pz) == BLOCK_AIR:
                             Packet = PacketWriter.MakeBlockSetPacket(px, pz, py, BLOCK_GLASS)
