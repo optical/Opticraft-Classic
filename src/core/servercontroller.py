@@ -425,9 +425,11 @@ class ServerController(object):
     
     def SetDefaultWorld(self, pWorld):
         self.ActiveWorlds.remove(pWorld)
-        self.ActiveWorlds[0].SetIdleTimeout(self.WorldTimeout)
+        self.ActiveWorlds[0].CanUnload = True
+        self.ActiveWorlds[0].IsMainWorld = False
         self.ActiveWorlds.insert(0, pWorld)
-        pWorld.SetIdleTimeout(0)
+        pWorld.CanUnload = False
+        pWorld.IsMainWorld = True
         self.ConfigValues.set("worlds", "DefaultName", pWorld.Name)
         try:
             fHandle = open("opticraft.ini", "w")
@@ -758,7 +760,8 @@ class ServerController(object):
         self.PlayerDBThread.start()
         #Setup the main world.
         self.ActiveWorlds.append(World(self, self.ConfigValues.GetValue("worlds", "DefaultName", "Main")))
-        self.ActiveWorlds[0].SetIdleTimeout(0)
+        self.ActiveWorlds[0].CanUnload = False
+        self.ActiveWorlds[0].IsMainWorld = True
             
 
         if platform.system() == 'Linux':
@@ -1138,8 +1141,6 @@ class ServerController(object):
                 pWorld.Unload(ShouldSave = False)
                 if pWorld.IOThread.isAlive():
                     pWorld.IOThread.join() #Block until the thread is finished its jobs
-                if pWorld.CurrentSaveThread is not None and pWorld.CurrentSaveThread.isAlive():
-                    pWorld.CurrentSaveThread.join() #Block until it is finished saving the world
                 
         #Get the lists again, they may of changed at this stage of the process
         #(If the world was active, it will now be in the idle list due to being unloaded)
@@ -1151,7 +1152,7 @@ class ServerController(object):
                 WorldName = IdleWorldName
                 self.IdleWorlds.remove(WorldName)
                 self.DeleteWorldMetaData(WorldName)
-                threading.Thread(name = "World removal thread (%s)" %WorldName, target = ServerController._RemoveWorld, args = (WorldName,)).start()
+                threading.Thread(name = "World removal thread (%s)" % WorldName, target = ServerController._RemoveWorld, args = (WorldName,)).start()
                 return True
             
     @staticmethod
@@ -1217,9 +1218,9 @@ class ServerController(object):
                     break
         #Rename Backups
         if os.path.exists("Backups/%s" % OldName):
-            if os.path.exists("Backups/%s" %NewName):
+            if os.path.exists("Backups/%s" % NewName):
                 #Need to delete old folder (Windows...)
-                shutil.rmtree("Backups/%s" %NewName)
+                shutil.rmtree("Backups/%s" % NewName)
             os.rename("Backups/%s" % OldName, "Backups/%s" % NewName)
 
         #Update the meta-data cache

@@ -294,6 +294,8 @@ class World(object):
         self.AsyncBlockChanges = Queue.Queue()
         self.AsyncQueryCallbacks = Queue.Queue()
         self.IdleTimeout = 0 #How long must the world be unoccupied until it unloads itself from memory
+        self.CanUnload = True #Is the world allowed to be unloaded
+        self.IsMainWorld = False
         self.IdleStart = 0 #Not idle.
         self.DBConnection = None
         self.DBCursor = None
@@ -744,7 +746,7 @@ class World(object):
             return
         if self.IdleTimeout != 0 and len(self.Players) == 0:
             if self.IdleStart != 0:
-                if self.IdleStart + self.IdleTimeout < self.ServerControl.Now:
+                if self.IdleStart + self.IdleTimeout < self.ServerControl.Now and self.CanUnload:
                     self.Unload()
                     return
             else:
