@@ -455,8 +455,8 @@ class Player(object):
                 if o != self.O or p != self.P:
                     #Partial update
                     OrientationPacket = PacketWriter.MakeRotateUpdatePacket(self.Id, o, p)
-                    self.ServerControl.PluginMgr.OnPlayerPositionUpdate(self, self.BlockX, self.BlockY, self.BlockZ, o, p)
-                    self.World.SendPacketToAll(OrientationPacket)                
+                    self.World.SendPacketToAll(OrientationPacket) 
+                    self.ServerControl.PluginMgr.OnPlayerPositionUpdate(self, self.BlockX, self.BlockY, self.BlockZ, o, p)               
                 else:
                     return #Saves bandwidth. No need to redistribute something we just sent..
                 
@@ -465,14 +465,6 @@ class Player(object):
                 dx = x - self.X
                 dy = y - self.Y
                 dz = z - self.Z
-                bx = x >> 5
-                by = y >> 5
-                bz = z >> 5
-                if (bx != self.BlockX or by != self.BlockY or bz != self.BlockZ):
-                    self.ServerControl.PluginMgr.OnPlayerPositionUpdate(self, bx, by, bz, o, p)
-                    self.BlockX = bx
-                    self.BlockY = by
-                    self.BlockZ = bz
                     
                 if dx >= -128 and dx <= 127 and dy >= -128 and dy <= 127 and dz >= -128 and dz <= 127:
                     PositionPacket = PacketWriter.MakeMoveUpdatePacket(self.Id, dx, dz, dy)
@@ -481,7 +473,16 @@ class Player(object):
                     #Outside range. need to send full update
                     #cheaper to just reuse packet, even though bad practice
                     Packet = chr(SMSG_PLAYERPOS) + chr(self.Id) + Packet[1:]
-                    self.World.SendPacketToAll(Packet)          
+                    self.World.SendPacketToAll(Packet) 
+                
+                bx = x >> 5
+                by = y >> 5
+                bz = z >> 5                    
+                if (bx != self.BlockX or by != self.BlockY or bz != self.BlockZ):
+                    self.ServerControl.PluginMgr.OnPlayerPositionUpdate(self, bx, by, bz, o, p)
+                    self.BlockX = bx
+                    self.BlockY = by
+                    self.BlockZ = bz        
             else:
                 #Full Update
                 #cheaper to just reuse packet, even though bad practice

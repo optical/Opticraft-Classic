@@ -36,7 +36,7 @@ sys.path.append("plugins")
 class Hooks:
     ON_START = 0
     ON_CONNECT = 1
-    ON_DISCONNECT = 2
+    ON_PLAYER_DISCONNECT = 2
     ON_PLAYER_DATA_LOADED = 3
     ON_KICK = 4
     ON_ATTEMPT_PLACE_BLOCK = 5
@@ -55,7 +55,7 @@ class PluginBase(object):
     HookSpecs = {
         Hooks.ON_START: 0,
         Hooks.ON_CONNECT: 1,
-        Hooks.ON_DISCONNECT: 1,
+        Hooks.ON_PLAYER_DISCONNECT: 1,
         Hooks.ON_PLAYER_DATA_LOADED: 1,
         Hooks.ON_KICK: 4,
         Hooks.ON_ATTEMPT_PLACE_BLOCK: 6,
@@ -244,7 +244,7 @@ class PluginManager(object):
 
     def OnDisconnect(self, pPlayer):
         '''Called when a player leaves the server for whatever reason (Kick,Ban,Quit,etc)'''
-        for Hook in self.Hooks[Hooks.ON_DISCONNECT]:
+        for Hook in self.Hooks[Hooks.ON_PLAYER_DISCONNECT]:
             Hook.Function(pPlayer)
 
     def OnKick(self, pPlayer, Initiator, Reason, Ban):
