@@ -119,7 +119,7 @@ class PluginManager(object):
         for PluginField in Plugins:
             PluginFile = PluginField[0]
             Enabled = PluginField[1]
-            if Enabled != False:
+            if Enabled != "0":
                 self.LoadPlugin(PluginFile)
         Console.Out("PluginMgr", "Finished loading plugins...")
 
