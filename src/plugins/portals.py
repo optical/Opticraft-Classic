@@ -340,7 +340,6 @@ class PortalCreateCmd(CommandObject):
         
         pPlayer.SetPluginData(PortalPlugin.PortalCreationKey, PortalCreationData(pPlayer, PortalName))
         pPlayer.SendMessage("&SPlace blocks to define the entry point.")
-        pPlayer.SendMessage("&SWater is the recommended block type. Use: /water")
         pPlayer.SendMessage("&SPlace a &cRed &Sblock to define the exit")
         
 class PortalDeleteCmd(CommandObject):
