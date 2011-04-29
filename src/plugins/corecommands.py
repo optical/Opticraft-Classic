@@ -201,7 +201,8 @@ class AboutCmd(CommandObject):
 
 class PlaceCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
-        pPlayer.GetWorld().AttemptSetBlock(pPlayer, pPlayer.GetX() / 32, pPlayer.GetY() / 32, pPlayer.GetZ() / 32, pPlayer.LastBlock, ResendToClient = True)
+        Block = pPlayer.GetBlockOverride() if pPlayer.GetBlockOverride() != -1 else pPlayer.LastBlock
+        pPlayer.GetWorld().AttemptSetBlock(pPlayer, pPlayer.GetX() / 32, pPlayer.GetY() / 32, pPlayer.GetZ() / 32, Block, ResendToClient = True)
         pPlayer.SendMessage("&SBlock placed")
         
 class JoinWorldCmd(CommandObject):
@@ -874,7 +875,7 @@ class MakeTemplateCmd(CommandObject):
             pPlayer.SendMessage("&RInvalid name for the template!")
             return
         
-        if os.path.isfile("Templates/%s.save" %TemplateName):
+        if os.path.isfile("Templates/%s.save" % TemplateName):
             pPlayer.SendMessage("&RA template with that name already exists!")
             return
         
@@ -888,22 +889,22 @@ class MakeTemplateCmd(CommandObject):
             pWorld.Save()
             pWorld.CurrentSaveThread.join()
         try:
-            shutil.copy("Worlds/%s.save" %WorldName, "Templates/%s.save" %TemplateName)
+            shutil.copy("Worlds/%s.save" % WorldName, "Templates/%s.save" % TemplateName)
         except Exception, e:
-            pPlayer.SendMessage("&RFailed to make template. Error: %s" %e)
+            pPlayer.SendMessage("&RFailed to make template. Error: %s" % e)
         else:
             pPlayer.SendMessage("&SSuccessfully created template")
             
 class DeleteTemplateCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         TemplateName = Args[0]
-        if os.path.isfile("Templates/%s.save" %TemplateName) == False:
+        if os.path.isfile("Templates/%s.save" % TemplateName) == False:
             pPlayer.SendMessage("&RThat template does not exist!")
             return
         try:
-            os.remove("Templates/%s.save" %TemplateName)
+            os.remove("Templates/%s.save" % TemplateName)
         except Exception, e:
-            pPlayer.SendMessage("&RCould not remove: %s" %e)
+            pPlayer.SendMessage("&RCould not remove: %s" % e)
         else:
             pPlayer.SendMessage("&SSucessfully deleted template")
         
@@ -958,7 +959,7 @@ class RenameWorldCmd(CommandObject):
             pPlayer.ServerControl.RenameWorld(OldName, NewName)
             pPlayer.SendMessage("&SSuccessfully renamed map %s to %s" % (OldName, NewName))
         except Exception, e:
-            pPlayer.SendMessage("&RFailed to rename world. Error: %s" %e)
+            pPlayer.SendMessage("&RFailed to rename world. Error: %s" % e)
             
 
 class PluginCmd(CommandObject):
@@ -1041,6 +1042,6 @@ class DeleteWorldCmd(CommandObject):
         
         try:
             pPlayer.ServerControl.DeleteWorld(WorldName)
-            pPlayer.SendMessage("&SSucessfully deleted world \"&V%s&S\"" %WorldName)
+            pPlayer.SendMessage("&SSucessfully deleted world \"&V%s&S\"" % WorldName)
         except Exception, e:
-            pPlayer.SendMessage("&RFailed to erase world. Error: %s" %e)
+            pPlayer.SendMessage("&RFailed to erase world. Error: %s" % e)
