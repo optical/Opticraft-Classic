@@ -30,7 +30,6 @@ from core.pluginmanager import PluginBase, Hooks, PluginManager
 from core.commandhandler import CommandObject
 from core.jsondict import JsonSerializeableObject
 from core.packet import PacketWriter
-from Image import NONE
 
 class PortalPlugin(PluginBase):
     PortalKey = "PortalManager"
