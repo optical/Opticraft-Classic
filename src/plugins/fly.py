@@ -34,6 +34,7 @@ class FlyPlugin(PluginBase):
     FLY_KEY = "FlyPlugin"
     def OnLoad(self):
         self.PluginMgr.RegisterHook(self, self.OnPlayerPositionUpdate, Hooks.ON_PLAYER_POSITION_UPDATE)
+        self.PluginMgr.RegisterHook(self, self.OnPlayerWorldChange, Hooks.ON_PLAYER_CHANGE_WORLD)
         self.AddCommand("fly", FlyCommand, 'guest', 'Enables flying mode', '', 0)
         
     def OnPlayerPositionUpdate(self, pPlayer, x, y, z, o, p):
@@ -41,7 +42,7 @@ class FlyPlugin(PluginBase):
         if pFlyData is not None:
             NewGlassBlocks = set()
             pWorld = pPlayer.GetWorld()
-            for px in xrange(x -3, x + 4):
+            for px in xrange(x - 3, x + 4):
                 for py in xrange(y - 3, y + 4):
                     for pz in xrange(z - 3, z - 1):
                         if pWorld.WithinBounds(px, py, pz) and pWorld.GetBlock(px, py, pz) == BLOCK_AIR:
@@ -54,6 +55,11 @@ class FlyPlugin(PluginBase):
             pFlyData.RemoveOldBlocks()
             pFlyData.GlassBlocks = NewGlassBlocks
         
+    def OnPlayerWorldChange(self, pPlayer, OldWorld, NewWorld):
+        pFlyData = pPlayer.GetPluginData(FlyPlugin.FLY_KEY)
+        if pFlyData is not None:
+            pFlyData.GlassBlocks = set()
+            
 class FlyData(object):
     def __init__(self, pPlayer):
         self.pPlayer = pPlayer
