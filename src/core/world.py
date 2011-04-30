@@ -866,7 +866,7 @@ class World(object):
 
         if self.DisableBots:
             #Sending this causes InsideBots draw commands to break
-            BadPacket = PacketWriter.MakeIdentifcationPacket("Finished loading world: %s",
+            BadPacket = PacketWriter.MakeIdentifcationPacket("Finished loading world: %s" % self.Name,
                          self.ServerControl.Motd,
                          0x64 if pPlayer.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
             pPlayer.SendPacket(BadPacket)
