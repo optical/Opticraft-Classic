@@ -42,6 +42,8 @@ class FlyPlugin(PluginBase):
         if pFlyData is not None:
             NewGlassBlocks = set()
             pWorld = pPlayer.GetWorld()
+            if pWorld is None:
+                return
             for px in xrange(x - 3, x + 4):
                 for py in xrange(y - 3, y + 4):
                     for pz in xrange(z - 3, z - 1):
