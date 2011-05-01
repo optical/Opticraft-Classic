@@ -245,7 +245,13 @@ class Cuboid(TwoStepDrawAction):
     def OnFirstBlockPlaced(self, pWorld, BlockValue, x, y, z):
         self.pPlayer.SendMessage("&SNow place the second block for the cuboid to complete drawing.")
     def PreDraw(self):
-        NumBlocks = (self.X2 + 1 - self.X1) * (self.Y2 + 1 - self.Y1) * (self.Z2 + 1 - self.Z1)
+        NumBlocks = 0
+        for x in xrange(self.X1, self.X2 + 1):
+            for y in xrange(self.Y1, self.Y2 + 1):
+                for z in xrange(self.Z1, self.Z2 + 1):
+                    if self.pPlayer.GetWorld().GetBlock(x, y, z) != self.Material:
+                        NumBlocks += 1
+                        
         self.TryDraw(NumBlocks)     
     
     def DoDraw(self):
