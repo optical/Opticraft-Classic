@@ -27,6 +27,7 @@
 
 from core.pluginmanager import PluginBase
 from core.commandhandler import CommandObject
+from core.world import MetaDataKey
 from core.console import *
 from core.constants import *
 
@@ -62,6 +63,7 @@ class Commands(PluginBase):
         self.AddCommand("place", PlaceCommand, 'guest', 'Places a block where you are standing', '', 0)
         self.AddCommand("paint", PaintCmd, 'guest', 'When you destroy a block it will be replaced by what you are currently holding', '', 0)
         self.AddCommand("sinfo", sInfoCmd, 'guest', 'Displays information about the server', '', 0)
+        self.AddCommand("winfo", wInfoCmd, 'guest', 'Displays information about a world', '', 0)
         self.AddCommand("info", sInfoCmd, 'guest', 'Displays information about the server', '', 0, Alias = True)
         self.AddCommand("serverreport", sInfoCmd, 'guest', 'Displays information about the server', '', 0, Alias = True)
         self.AddCommand("version", VersionCmd, 'guest', 'Displays information about the server', '', 0, Alias = True) #Hidden
@@ -315,6 +317,30 @@ class sInfoCmd(CommandObject):
         pPlayer.SendMessage("&SBandwidth in the last minute. Down: &V%s&S. Up: &V%s" % (pPlayer.ServerControl.GetCurrentBwRate(False), pPlayer.ServerControl.GetCurrentBwRate(True)))
         pPlayer.SendMessage("&STotal worlds: &V%d &S(&V%d &Sactive, &V%d &Sidle)" % (len(WorldData[0]) + len(WorldData[1]), len(WorldData[0]), len(WorldData[1])), False)
         pPlayer.SendMessage("&SCurrent uptime: &V%s." % pPlayer.ServerControl.GetUptimeStr(), False)
+
+class wInfoCmd(CommandObject):
+    '''Handler for the /winfo command. Returns world information'''
+    def Run(self, pPlayer, Args, Message):
+        if len(Args) == 0:
+            pWorld = pPlayer.GetWorld()
+            WorldName = pWorld.Name
+            MetaData = pPlayer.GetWorld().MetaData
+        else:
+            WorldName = Args[0]
+            if pPlayer.ServerControl.WorldExists(WorldName) == False:
+                pPlayer.SendMessage("&RThat world does not exist!")
+                return
+            pWorld = pPlayer.ServerControl.GetActiveWorld(WorldName)
+            MetaData = pPlayer.ServerControl.WorldMetaDataCache[WorldName.lower()]
+        
+        pPlayer.SendMessage("&SInformation for world &V%s&S:" % WorldName)
+        if pWorld is not None:
+            pPlayer.SendMessage("&SCurrent players: &V%d" % len(pWorld.Players))
+        
+        pPlayer.SendMessage("&SDimensions: &V%d &Sx &V%d &Sx &V%d" % (MetaData[MetaDataKey.X], MetaData[MetaDataKey.Y], MetaData[MetaDataKey.Z]))
+        pPlayer.SendMessage("&SCreated on &V%s" % time.ctime(MetaData[MetaDataKey.CreationDate]))
+        pPlayer.SendMessage("&SJoin rank: &V%s&S. Build rank: &V%s" % (MetaData[MetaDataKey.MinimumJoinRank], MetaData[MetaDataKey.MinimumBuildRank]))
+        
 class VersionCmd(CommandObject):
     '''Handler for the /version command. Returns version information'''
     def Run(self, pPlayer, Args, Message):
@@ -846,6 +872,7 @@ class LoadTemplateCmd(CommandObject):
             return
         shutil.copy("Templates/%s.save" % TemplateName, "Worlds/%s.save" % WorldName)
         pPlayer.ServerControl.AddWorld(WorldName)
+        pPlayer.ServerControl.WorldMetaDataCache[WorldName.lower()][MetaDataKey.CreationDate] = int(time.time())
         pPlayer.SendMessage("&SSuccessfully loaded template \"&V%s&S\"!" % TemplateName)
         
 class ShowTemplatesCmd(CommandObject):

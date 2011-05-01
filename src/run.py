@@ -56,7 +56,7 @@ def Main(EnablePsyco = False, PsycoLogging = False):
                     psyco.log()
             except:
                 Console.Warning("Psyco", "It appears you do not have psyco installed. Psyco is a specialized " \
-                                + "python JIT compiler. It provides a signifcant performance boost when used with opticraft")
+                                + "python JIT compiler. It provides a significant performance boost when used with opticraft")
                 Console.Warning("Psyco", "Psyco is easy to install and setup. See: http://psyco.sourceforge.net/download.html")
             else:
                 Console.Out("Psyco", "Psyco JIT is now running.")
