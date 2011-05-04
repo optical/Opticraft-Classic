@@ -260,8 +260,11 @@ class Portal(JsonSerializeableObject):
     def Hide(self, pPlayer):
         '''Hide the portal from a player'''
         for pPoint in self.Points:
-            pPlayer.SendPacket(PacketWriter.MakeBlockSetPacket(pPoint.X, pPoint.Z, pPoint.Y,
-                pPlayer.GetWorld().GetBlock(pPoint.X, pPoint.Y, pPoint.Z)))
+            try:   
+                BlockVal = pPlayer.GetWorld().GetBlock(pPoint.X, pPoint.Y, pPoint.Z)
+                pPlayer.SendPacket(PacketWriter.MakeBlockSetPacket(pPoint.X, pPoint.Z, pPoint.Y, BlockVal))
+            except:
+                continue
         if self.DestinationWorldName.lower() == pPlayer.GetWorld().Name.lower():    
             pPlayer.SendPacket(PacketWriter.MakeBlockSetPacket(self.DestinationX, self.DestinationZ, self.DestinationY,
                                 pPlayer.GetWorld().GetBlock(self.DestinationX, self.DestinationY, self.DestinationZ)))        
