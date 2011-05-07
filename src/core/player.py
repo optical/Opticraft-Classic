@@ -584,7 +584,7 @@ class Player(object):
             self.SendMessage("&RThat user is not online!")
             return
         if Reciever.GetDeafened():
-            pPlayer.SendMessage("&RCannot send message, that player is deafened!")
+            self.SendMessage("&RCannot send message, that player is deafened!")
             return
         if len(Contents) == 0:
             self.SendMessage("&REnter something to say!")

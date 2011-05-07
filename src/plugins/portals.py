@@ -263,8 +263,8 @@ class Portal(JsonSerializeableObject):
             try:   
                 BlockVal = pPlayer.GetWorld().GetBlock(pPoint.X, pPoint.Y, pPoint.Z)
                 pPlayer.SendPacket(PacketWriter.MakeBlockSetPacket(pPoint.X, pPoint.Z, pPoint.Y, BlockVal))
-            except:
-                continue
+            except IndexError:
+                break
         if self.DestinationWorldName.lower() == pPlayer.GetWorld().Name.lower():    
             pPlayer.SendPacket(PacketWriter.MakeBlockSetPacket(self.DestinationX, self.DestinationZ, self.DestinationY,
                                 pPlayer.GetWorld().GetBlock(self.DestinationX, self.DestinationY, self.DestinationZ)))        
