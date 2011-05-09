@@ -223,7 +223,7 @@ class ServerController(object):
         Console.SetColour(int(self.ConfigValues.GetValue("server", "ConsoleColour", "1")))
         self.RawRevision = "$Revision$"
         self.RawDate = "$Date$"
-        self.Revision = self.RawRevision.split()[1]
+        self.Revision = -1 if len(self.RawRevision.split()) == 0 else self.RawRevision.split()[1]
         self.Tag = Tag
         self.VersionString = "Opticraft v0.2 r%s%s" % (self.Revision, self.Tag)
         Console.Out("Startup", "%s is starting up." % self.VersionString)
