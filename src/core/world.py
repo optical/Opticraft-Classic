@@ -385,9 +385,9 @@ class World(object):
             assert(self.MetaData is not None)
         except WorldRequiresUpdateException, e:
             raise e
-        #except Exception:
-        #    Console.Warning("World", "Failed to load map '%s'.save The save file is out of date or corrupt." % self.Name)
-        #    return False
+        except Exception:
+            Console.Warning("World", "Failed to load map '%s'.save The save file is out of date or corrupt." % self.Name)
+            return False
     
     def Save(self, Verbose = True):
         '''The map file is a file of the following format:
