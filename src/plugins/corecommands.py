@@ -744,7 +744,13 @@ class AddIPBanCmd(CommandObject):
         except:
             pPlayer.SendMessage("&RThat is not a valid ip-address!")
             return
-        #Must be valid
+        
+        
+        #Check to see it wont affect anyone of higher rank then us currently connected.
+        for aPlayer in pPlayer.ServerControl.PlayerSet:
+            if aPlayer.GetRankLevel() >= pPlayer.GetRankLevel():
+                pPlayer.SendMessage("&RYou may not ban that user.")
+                return
         pPlayer.ServerControl.AddIPBan(pPlayer.GetName(), Arg, Duration)
         pPlayer.SendMessage("&SSuccessfully banned ip \"&V%s\"&S. Duration: &V%s" % (Arg, Timespan))
 
