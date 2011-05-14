@@ -26,7 +26,6 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import hashlib
-import cStringIO
 import time
 import math
 from core.packet import PacketReader, PacketWriter
@@ -564,6 +563,13 @@ class Player(object):
                     self.SendMessage("&RYou are sending messages too quickly. Slow down!")
                     self.FloodPeriodTime = self.ServerControl.Now #reset the count. Stops them spamming.
                     return
+            if Contents[-1] == "<" and len(Contents) > 1:
+                self.MultiLineChatMessageBuffer = self.MultiLineChatMessageBuffer + Contents[:-1] + ' '
+                self.SendMessage("&SMessage appended")
+                return
+            if self.MultiLineChatMessageBuffer != '':
+                Contents = self.MultiLineChatMessageBuffer + Contents
+                self.MultiLineChatMessageBuffer = ''
             self.ServerControl.PluginMgr.OnChat(self, Contents)
             self.ServerControl.SendChatMessage(self.GetColouredName(), Contents)
             if self.ServerControl.LogChat:
@@ -632,6 +638,7 @@ class Player(object):
         self.Disconnecting = False
         self.DataIsLoaded = False
         self.ChatMessageCount = 0
+        self.MultiLineChatMessageBuffer = ''
         self.BlocksMade = 0
         self.KickCount = 0 
         self.BlocksErased = 0
