@@ -533,7 +533,7 @@ class ModifyRankCmd(CommandObject):
         if pPlayer.ServerControl.GetRankLevel(Target) >= pPlayer.GetRankLevel():
             pPlayer.SendMessage("&RYou may not set that players rank!")
             return
-        pPlayer.ServerControl.SetRank(pPlayer, Username, Rank)
+        pPlayer.ServerControl.SetRank(pPlayer.GetName(), Username, Rank)
         pPlayer.SendMessage("&SSuccessfully set &V%s's &Srank to &V%s" % (Username, Rank.capitalize()))
 
 class BanCmd(CommandObject):

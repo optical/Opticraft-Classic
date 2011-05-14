@@ -49,6 +49,7 @@ class Hooks:
     ON_PLAYER_POSITION_UPDATE = 12
     ON_WORLD_RENAME = 13
     ON_WORLD_DELETE = 14
+    ON_SERVER_TICK = 15
 
 class PluginBase(object):
     #These numbers do not include the "self" argument, though all objects need to have this!
@@ -68,6 +69,7 @@ class PluginBase(object):
         Hooks.ON_PLAYER_POSITION_UPDATE: 6,
         Hooks.ON_WORLD_RENAME: 2,
         Hooks.ON_WORLD_DELETE: 1,
+        Hooks.ON_SERVER_TICK: 0
     }
 
     def __init__(self, PluginMgr, ServerControl, Name):
@@ -315,3 +317,7 @@ class PluginManager(object):
         for Hook in self.Hooks[Hooks.ON_WORLD_DELETE]:
             Hook.Function(WorldName)
         
+    def OnServerTick(self):
+        '''Called every "tick" of the server, approximately every 5ms, depending on server load'''
+        for Hook in self.Hooks[Hooks.ON_SERVER_TICK]:
+            Hook.Function()
