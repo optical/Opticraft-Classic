@@ -723,7 +723,7 @@ class ServerController(object):
             pPlayer = self.GetPlayerFromName(Username)
             if pPlayer is not None:
                 pPlayer.SetRank(Rank)
-                pPlayer.SetRankedBy(Initiator.GetName())
+                pPlayer.SetRankedBy(Initiator)
                 pPlayer.SendMessage("&SYour rank has been changed to %s!" % Rank.capitalize())
         else:
             if Username.lower() in self.RankedPlayers:
@@ -732,13 +732,13 @@ class ServerController(object):
                 pPlayer = self.GetPlayerFromName(Username)
                 if pPlayer is not None:
                     pPlayer.SetRank('guest')
-                    pPlayer.SetRankedBy(Initiator.GetName())
+                    pPlayer.SetRankedBy(Initiator)
                     pPlayer.SendMessage("&SYour rank has been changed to %s!" % Rank.capitalize())
             else:
                 return
         with open("ranks.ini", "w") as fHandle:
             self.RankStore.write(fHandle)
-        self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set RankedBy = ? where Username = ?", (Initiator.GetName(), Username.lower())])
+        self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set RankedBy = ? where Username = ?", (Initiator, Username.lower())])
 
     def AsynchronousQuery(self, Query, QueryParameters, CallbackFunc, kwArgs):
         '''Performs and query on the player DB asynchronously, calling 
@@ -866,6 +866,8 @@ class ServerController(object):
                     break
                 Result.Callback()
                 
+            self.PluginMgr.OnServerTick()
+            
             SleepTime = 0.05 - (time.time() - self.Now)
             if 0 < SleepTime:
                 time.sleep(SleepTime)
