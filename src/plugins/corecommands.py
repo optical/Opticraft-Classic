@@ -243,20 +243,18 @@ class WorldsCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         ActiveWorlds, IdleWorlds = pPlayer.ServerControl.GetWorlds()
         All = len(Args) > 0
-        OutString = bytearray()
         if All:
             pPlayer.SendMessage("&SDisplaying all worlds")
         pPlayer.SendMessage("&SThe following worlds are available:")
-        for pWorld in ActiveWorlds:
-            if pWorld.IsHidden() == 0 or All:
-                OutString += pPlayer.ServerControl.RankColours[pWorld.GetMinimumBuildRank()]
-                OutString += pWorld.Name
-                OutString += ' '
-        for WorldName in IdleWorlds:
-            if pPlayer.ServerControl.IsWorldHidden(WorldName) == 0 or All:
-                OutString += pPlayer.ServerControl.RankColours[pPlayer.ServerControl.GetWorldBuildRank(WorldName)]
-                OutString += WorldName
-                OutString += ' '
+        WorldList = [(pPlayer.ServerControl.RankColours[pWorld.GetMinimumBuildRank()], pWorld.Name) for pWorld in ActiveWorlds if not pWorld.IsHidden() or All]
+        WorldList += [(pPlayer.ServerControl.RankColours[pPlayer.ServerControl.GetWorldBuildRank(pWorld)], pWorld) for pWorld in IdleWorlds if not pPlayer.ServerControl.IsWorldHidden(pWorld) or All]
+        WorldList.sort(key = lambda world: world[1].lower())
+        OutString = bytearray()
+        print WorldList
+        for WorldItem in WorldList:
+            print WorldItem
+            OutString += ''.join(WorldItem) + ' '
+        print OutString
         pPlayer.SendMessage(str(OutString), False)
         if not All:
             pPlayer.SendMessage("&STo see all worlds, type /worlds all.")
