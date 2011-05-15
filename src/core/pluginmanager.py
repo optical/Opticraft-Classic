@@ -34,14 +34,14 @@ import json
 sys.path.append("plugins")
 
 class Hooks:
-    ON_START = 0
-    ON_CONNECT = 1
+    ON_SERVER_START = 0
+    ON_PLAYER_CONNECT = 1
     ON_PLAYER_DISCONNECT = 2
     ON_PLAYER_DATA_LOADED = 3
-    ON_KICK = 4
+    ON_PLAYER_KICK = 4
     ON_ATTEMPT_PLACE_BLOCK = 5
     ON_POST_PLACE_BLOCK = 6
-    ON_CHAT = 7
+    ON_PLAYER_CHAT = 7
     ON_PLAYER_CHANGE_WORLD = 8
     ON_WORLD_LOAD = 9
     ON_WORLD_UNLOAD = 10
@@ -54,14 +54,14 @@ class Hooks:
 class PluginBase(object):
     #These numbers do not include the "self" argument, though all objects need to have this!
     HookSpecs = {
-        Hooks.ON_START: 0,
-        Hooks.ON_CONNECT: 1,
+        Hooks.ON_SERVER_START: 0,
+        Hooks.ON_PLAYER_CONNECT: 1,
         Hooks.ON_PLAYER_DISCONNECT: 1,
         Hooks.ON_PLAYER_DATA_LOADED: 1,
-        Hooks.ON_KICK: 4,
+        Hooks.ON_PLAYER_KICK: 4,
         Hooks.ON_ATTEMPT_PLACE_BLOCK: 6,
         Hooks.ON_POST_PLACE_BLOCK: 7,
-        Hooks.ON_CHAT: 2,
+        Hooks.ON_PLAYER_CHAT: 2,
         Hooks.ON_PLAYER_CHANGE_WORLD: 3,
         Hooks.ON_WORLD_LOAD: 1,
         Hooks.ON_WORLD_UNLOAD: 1,
@@ -231,13 +231,13 @@ class PluginManager(object):
 
     def OnServerStart(self):
         '''Called when the server finishes up its startup routine'''
-        for Hook in self.Hooks[Hooks.ON_START]:
+        for Hook in self.Hooks[Hooks.ON_SERVER_START]:
             Hook.Function()
 
     def OnPlayerConnect(self, pPlayer):
         '''Called when a player successfully authenticates with the server.
         ...At this stage they will not be on a world nor have any data loaded'''
-        for Hook in self.Hooks[Hooks.ON_CONNECT]:
+        for Hook in self.Hooks[Hooks.ON_PLAYER_CONNECT]:
             Hook.Function(pPlayer)
     def OnPlayerDataLoaded(self, pPlayer):
         '''Called when a players data is loaded from the database'''
@@ -251,7 +251,7 @@ class PluginManager(object):
 
     def OnKick(self, pPlayer, Initiator, Reason, Ban):
         '''Called when a player is kicked or banned. Ban is true when it is a Ban (D'oh!)'''
-        for Hook in self.Hooks[Hooks.ON_KICK]:
+        for Hook in self.Hooks[Hooks.ON_PLAYER_KICK]:
             Hook.Function(pPlayer, Initiator, Reason, Ban)
 
     #FailSilently is a special return type that will disallow placement, but does not let the client know it failed
@@ -277,7 +277,7 @@ class PluginManager(object):
     def OnChat(self, pPlayer, ChatMessage):
         '''Called when a player types a message
         ...This fires for any message besides slash "/" commands and PM's'''
-        for Hook in self.Hooks[Hooks.ON_CHAT]:
+        for Hook in self.Hooks[Hooks.ON_PLAYER_CHAT]:
             Hook.Function(pPlayer, ChatMessage)
 
     def OnChangeWorld(self, pPlayer, OldWorld, NewWorld):
