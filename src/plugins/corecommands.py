@@ -903,7 +903,7 @@ class MakeTemplateCmd(CommandObject):
     '''Handler for the /maketemplate command'''
     def Run(self, pPlayer, Args, Message):
         WorldName = Args[0]
-        TemplateName = Args[0]
+        TemplateName = Args[1]
         if TemplateName.isalnum() == False:
             pPlayer.SendMessage("&RInvalid name for the template!")
             return
