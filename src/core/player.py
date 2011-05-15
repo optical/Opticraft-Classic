@@ -643,7 +643,7 @@ class Player(object):
         self.KickCount = 0 
         self.BlocksErased = 0
         self.LastIps = ''
-        self.JoinNotifications = 1
+        self.JoinNotifications = self.ServerControl.JoinNotificationsDefault
         self.JoinTime = 0 #This it the time when the player logged in for the first time ever
         self.TimePlayed = 0
         self.LoginCount = 0
