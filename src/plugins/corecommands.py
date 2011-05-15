@@ -250,11 +250,8 @@ class WorldsCmd(CommandObject):
         WorldList += [(pPlayer.ServerControl.RankColours[pPlayer.ServerControl.GetWorldBuildRank(pWorld)], pWorld) for pWorld in IdleWorlds if not pPlayer.ServerControl.IsWorldHidden(pWorld) or All]
         WorldList.sort(key = lambda world: world[1].lower())
         OutString = bytearray()
-        print WorldList
         for WorldItem in WorldList:
-            print WorldItem
             OutString += ''.join(WorldItem) + ' '
-        print OutString
         pPlayer.SendMessage(str(OutString), False)
         if not All:
             pPlayer.SendMessage("&STo see all worlds, type /worlds all.")
@@ -746,7 +743,7 @@ class AddIPBanCmd(CommandObject):
         
         #Check to see it wont affect anyone of higher rank then us currently connected.
         for aPlayer in pPlayer.ServerControl.PlayerSet:
-            if aPlayer.GetRankLevel() >= pPlayer.GetRankLevel():
+            if aPlayer.GetIP() == Arg and aPlayer.GetRankLevel() >= pPlayer.GetRankLevel():
                 pPlayer.SendMessage("&RYou may not ban that user.")
                 return
         pPlayer.ServerControl.AddIPBan(pPlayer.GetName(), Arg, Duration)
