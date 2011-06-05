@@ -386,6 +386,26 @@ class Player(object):
         dz = self.Z / 32 - z
         return math.sqrt(dx * dx + dy * dy + dz * dz)
     
+    def ReplaceColours(self, Message):
+        OutMessage = bytearray()
+        SeenPercent = True
+        for i in xrange(len(Message)):
+            Char = Message[i]
+            if Char == '%':
+                SeenPercent = True
+                
+            if SeenPercent and Char in ColourChars and i != len(Message) - 1:
+                #Replace all, but not if there is no more content in the message (clients crash :()
+                OutMessage[i - 1] = '&'
+            
+            if SeenPercent and Char != '%':
+                SeenPercent = False
+            
+            OutMessage += Char
+        
+        return str(OutMessage) 
+                
+    
     #Opcode handlers go below this line
     def HandleIdentify(self, Packet):
         '''Handles the initial packet sent by the client'''
@@ -539,9 +559,18 @@ class Player(object):
         self.IncreaseChatMessageCount()
         self.LastAction = self.ServerControl.Now
         Junk, Contents = PacketReader.ParseMessagePacket(Packet)
-        Contents = Contents.translate(None, DisabledChars).strip()
+        Contents = Contents.translate(None, DisabledChars).strip()        
         if len(Contents) == 0:
             return
+        if self.HasPermission(self.ServerControl.ColourRank):
+            Contents = self.ReplaceColours(Contents)        
+        if Contents[-1] == "<" and len(Contents) > 1:
+            self.MultiLineChatMessageBuffer = self.MultiLineChatMessageBuffer + Contents[:-1] + ' '
+            self.SendMessage("&SMessage appended")
+            return
+        if self.MultiLineChatMessageBuffer != '':
+            Contents = self.MultiLineChatMessageBuffer + Contents
+            self.MultiLineChatMessageBuffer = '' 
         if Contents[0] == "/":
             self.ServerControl.CommandHandle.HandleCommand(self, Contents[1:])
         elif Contents[0] == "@" and self.IsMuted == False:
@@ -563,13 +592,6 @@ class Player(object):
                     self.SendMessage("&RYou are sending messages too quickly. Slow down!")
                     self.FloodPeriodTime = self.ServerControl.Now #reset the count. Stops them spamming.
                     return
-            if Contents[-1] == "<" and len(Contents) > 1:
-                self.MultiLineChatMessageBuffer = self.MultiLineChatMessageBuffer + Contents[:-1] + ' '
-                self.SendMessage("&SMessage appended")
-                return
-            if self.MultiLineChatMessageBuffer != '':
-                Contents = self.MultiLineChatMessageBuffer + Contents
-                self.MultiLineChatMessageBuffer = ''
             self.ServerControl.PluginMgr.OnChat(self, Contents)
             self.ServerControl.SendChatMessage(self.GetColouredName(), Contents)
             if self.ServerControl.LogChat:

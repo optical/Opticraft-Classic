@@ -290,9 +290,13 @@ class ServerController(object):
         self.LoadRanks()
         self.LoadPlayerRanks()
         self.AdmincreteRank = self.ConfigValues.GetValue("server", "AdmincreteRank", 'operator')
+        self.ColourRank = self.ConfigValues.GetValue("server", "ColourRank", 'operator')
         if self.IsValidRank(self.AdmincreteRank) == False:
             Console.Warning("Startup", "Admincreterank refers to an unknown rank %s" % self.AdmincreteRank)
-            self.AdmincreteRank = 'builder'
+            self.AdmincreteRank = 'operator'
+        if self.IsValidRank(self.ColourRank) == False:
+            Console.Warning("Startup", "ColourRank refers to an unknown rank %s" % self.ColourRank)
+            self.ColourRank = 'operator'
         self.LastIdleCheck = time.time()
         self.IdleCheckPeriod = 60
         self.IPCount = dict()
@@ -1101,7 +1105,7 @@ class ServerController(object):
     def SendChatMessage(self, From, Message, NewLine = ">", NormalStart = True):
         LocalColourchars = ColourChars #Bring it into the local scope
         if NormalStart:
-            Message = '%s: &f%s' % (From, Message)
+            Message = '%s:&f %s' % (From, Message)
         elif From != '':
             Message = '%s %s' % (From, Message)
         Words = Message.split()
