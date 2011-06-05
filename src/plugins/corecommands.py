@@ -105,6 +105,7 @@ class Commands(PluginBase):
         ######################
         #ADMIN COMMANDS HERE #
         ######################
+        self.AddCommand("serversay", ServerSayCmd, 'admin', 'Sends a message to the whole server, like an announcement', 'Enter a message to announce', 1)
         self.AddCommand("addipban", AddIPBanCmd, 'admin', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username>', 1)
         self.AddCommand("ipban", AddIPBanCmd, 'admin', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username> <duration>', 1, Alias = True)
         self.AddCommand("delipban", DelIPBanCmd, 'admin', 'Removes an IP ban', 'Incorrect syntax! Usage: /delipban <ip/username>', 1)
@@ -697,6 +698,12 @@ class SetSpawnCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         pPlayer.GetWorld().SetSpawn(pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ(), pPlayer.GetOrientation(), 0)
         pPlayer.SendMessage("&SThis worlds spawnpoint has been moved")
+
+class ServerSayCmd(CommandObject):
+    '''Handler for the /serversay command. Announces a message to the server'''
+    def Run(self, pPlayer, Args, Message):
+        pPlayer.ServerControl.SendChatMessage("", ' '.join(Args), NormalStart = False)
+        pPlayer.SendMessage("&SMessage sent.")
 
 class AddIPBanCmd(CommandObject):
     '''Handler for the /ipban command. Bans an IP Address from the server'''
