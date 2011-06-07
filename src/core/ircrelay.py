@@ -98,6 +98,8 @@ class RelayBot(IRCClient):
         if self.GameToIrc:
             for Key in self.ColourMap:
                 From = From.replace(Key, self.ColourMap[Key])
+                Message = Message.replace(Key, self.ColourMap[Key])
+                
             self.SendMessage(self.Channel, '(%s%s): %s' % (From, RelayBot.COLOUR_CODE, Message))
     def HandleEmote(self, From, Message):
         if self.GameToIrc:
