@@ -388,7 +388,7 @@ class Player(object):
     
     def ReplaceColours(self, Message):
         OutMessage = bytearray()
-        SeenPercent = True
+        SeenPercent = False
         for i in xrange(len(Message)):
             Char = Message[i]
             if Char == '%':
