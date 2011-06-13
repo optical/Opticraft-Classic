@@ -269,8 +269,6 @@ class ServerController(object):
         self.IRCRelayGameJoins = bool(int(self.ConfigValues.GetValue("irc", "GameJoinsRelay", "0")))
         self.IRCRelayIRCJoins = bool(int(self.ConfigValues.GetValue("irc", "IrcJoinsRelay", "0")))
         self.IRCIdentificationMessage = self.ConfigValues.GetValue("irc", "IdentifyCommand", "NickServ identify")
-        if self.EnableIRC:
-            self.IRCInterface = RelayBot(self.IRCNick, "Opticraft", "Opticraft", self)
         self.Salt = self.GenerateSalt()
         self.OldSalt = ''
         if os.path.isfile("opticraft.salt"):
@@ -774,6 +772,8 @@ class ServerController(object):
         Console.Out("Startup", "Startup procedure completed in %.0fms" % ((time.time() - self.StartTime) * 1000))
         Console.Out("Server", "Press Ctrl-C at any time to shutdown the sever safely.")
         self.PluginMgr.OnServerStart()
+        if self.EnableIRC:
+            self.IRCInterface = RelayBot(self.IRCNick, "Opticraft", "Opticraft", self)        
         while self.Running == True:
             self.Now = time.time()
             self.SockManager.Run()
