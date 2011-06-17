@@ -29,21 +29,80 @@
 from core.console import Console
 from core.constants import *
 from core.ircclient import IRCClient
+from core.pluginmanager import PluginBase, Hooks
+
+import asyncore
+
+class IRCPlugin(PluginBase):
+    def __init__(self, PluginMgr, ServerControl, Name):
+        PluginBase.__init__(self, PluginMgr, ServerControl, Name)
+        self.EnableIRC = bool(int(ServerControl.ConfigValues.GetValue("irc", "EnableIRC", "0")))
+        self.IRCServer = ServerControl.ConfigValues.GetValue("irc", "Server", "irc.esper.net")
+        self.IRCPort = int(ServerControl.ConfigValues.GetValue("irc", "Port", "6667"))
+        self.IRCChannel = ServerControl.ConfigValues.GetValue("irc", "Channel", "#a")
+        self.IRCNick = ServerControl.ConfigValues.GetValue("irc", "Nickname", "Optibot")
+        self.IRCGameToIRC = bool(int(ServerControl.ConfigValues.GetValue("irc", "GameChatRelay", "0")))
+        self.IRCIRCToGame = bool(int(ServerControl.ConfigValues.GetValue("irc", "IrcChatRelay", "0")))
+        self.IRCRelayGameJoins = bool(int(ServerControl.ConfigValues.GetValue("irc", "GameJoinsRelay", "0")))
+        self.IRCRelayIRCJoins = bool(int(ServerControl.ConfigValues.GetValue("irc", "IrcJoinsRelay", "0")))
+        self.IRCIdentificationMessage = ServerControl.ConfigValues.GetValue("irc", "IdentifyCommand", "NickServ identify")
+        self.IRCInterface = None
+         
+    def OnLoad(self):
+        if self.EnableIRC:
+            self.IRCInterface = RelayBot(self.IRCNick, "Opticraft", "Opticraft", self, self.ServerControl)
+            self.IRCInterface.Connect()
+        self.PluginMgr.RegisterHook(self, self.OnTick, Hooks.ON_SERVER_TICK)
+        self.PluginMgr.RegisterHook(self, self.OnChat, Hooks.ON_PLAYER_CHAT)
+        self.PluginMgr.RegisterHook(self, self.OnPlayerLogin, Hooks.ON_PLAYER_CONNECT)
+        self.PluginMgr.RegisterHook(self, self.OnPlayerLogout, Hooks.ON_PLAYER_DISCONNECT)
+        self.PluginMgr.RegisterHook(self, self.OnServerShutdown, Hooks.ON_SERVER_SHUTDOWN)
+        self.PluginMgr.RegisterHook(self, self.OnEmote, Hooks.ON_PLAYER_EMOTE)
+        
+    def OnUnload(self):
+        if self.EnableIRC:
+            self.IRCInterface.OnUnload()
+            asyncore.loop(timeout = 0.001, count = 1)
+        
+    def OnTick(self):
+        if self.EnableIRC:
+            asyncore.loop(count = 1, timeout = 0.001)
+            
+    def OnPlayerLogin(self, pPlayer):
+        if self.EnableIRC:
+            self.IRCInterface.HandleLogin(pPlayer.GetName())
+    
+    def OnChat(self, pPlayer, Message):
+        if self.EnableIRC:
+            self.IRCInterface.HandleIngameMessage(pPlayer.GetColouredName(), Message)
+    
+    def OnPlayerLogout(self, pPlayer):
+        if self.EnableIRC:
+            self.IRCInterface.HandleLogout(pPlayer.GetName())
+        
+    def OnServerShutdown(self):
+        if self.EnableIRC:
+            self.IRCInterface.OnShutdown()
+            
+    def OnEmote(self, pPlayer, Message):
+        if self.EnableIRC:
+            self.IRCInterface.HandleEmote(pPlayer.GetName(), Message)
+    
 
 class RelayBot(IRCClient):
     COLOUR_CODE = chr(0x03)
-    def __init__(self, Nick, Email, RealName, ServerControl):
+    def __init__(self, Nick, Email, RealName, Plugin, ServerControl):
         IRCClient.__init__(self, Nick, Email, RealName)
-        self.AddPacketHandler("001", self.OnConnection)
         self.ServerControl = ServerControl
-        self.Channel = self.ServerControl.IRCChannel.lower()
-        self.GameToIrc = self.ServerControl.IRCGameToIRC
-        self.IRCToGame = self.ServerControl.IRCIRCToGame
-        self.IRCJoinsToGame = self.ServerControl.IRCRelayIRCJoins
-        self.GameJoinsToIRC = self.ServerControl.IRCRelayGameJoins
-        self.Host = self.ServerControl.IRCServer
-        self.Port = self.ServerControl.IRCPort
-        self.IdentificationMessage = self.ServerControl.IRCIdentificationMessage
+        self.AddPacketHandler("001", self.OnConnection)
+        self.Channel = Plugin.IRCChannel.lower()
+        self.GameToIrc = Plugin.IRCGameToIRC
+        self.IRCToGame = Plugin.IRCIRCToGame
+        self.IRCJoinsToGame = Plugin.IRCRelayIRCJoins
+        self.GameJoinsToIRC = Plugin.IRCRelayGameJoins
+        self.Host = Plugin.IRCServer
+        self.Port = Plugin.IRCPort
+        self.IdentificationMessage = Plugin.IRCIdentificationMessage
         self.ColourMap = dict()
         self.PopulateColourMap()
         self.FloodControl = dict()
@@ -53,6 +112,7 @@ class RelayBot(IRCClient):
             self.AddPacketHandler("QUIT", self.OnQuit)
             self.AddPacketHandler("NICK", self.OnNickChange)
             self.AddPacketHandler("JOIN", self.OnJoin)
+            
     def HandlePrivMsg(self, Data):
         if self.IRCToGame:
             Tokens = Data.split()
@@ -84,16 +144,16 @@ class RelayBot(IRCClient):
                 else:
                     self.ServerControl.SendChatMessage('&3[IRC]&5 *%s' % Username, Message[6:], NewLine = "&5", NormalStart = False)
 
-    #def handle_close(self):
-        #self.ServerControl.OnIRCDisconnect()
     def Connect(self):
         Console.Out("IRC", "Connecting to irc server %s on port %d" % (self.Host, self.Port))
         self.connect((self.Host, self.Port))
+        
     def OnConnection(self, Data):
         Console.Out("IRC", "Attmpting to join channel %s" % self.Channel)
         self.Write("JOIN %s" % self.Channel)
         Tokens = self.IdentificationMessage.split()
         self.SendMessage(Tokens[0], ' '.join(Tokens[1:]))
+        
     def HandleIngameMessage(self, From, Message):
         if self.GameToIrc:
             for Key in self.ColourMap:
@@ -101,12 +161,15 @@ class RelayBot(IRCClient):
                 Message = Message.replace(Key, self.ColourMap[Key])
                 
             self.SendMessage(self.Channel, '(%s%s): %s' % (From, RelayBot.COLOUR_CODE, Message))
+            
     def HandleEmote(self, From, Message):
         if self.GameToIrc:
             self.SendMessage(self.Channel, '*%s6%s %s' % (RelayBot.COLOUR_CODE, From, Message))
+            
     def HandleLogin(self, Name):
         if self.GameJoinsToIRC:
             self.SendMessage(self.Channel, '%s connected to the server' % Name)
+            
     def HandleLogout(self, Name):
         if self.GameJoinsToIRC and self.ServerControl.ShuttingDown == False:
             self.SendMessage(self.Channel, '%s left the server' % Name)
@@ -147,6 +210,7 @@ class RelayBot(IRCClient):
             del self.FloodControl[Username]
         except:
             pass
+        
     def OnQuit(self, Data):
         Tokens = Data.split()
         Username = Tokens[0][1:].split("!")[0]
@@ -156,7 +220,11 @@ class RelayBot(IRCClient):
             del self.FloodControl[Username]
         except:
             pass
-    def OnShutdown(self, Crash):
+        
+    def OnUnload(self):
+        self.Write("QUIT :I've been unloaded!")
+        
+    def OnShutdown(self):
         self.Write("QUIT :Server is shutting down")
 
     def PopulateColourMap(self):

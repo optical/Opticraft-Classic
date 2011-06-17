@@ -442,8 +442,7 @@ class EmoteCmd(CommandObject):
             pPlayer.SendMessage("&RYou cannot emote while muted!")
             return
         pPlayer.ServerControl.SendMessageToAll('&5*%s %s' % (pPlayer.GetName(), ' '.join(Args)))
-        if pPlayer.ServerControl.EnableIRC:
-            pPlayer.ServerControl.IRCInterface.HandleEmote(pPlayer.GetName(), ' '.join(Args))
+        pPlayer.ServerControl.PluginMgr.OnEmote(pPlayer, ' '.join(Args))
 
 class ReplyCmd(CommandObject):
     '''Handler for the /reply command. Shortcut command to reply to a PM'''

@@ -49,7 +49,6 @@ from core.pluginmanager import PluginManager
 from core.asynchronousquery import AsynchronousQueryResult
 from core.constants import * 
 from core.console import *
-from core.ircrelay import RelayBot
 class SigkillException(Exception):
     pass
 class PlayerDbThread(threading.Thread):
@@ -258,17 +257,6 @@ class ServerController(object):
         self.PeriodicAnnounceFrequency = int(self.ConfigValues.GetValue("server", "PeriodicAnnounceFrequency", "0"))
         self.LogCommands = bool(int(self.ConfigValues.GetValue("logs", "CommandLogs", "1")))
         self.LogChat = bool(int(self.ConfigValues.GetValue("logs", "ChatLogs ", "1")))
-        self.IRCReconnect = self.Now
-        self.EnableIRC = bool(int(self.ConfigValues.GetValue("irc", "EnableIRC", "0")))
-        self.IRCServer = self.ConfigValues.GetValue("irc", "Server", "irc.esper.net")
-        self.IRCPort = int(self.ConfigValues.GetValue("irc", "Port", "6667"))
-        self.IRCChannel = self.ConfigValues.GetValue("irc", "Channel", "#a")
-        self.IRCNick = self.ConfigValues.GetValue("irc", "Nickname", "Optibot")
-        self.IRCGameToIRC = bool(int(self.ConfigValues.GetValue("irc", "GameChatRelay", "0")))
-        self.IRCIRCToGame = bool(int(self.ConfigValues.GetValue("irc", "IrcChatRelay", "0")))
-        self.IRCRelayGameJoins = bool(int(self.ConfigValues.GetValue("irc", "GameJoinsRelay", "0")))
-        self.IRCRelayIRCJoins = bool(int(self.ConfigValues.GetValue("irc", "IrcJoinsRelay", "0")))
-        self.IRCIdentificationMessage = self.ConfigValues.GetValue("irc", "IdentifyCommand", "NickServ identify")
         self.Salt = self.GenerateSalt()
         self.OldSalt = ''
         if os.path.isfile("opticraft.salt"):
@@ -772,8 +760,6 @@ class ServerController(object):
         Console.Out("Startup", "Startup procedure completed in %.0fms" % ((time.time() - self.StartTime) * 1000))
         Console.Out("Server", "Press Ctrl-C at any time to shutdown the sever safely.")
         self.PluginMgr.OnServerStart()
-        if self.EnableIRC:
-            self.IRCInterface = RelayBot(self.IRCNick, "Opticraft", "Opticraft", self)        
         while self.Running == True:
             self.Now = time.time()
             self.SockManager.Run()
@@ -832,19 +818,7 @@ class ServerController(object):
                     self.SendMessageToAll(Message)
                     self.LastAnnounce = self.Now
 
-            #Run the IRC Bot if enabled
-            if self.EnableIRC:
-                if self.IRCReconnect != -1 and self.Now > self.IRCReconnect:
-                    try:
-                        self.IRCInterface = RelayBot(self.IRCNick, "Opticraft", "Opticraft", self)
-                        self.IRCInterface.Connect()
-                    except Exception, e:
-                        self.OnIRCDisconnect()
-                        print e
-                    else:
-                        self.IRCReconnect = -1
-                        
-                asyncore.loop(count = 1, timeout = 0.001)
+
             #Remove idle players and lagging players
             if self.IdlePlayerLimit != 0:
                 if self.LastIdleCheck + self.IdleCheckPeriod < self.Now:
@@ -880,6 +854,7 @@ class ServerController(object):
         '''Starts shutting down the server. If crash is true it only saves what is needed'''
         self.ShuttingDown = True
         self.HeartBeatControl.Running = False
+        self.PluginMgr.OnServerShutdown()
         self.SockManager.Terminate(Crash)
         for pWorld in self.ActiveWorlds:
             pWorld.Shutdown(Crash)
@@ -889,9 +864,6 @@ class ServerController(object):
         for pPlayer in ToRemove:
             self._RemovePlayer(pPlayer)
         self.PlayerDBThread.Tasks.put(["SHUTDOWN"])
-        if self.EnableIRC:
-            self.IRCInterface.OnShutdown(Crash)
-            asyncore.loop(timeout = 0.01, count = 1)
 
     def OnIRCDisconnect(self):
         return
@@ -1063,8 +1035,6 @@ class ServerController(object):
             self.SendJoinMessage("&N%s has left the server" % pPlayer.GetName())
             if self.GetPlayerFromName(pPlayer.GetName()) is not None:
                 del self.PlayerNames[pPlayer.GetName().lower()]
-            if self.EnableIRC:
-                self.IRCInterface.HandleLogout(pPlayer.GetName())
 
         if pPlayer.GetWorld() is not None:
             pPlayer.GetWorld().RemovePlayer(pPlayer)

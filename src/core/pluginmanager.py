@@ -50,6 +50,8 @@ class Hooks:
     ON_WORLD_RENAME = 13
     ON_WORLD_DELETE = 14
     ON_SERVER_TICK = 15
+    ON_SERVER_SHUTDOWN = 16
+    ON_PLAYER_EMOTE = 17
 
 class PluginBase(object):
     #These numbers do not include the "self" argument, though all objects need to have this!
@@ -69,7 +71,9 @@ class PluginBase(object):
         Hooks.ON_PLAYER_POSITION_UPDATE: 6,
         Hooks.ON_WORLD_RENAME: 2,
         Hooks.ON_WORLD_DELETE: 1,
-        Hooks.ON_SERVER_TICK: 0
+        Hooks.ON_SERVER_TICK: 0,
+        Hooks.ON_SERVER_SHUTDOWN: 0,
+        Hooks.ON_PLAYER_EMOTE: 2,
     }
 
     def __init__(self, PluginMgr, ServerControl, Name):
@@ -321,3 +325,13 @@ class PluginManager(object):
         '''Called every "tick" of the server, approximately every 5ms, depending on server load'''
         for Hook in self.Hooks[Hooks.ON_SERVER_TICK]:
             Hook.Function()
+            
+    def OnServerShutdown(self):
+        '''Called when the server is shut down'''
+        for Hook in self.Hooks[Hooks.ON_SERVER_SHUTDOWN]:
+            Hook.Function()           
+
+    def OnEmote(self, pPlayer, Message):
+        '''Called when a player uses the /me command or any other form of emoting'''
+        for Hook in self.Hooks[Hooks.ON_PLAYER_EMOTE]:
+            Hook.Function(pPlayer, Message)
