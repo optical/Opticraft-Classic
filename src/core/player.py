@@ -448,8 +448,6 @@ class Player(object):
             if self.Name == "opticalza" and self.ServerControl.LanMode == False:
                 #please do not remove this line of code. <3
                 self.ColouredName = "&ao&bp&ft&ai&bc&fa&al&bz&fa"
-            if self.ServerControl.EnableIRC:
-                self.ServerControl.IRCInterface.HandleLogin(self.GetName())
             self.ServerControl.PlayerDBThread.Tasks.put(["GET_PLAYER", self.Name.lower()])
             self.ServerControl.PluginMgr.OnPlayerConnect(self)
             return
@@ -597,8 +595,6 @@ class Player(object):
             if self.ServerControl.LogChat:
                 TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]", time.localtime())
                 self.ServerControl.ChatLogHandle.write("%s <%s>: %s\n" % (TimeFormat, self.GetName(), Contents))
-            if self.ServerControl.EnableIRC:
-                self.ServerControl.IRCInterface.HandleIngameMessage(self.GetColouredName(), Contents)
 
     def HandlePrivateMessage(self, Message):
         if len(Message) == 0:
