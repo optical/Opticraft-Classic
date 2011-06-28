@@ -771,8 +771,12 @@ class DelIPBanCmd(CommandObject):
         except:
             pPlayer.SendMessage("&RThat is not a valid ip-address!")
             return
-        pPlayer.ServerControl.UnbanIP(Arg)
-        pPlayer.SendMessage("&SRemoved ban on ip \"&V%s&S\"" % Arg)
+        
+        if pPlayer.ServerControl.UnbanIP(Arg):
+            pPlayer.SendMessage("&SRemoved ban on ip \"&V%s&S\"" % Arg)
+        else:
+            pPlayer.SendMessage("&RThat IP is not banned!")
+        
 
 class WorldSetBuildRankCmd(CommandObject):
     '''Sets the mimimum rank required to build on a world'''
