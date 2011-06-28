@@ -865,11 +865,6 @@ class ServerController(object):
             self._RemovePlayer(pPlayer)
         self.PlayerDBThread.Tasks.put(["SHUTDOWN"])
 
-    def OnIRCDisconnect(self):
-        return
-        self.IRCReconnect = self.Now + 30
-        Console.Out("IRC", "Disconnected from IRC. Attempting reconnect in 30 seconds")
-
     def GetUptimeStr(self):
         return ElapsedTime((int(self.Now)) - int(self.StartTime))
 
@@ -1023,7 +1018,7 @@ class ServerController(object):
     def _RemovePlayer(self, pPlayer):
         '''Internally removes a player
         Note:Player poiner may not neccessarily exist in our storage'''
-        Console.Out("Player", "Player %s has left the server" % pPlayer.GetName())
+        Console.Out("Player", "Player '%s' (%s) has left the server" % (pPlayer.GetIP(), pPlayer.GetName()))
         self.PluginMgr.OnDisconnect(pPlayer)
         if pPlayer in self.PlayerSet:
             self.PlayerSet.remove(pPlayer)

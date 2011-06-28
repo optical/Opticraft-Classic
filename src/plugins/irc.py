@@ -171,6 +171,8 @@ class RelayBot(IRCClient):
             self.SendMessage(self.Channel, '%s connected to the server' % Name)
             
     def HandleLogout(self, Name):
+        if Name == "":
+            return
         if self.GameJoinsToIRC and self.ServerControl.ShuttingDown == False:
             self.SendMessage(self.Channel, '%s left the server' % Name)
 
