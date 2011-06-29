@@ -260,6 +260,7 @@ class DataStoreKey(object):
     pass
       
 class World(object):
+    '''Controls worlds, specifically the block store, placing blocks, and managing player actions'''
     VERSION = 2
     def __init__(self, ServerControl, Name, NewMap = False, NewX = -1, NewY = -1, NewZ = -1):
         self.Blocks = array("c")

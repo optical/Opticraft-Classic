@@ -956,6 +956,7 @@ class ServerController(object):
         if self.BannedUsers.has_key(Username.lower()) == True:
             del self.BannedUsers[Username.lower()]
             self.FlushBans()
+            self.PlayerDBThread.Tasks.put(["EXECUTE", "Update Players set BannedBy = '' where Username = ?", (Username.lower(),)])
             return True
         else:
             return False
@@ -1018,7 +1019,7 @@ class ServerController(object):
     def _RemovePlayer(self, pPlayer):
         '''Internally removes a player
         Note:Player poiner may not neccessarily exist in our storage'''
-        Console.Out("Player", "Player '%s' (%s) has left the server" % (pPlayer.GetIP(), pPlayer.GetName()))
+        Console.Out("Player", "Player '%s' (%s) has left the server" % (pPlayer.GetName(), pPlayer.GetIP()))
         self.PluginMgr.OnDisconnect(pPlayer)
         if pPlayer in self.PlayerSet:
             self.PlayerSet.remove(pPlayer)

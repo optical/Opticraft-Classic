@@ -246,7 +246,7 @@ def ParseWordAsTime(Word):
     i = 0
     while i < len(Word):
         if Word[i].isdigit() == False:
-            return Duration
+            raise Exception;
         NumberString = ''
         
         while i < len(Word)and Word[i].isdigit():
