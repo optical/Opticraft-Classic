@@ -54,7 +54,7 @@ class SigkillException(Exception):
 class PlayerDbThread(threading.Thread):
     '''This thread performs asynchronous querys on the player databases, specifically for loading
     and saving player data'''
-    CURRENT_VERSION = 3
+    CURRENT_VERSION = 4
     def __init__(self, ServerControl):
         threading.Thread.__init__(self, name = "Player DB Thread")
         self.ServerControl = ServerControl
@@ -120,6 +120,8 @@ class PlayerDbThread(threading.Thread):
                         self._Apply1To2()
                     elif Version == 2:
                         self._Apply2To3()
+                    elif Version == 3:
+                        self._Apply3To4()
                     Version += 1
                     Console.Warning("PlayerDB", "Player database now at version %d" % Version)
                 self.Connection.execute("DELETE FROM Server")
@@ -195,6 +197,30 @@ class PlayerDbThread(threading.Thread):
             except dbapi.OperationalError:
                 Console.Warning("PlayerDB", "Failed to apply update. Trying again...")
                 time.sleep(1)
+                
+    def _Apply3To4(self):
+        Success = False
+        BannedPlayers = set(self.ServerControl.BannedUsers.keys())
+        while Success != True:
+            try:
+                Result = self.Connection.execute("SELECT Username from Players WHERE BannedBy != ''")
+                Success = True
+            except:
+                Console.Warning("PlayerDB", "Failed to apply update. Trying again...")
+                time.sleep(1)
+        
+        for Row in Result:
+            Username = str(Row[0])
+            if Username not in BannedPlayers:
+                Success = False
+                while Success != True:
+                    try:
+                        Console.Debug("PlayerDB", "Removing ban on user %s" % Username)
+                        self.Connection.execute("UPDATE Players set BannedBy = '' WHERE Username = ?", (Username,))
+                        Success = True
+                    except:
+                        Console.Warning("PlayerDB", "Failed to remove ban in update. Trying again soon...")
+                        time.sleep(1)
 
 
 class ServerController(object):
