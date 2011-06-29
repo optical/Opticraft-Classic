@@ -544,8 +544,9 @@ class BanCmd(CommandObject):
         Duration = Args[1]
         Timespan = ''
         if Duration != '0':
-            Duration = ParseWordAsTime(Args[1])
-            if Duration == -1:
+            try:
+                Duration = ParseWordAsTime(Args[1])
+            except:
                 pPlayer.SendMessage("&RThat is an invalid timespan. Eg: 1d2h for 1 day and 2 hours")
                 return
             Timespan = ElapsedTime(Duration)
@@ -714,8 +715,9 @@ class AddIPBanCmd(CommandObject):
         Duration = Args[1]
         Timespan = ''
         if Duration != '0':
-            Duration = ParseWordAsTime(Args[1])
-            if Duration == -1:
+            try:
+                Duration = ParseWordAsTime(Args[1])
+            except:
                 pPlayer.SendMessage("&RThat is an invalid timespan. Eg: 1d2h for 1 day and 2 hours")
                 return
             Timespan = ElapsedTime(Duration)
