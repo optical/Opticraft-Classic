@@ -539,12 +539,12 @@ class World(object):
             return True #Cant set that block. But don't return False or it'll try "undo" the change!
         if val >= BLOCK_END:
             return False #Fake block type...
-        if pPlayer.HasPermission(self.GetMinimumBuildRank()) == False:
-            pPlayer.SendMessage(self.MinRankMessage)
-            return False
         ArrayValue = self._CalculateOffset(x, y, z)
         if ord(self.Blocks[ArrayValue]) == val:
-            return        
+            return  
+        if pPlayer.HasPermission(self.GetMinimumBuildRank()) == False:
+            pPlayer.SendMessage(self.MinRankMessage)
+            return False              
         #Too far away!
         if not AutomatedChange and pPlayer.CalcDistance(x, y, z) > 10 and pPlayer.GetRank() == 'guest':
             return False
