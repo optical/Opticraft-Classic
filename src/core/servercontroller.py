@@ -1106,7 +1106,7 @@ class ServerController(object):
             if len(Word) >= 60:
                 return #Prevent crazy bugs due to this crappy string system
             if len(OutStr) + len(Word) > 63:
-                if len(OutStr) > 2 and chr(OutStr[-1]) in LocalColourchars and chr(OutStr[-2]) == '&':
+                while len(OutStr) > 2 and chr(OutStr[-1]) in LocalColourchars and chr(OutStr[-2]) == '&':
                     OutStr = OutStr[:-2]
                 self.SendMessageToAll(str(OutStr))
                 OutStr = bytearray(NewLine)
