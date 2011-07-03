@@ -256,7 +256,7 @@ class ServerController(object):
         self.Name = self.ConfigValues.GetValue("server", "Name", "An opticraft server")
         self.Motd = self.ConfigValues.GetValue("server", "Motd", "Powered by opticraft!")
         self.MaxClients = int(self.ConfigValues.GetValue("server", "Max", "32"))
-        self.Public = self.ConfigValues.GetValue("server", "Public", "True")
+        self.Public = self.ConfigValues.GetValue("server", "Public", "1")
         self.DumpStats = int(self.ConfigValues.GetValue("server", "DumpStats", "0"))
         self.LanMode = bool(int(self.ConfigValues.GetValue("server", "LanMode", "0")))
         self.ReuseSalt = bool(int(self.ConfigValues.GetValue("server", "ReuseSalt", "0")))

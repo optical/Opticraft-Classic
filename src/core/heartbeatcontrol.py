@@ -41,6 +41,10 @@ class HeartBeatController(Thread):
         self.MaxClients = ServerControl.MaxClients
         self.Name = ServerControl.Name
         self.Public = ServerControl.Public
+        if self.Public.isdigit():
+            self.Public = "True" if self.Public == "1" else "False"
+        if self.Public.lower() not in ["true", "false"]:
+            self.Public = "true" 
         self.Salt = ServerControl.Salt
         self.Port = int(ServerControl.Port.split(",")[0])
         self.DumpStats = ServerControl.DumpStats
