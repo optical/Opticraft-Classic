@@ -1113,7 +1113,7 @@ class ServerController(object):
             OutStr += ' '
             OutStr += Word
             
-        if len(OutStr) > 2 and chr(OutStr[-1]) in LocalColourchars and chr(OutStr[-2]) == '&':
+        while len(OutStr) > 2 and chr(OutStr[-1]) in LocalColourchars and chr(OutStr[-2]) == '&':
                 OutStr = OutStr[:-2]
         self.SendMessageToAll(str(OutStr))
     def SendPacketToAll(self, Packet):
