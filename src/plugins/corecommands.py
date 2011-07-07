@@ -374,7 +374,8 @@ class PlayerInfoCmd(CommandObject):
                 pPlayer.SendMessage("&SCurrent IP: &V%s" % (Target.GetIP()))
                 if Target.GetRankedBy() != '':
                     pPlayer.SendMessage("&STheir rank was set by &V%s" % Target.GetRankedBy())
-            pPlayer.SendMessage("&SThey are on world &V\"%s\"" % Target.GetWorld().Name)
+            if Target.World is not None:
+                pPlayer.SendMessage("&SThey are on world &V\"%s\"" % Target.GetWorld().Name)
             pPlayer.SendMessage("&STheir rank is &V%s" % Target.GetRank().capitalize())
             if Target.IsInvisible(): #Dont check CanBeSeenBy() - thats been done already.
                 pPlayer.SendMessage("&SThey are currently invisible")
