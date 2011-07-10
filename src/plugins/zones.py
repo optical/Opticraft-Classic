@@ -148,7 +148,7 @@ class Zone(JsonSerializeableObject):
     def CanBuild(self, pPlayer):
         if pPlayer.HasPermission(self.MinimumRank) == False:
             if pPlayer.GetName().lower() not in self.Builders:
-                if self.Owner != pPlayer.GetName().lower():
+                if self.Owner.lower() != pPlayer.GetName().lower():
                     return False
         return True
 
@@ -336,7 +336,7 @@ class ZCreateCmd(ZoneCommand):
         if Name.isalnum() == False:
             pPlayer.SendMessage("&RInvalid name!")
             return
-        Owner = Args[1]
+        Owner = Args[1].lower()
         if self.GetZone(pPlayer.GetWorld(), Name) is not None:
             pPlayer.SendMessage("&RA Zone with that name already exists!")
             return
