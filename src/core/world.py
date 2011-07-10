@@ -211,7 +211,6 @@ class AsynchronousIOThread(threading.Thread):
             Console.Debug("IOThread", "Failed to Execute undoactions. Trying again later")
             self.Tasks.put(["UNDO_ACTIONS", Username, ReverseName, Time])
             return
-        Row = SQLResult.fetchone()
         BlockChangeList = [Username, ReverseName, 0]
         NumChanged = 0
         while True:
