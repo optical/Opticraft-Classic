@@ -7,6 +7,7 @@ using System.IO;
 using Nini.Config;
 using System.Collections;
 using System.Diagnostics;
+using System.Reflection;
 
 
 namespace OpticraftGUI {
@@ -27,14 +28,24 @@ namespace OpticraftGUI {
             ConfigSource = new IniConfigSource() {
                 CaseSensitive = false
             };
-            if (File.Exists("opticraft.ini")) {
+            bool unableToLoadFromDisk = !File.Exists("opticraft.ini");
+            Exception caughtException = null;
+
+             if (!unableToLoadFromDisk) {
                 try {
                     SanitizeConfig("opticraft.ini");
                     ConfigSource.Load("opticraft.ini");
                 } catch (Exception e) {
-                    
+                    caughtException = e;
+                    unableToLoadFromDisk = true;
                 }
             }
+            if (unableToLoadFromDisk) {
+                using (StreamReader stream = new StreamReader(Assembly.GetExecutingAssembly().GetManifestResourceStream("OpticraftGUI.Config.opticraft.ini"))) {
+                    ConfigSource.Load(stream);
+                }
+            }
+
             IsDirty = false;
             PopulateComboBoxItems();
         }
