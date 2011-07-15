@@ -593,8 +593,8 @@ class Player(object):
                     self.FloodPeriodCount = 0
                 self.FloodPeriodCount += 1
                 if self.FloodPeriodCount > self.ServerControl.FloodMessageLimit:
-                    self.SendMessage("&RYou are sending messages too quickly. Slow down!")
-                    self.FloodPeriodTime = self.ServerControl.Now #reset the count. Stops them spamming.
+                    self.SendMessage("&RYou are sending messages too quickly. Muted for %d seconds" % self.ServerControl.FloodMutePeriod)
+                    self.FloodPeriodTime = self.ServerControl.Now - self.ServerControl.FloodPeriod + self.ServerControl.FloodMutePeriod
                     return
             self.ServerControl.PluginMgr.OnChat(self, Contents)
             self.ServerControl.SendChatMessage(self.GetColouredName(), Contents)
