@@ -183,6 +183,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
@@ -198,8 +199,14 @@
                                 <extToolkit:IntegerUpDown x:Name="numChatspamSeconds" MinWidth="50" VerticalAlignment="Center" Minimum="0" MaxHeight="23" Value="{Binding ChatPeriod, Mode=TwoWay}" MaxWidth="50" />
                                 <Label x:Name="lblChatSpamPart3" Content="seconds."/>
                             </StackPanel>
-
-                            <StackPanel Orientation="Horizontal" Grid.Row="2">
+                            
+                            <StackPanel Orientation="Horizontal" Grid.Row="2" Margin="73,0,0,10">
+                                <Label Content="Mute for"/>
+                                <extToolkit:IntegerUpDown x:Name="numChatspamMute" MinWidth="50" VerticalAlignment="Center" Minimum="0" MaxHeight="23" Value="{Binding ChatMute, Mode=TwoWay}" MaxWidth="50" />
+                                <Label Content="seconds" />
+                            </StackPanel>
+                            
+                            <StackPanel Orientation="Horizontal" Grid.Row="3">
                                 <Label x:Name="lblBlockSpamPart1" Content="Limit block changes to"/>
                                 <extToolkit:IntegerUpDown x:Name="numBlocks" MinWidth="50" VerticalAlignment="Center" Minimum="0" MaxHeight="23" Value="{Binding BlockAmount, Mode=TwoWay}" MaxWidth="50" />
                                 <Label x:Name="lblBlockSpamPart2" Content="every"/>
@@ -207,9 +214,9 @@
                                 <Label x:Name="lblBlockpamPart3" Content="seconds."/>
                             </StackPanel>
                             
-                            <CheckBox x:Name="chkDisallowCaps" Grid.Row="3" Margin="0,3" Content="Filter all caps messages" IsChecked="{Binding DisallowCaps, Mode=TwoWay}"/>
+                            <CheckBox x:Name="chkDisallowCaps" Grid.Row="4" Margin="0,3" Content="Filter all caps messages" IsChecked="{Binding DisallowCaps, Mode=TwoWay}"/>
 
-                            <StackPanel Orientation="Horizontal" Grid.Row="4" Margin="10,0,0,0" IsEnabled="{Binding DisallowCaps}">
+                            <StackPanel Orientation="Horizontal" Grid.Row="5" Margin="10,0,0,0" IsEnabled="{Binding DisallowCaps}">
                                 <Label x:Name="lblMinSentenceLength" Content="Minimum sentence length:" VerticalAlignment="Center"/>
                                 <extToolkit:IntegerUpDown x:Name="numMinSentenceLength" Minimum="0" VerticalAlignment="Center" MinWidth="50" MaxHeight="22" Value="{Binding MinCapsLength, Mode=TwoWay}" MaxWidth="50" />
                             </StackPanel>

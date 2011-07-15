@@ -226,6 +226,11 @@ namespace OpticraftGUI {
             set { Set("server", "floodperiod", value); }
         }
 
+        public int ChatMute {
+            get { return GetInt("server", "floodmute", 10); }
+            set { Set("server", "floodmute", value); }
+        }
+
         public int BlockAmount {
             get { return GetInt("server", "blockchangecount", 45); }
             set { Set("server", "blockchangecount", value); }
