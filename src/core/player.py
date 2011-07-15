@@ -458,6 +458,7 @@ class Player(object):
             Console.Debug("Player", "Correct mppass: %s. Supplied mppass: %s" % (CorrectPass, HashedPass))
             self.Disconnect("Could not authenticate your username.")
             return
+        
     def HandleMovement(self, Packet):
         #This is sent even when the player isn't moving!
         if self.World is not None:
@@ -535,7 +536,6 @@ class Player(object):
                     return
 
             if Mode == 0:
-                self.IncreaseBlocksErased()
                 if self.GetPaintCmd() == True:
                     if self.BlockOverride != -1:
                         Block = self.BlockOverride
@@ -543,11 +543,15 @@ class Player(object):
                     Result = False
                 else:
                     Result = self.World.AttemptSetBlock(self, x, y, z, 0)
+                    if Result:
+                        self.IncreaseBlocksErased()
             else:
-                self.IncreaseBlocksMade()
+                
                 if self.BlockOverride != -1:
                     Block = self.BlockOverride
                 Result = self.World.AttemptSetBlock(self, x, y, z, Block)
+                if Result:
+                    self.IncreaseBlocksMade()
 
             if Result != True or self.GetBlockOverride() != -1:
                 if self.World.WithinBounds(x, y, z):
