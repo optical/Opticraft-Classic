@@ -22,13 +22,13 @@ namespace OpticraftGUI {
         public DataModel ConfigModel { get; set; }
 
         public MainWindow() {
-            ConfigModel = new DataModel();
-            this.DataContext = ConfigModel;
             Init();
             InitializeComponent();
         }
 
         private void Init() {
+            ConfigModel = new DataModel();
+            DataContext = ConfigModel;
         }
 
 

@@ -123,6 +123,8 @@ class Player(object):
         return self.Name
     def GetColouredName(self):
         return self.ColouredName
+    def SetColouredName(self, NewName):
+        self.ColouredName = NewName
     def GetSocket(self):
         return self.PlayerSocket
     def GetIP(self):
