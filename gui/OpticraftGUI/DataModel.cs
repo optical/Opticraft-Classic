@@ -55,7 +55,7 @@ namespace OpticraftGUI {
 
         private void PopulateComboBoxItems() {
             ColourComboBoxItems = new List<ComboBoxColourItem>();
-            foreach (var KVP in ComboBoxColourItem.ColourMappings) {
+            foreach (KeyValuePair<string,string> KVP in ComboBoxColourItem.ColourMappings) {
                 ColourComboBoxItems.Add(new ComboBoxColourItem() {
                     ColourString = KVP.Key
                 });
