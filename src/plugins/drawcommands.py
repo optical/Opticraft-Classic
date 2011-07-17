@@ -250,7 +250,6 @@ class DrawAction(object):
             self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, Value, AutomatedChange = True, ResendToClient = True)
         except:
             pass
-        #These fucking things are the wrong way around! -_-
         
     def PreDraw(self):
         pass #Calculate blocks here
@@ -353,6 +352,7 @@ class Sphere(DrawAction):
         self.Y1 = (y - 0.5)
         self.Z1 = (z - 0.5)
         self.PreDraw()
+        return False
         
     def PreDraw(self):
         NumBlocks = math.ceil((0.75) * math.pi * (self.Radius ** 3))
