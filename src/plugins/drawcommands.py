@@ -56,6 +56,7 @@ class DrawCommandPlugin(PluginBase):
     def RegisterCommands(self):
         self.AddCommand("cancel", CancelCommand, 'builder', 'Cancels your current draw command', '', 0)
         self.AddCommand("measure", MeasureCommand, 'guest', 'Measures the distance between two points', '', 0)
+        self.AddCommand("sphere", SphereCommand, 'builder', 'Used to create a sphere of blocks', 'Incorrect syntax! Usage: /sphere <material> <diameter>', 2)
         self.AddCommand("cuboid", CuboidCommand, 'builder', 'Used to create large cuboids of blocks', 'Incorrect syntax! Usage: /cuboid <material>', 1)
         self.AddCommand("cuboidh", CuboidHCommand, 'builder', 'Used to create large hollow cuboids of blocks', 'Incorrect syntax! Usage: /cuboidh <material>', 1)
         self.AddCommand("cuboidw", CuboidWCommand, 'builder', 'Used to create large wireframes cuboids', 'Incorrect syntax! Usage: /cuboidw <material>', 1)
@@ -72,6 +73,21 @@ class CancelCommand(CommandObject):
             return
         else:
             pPlayer.SendMessage("&RYou are not currently using a draw command!")
+            
+class SphereCommand(CommandObject):
+    def Run(self, pPlayer, Args, Message):    
+        Material = Args[0]
+        try:
+            Diameter = int(Args[1])
+        except:
+            pPlayer.SendMessage("&REnter a valid diameter!")
+            return
+        if GetBlockIDFromName(Material) is None:
+            pPlayer.SendMessage("&R%s is not a valid block!" % Material)
+            return
+        else:
+            pPlayer.SetPluginData(DRAW_KEY, Sphere(pPlayer, Material, Diameter))
+            pPlayer.SendMessage("&SPlace a block to represent the center of the sphere")
 
 class CuboidCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
@@ -236,6 +252,43 @@ class Measure(TwoStepDrawAction):
         dz = self.Z2 + 1 - self.Z1
         Distance = math.sqrt(dx * dx + dy * dy + dz * dz)
         self.pPlayer.SendMessage("&SThe distance from &V%s &Sto &V%s &Sis: &V%d" % (self.Pos1, self.Pos2, Distance))
+
+class Sphere(DrawAction):
+    def __init__(self, pPlayer, Material, Diameter):
+        DrawAction.__init__(self, pPlayer)
+        self.Material = GetBlockIDFromName(Material)
+        self.Radius = (Diameter / 2)
+        self.X, self.Y, self.Z = -1, -1, -1
+        self.X1, self.Y1, self.Z1 = -1, -1, -1
+        
+    def OnAttemptPlaceBlock(self, pWorld, BlockValue, x, y, z):
+        if BlockValue == BLOCK_AIR:
+            return
+        self.X = x
+        self.Y = y
+        self.Z = z
+        self.X1 = (x - 0.5)
+        self.Y1 = (y - 0.5)
+        self.Z1 = (z - 0.5)
+        self.PreDraw()
+        
+    def PreDraw(self):
+        NumBlocks = math.ceil((0.75) * math.pi * (self.Radius ** 3))
+        self.TryDraw(NumBlocks)     
+    
+    def DoDraw(self):
+        self.pPlayer.SendMessage("&SDrawing sphere!")
+        for x in xrange(self.X - self.Radius - 1, self.X + self.Radius + 1):
+            for y in xrange(self.Y - self.Radius - 1, self.Y + self.Radius + 1):
+                for z in xrange(self.Z - self.Radius - 1, self.Z + self.Radius + 1):
+                    #Calculate distance between current and the center of the sphere and ensure its within the radius.
+                    # - Not in own function due to function call overhead in python. :(
+                    if ((x - self.X1) ** 2 + (y - self.Y1) ** 2 + (z - self.Z1) ** 2) ** 0.5 <= self.Radius:
+                        self.DrawBlock(x, y, z, self.Material)
+        self.pPlayer.SendMessage("&SFinished drawing sphere!")
+        
+
+
         
 class Cuboid(TwoStepDrawAction):
     def __init__(self, pPlayer, Material):
