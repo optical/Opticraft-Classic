@@ -35,7 +35,10 @@ from core.console import *
 
 DRAW_KEY = "draw_plugin"
 COPY_KEY = "draw_plugin_copy_data"
+UNDO_KEY = "draw_plugin_undo_data"
+REDO_KEY = "draw_plugin_redo_data"
 LOCK_LEVEL = 35000 #35,000 block changes results in the map being resent to prevent lag
+UNDO_REDO_LIMIT = 1000000
 
 class DrawCommandPlugin(PluginBase):
     def OnLoad(self):
@@ -52,10 +55,15 @@ class DrawCommandPlugin(PluginBase):
         pDrawAction = pPlayer.GetPluginData(DRAW_KEY)
         if pDrawAction is not None and pDrawAction.DisallowMapChanges:
             pPlayer.SetPluginData(DRAW_KEY, None)
+        
+        pPlayer.SetPluginData(UNDO_KEY, None)
+        pPlayer.SetPluginData(REDO_KEY, None)
     
     def RegisterCommands(self):
         self.AddCommand("cancel", CancelCommand, 'builder', 'Cancels your current draw command', '', 0)
         self.AddCommand("measure", MeasureCommand, 'guest', 'Measures the distance between two points', '', 0)
+        self.AddCommand("undo", UndoActionsCmd, 'builder', 'Undoes your last draw or redo command', '', 0)
+        self.AddCommand("redo", RedoActionsCmd, 'builder', 'Undoes /undo.', '', 0)
         self.AddCommand("sphere", SphereCommand, 'builder', 'Used to create a sphere of blocks', 'Incorrect syntax! Usage: /sphere <material> <diameter>', 2)
         self.AddCommand("cuboid", CuboidCommand, 'builder', 'Used to create large cuboids of blocks', 'Incorrect syntax! Usage: /cuboid <material>', 1)
         self.AddCommand("cuboidh", CuboidHCommand, 'builder', 'Used to create large hollow cuboids of blocks', 'Incorrect syntax! Usage: /cuboidh <material>', 1)
@@ -160,6 +168,65 @@ class DestroyTowerCommand(CommandObject):
             pPlayer.SetPluginData(DRAW_KEY, DestroyTowerAction(pPlayer))
             pPlayer.SendMessage("&SDestroy tower enabled")
 
+class UndoActionsCmd(CommandObject):
+    def Run(self, pPlayer, Args, Message):
+        UndoData = pPlayer.GetPluginData(UNDO_KEY)
+        if UndoData is None:
+            pPlayer.SendMessage("&RYou have no actions to undo!")
+            return
+        else:
+            UndoData.RestoreActions()
+            pPlayer.SetPluginData(UNDO_KEY, None)
+            pPlayer.SendMessage("&SYour actions have been undone.")
+
+class RedoActionsCmd(CommandObject):
+    def Run(self, pPlayer, Args, Message):
+        RedoData = pPlayer.GetPluginData(REDO_KEY)
+        if RedoData is None:
+            pPlayer.SendMessage("&RYou have no actions to redo!")
+            return
+        else:
+            RedoData.RestoreActions()
+            pPlayer.SetPluginData(REDO_KEY, None)
+            pPlayer.SendMessage("&SYour actions have been redone.")
+            
+class UndoRedoBlockInformation(object):
+    __slots__ = ['X', 'Y', 'Z' , 'Value']
+    def __init__(self, x, y, z, value):
+        self.X = x
+        self.Y = y
+        self.Z = z
+        self.Value = value
+    
+class UndoRedoInformationManager(object):
+    def __init__(self, pPlayer, IsUndoData):
+        self.BlockStore = list()
+        self.pPlayer = pPlayer
+        self.IsUndoData = IsUndoData
+        if IsUndoData:
+            pPlayer.SetPluginData(UNDO_KEY, self)
+        else:
+            pPlayer.SetPluginData(REDO_KEY, self)
+            
+    def RestoreActions(self):
+        Locked = len(self.BlockStore) > LOCK_LEVEL
+        if Locked:
+            self.pPlayer.GetWorld().Lock()
+
+        UndoRedoData = UndoRedoInformationManager(self.pPlayer, False)
+        if self.IsUndoData:
+            self.pPlayer.SetPluginData(REDO_KEY, UndoRedoData)
+        else:
+            self.pPlayer.SetPluginData(UNDO_KEY, UndoRedoData)
+        
+        for pBlock in self.BlockStore:
+            UndoRedoData.BlockStore.append(UndoRedoBlockInformation(pBlock.X, pBlock.Y, pBlock.Z, self.pPlayer.GetWorld().GetBlock(pBlock.X, pBlock.Y, pBlock.Z)))
+            self.pPlayer.GetWorld().SetBlock(self.pPlayer, pBlock.X, pBlock.Y, pBlock.Z, pBlock.Value, ResendToClient = True)
+
+        if Locked:
+            self.pPlayer.GetWorld().UnLock()                    
+        self.BlockStore = list()
+        
 #######################################
 #        Draw actions go below        #
 #######################################    
@@ -171,13 +238,23 @@ class DrawAction(object):
         self.IsLogged = True
         self.IsOneUse = True
         self.EnableWorldLocking = True
+        self.UndoRedoData = None
         
     def OnAttemptPlaceBlock(self, pWorld, BlockValue, x, y, z):
         pass
+    
     def DrawBlock(self, x, y, z, Value):
-        self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, Value, AutomatedChange = True, ResendToClient = True)
+        try:
+            if self.UndoRedoData is not None:
+                self.UndoRedoData.BlockStore.append(UndoRedoBlockInformation(x, y, z, self.pPlayer.GetWorld().GetBlock(x, y, z)))
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, Value, AutomatedChange = True, ResendToClient = True)
+        except:
+            pass
+        #These fucking things are the wrong way around! -_-
+        
     def PreDraw(self):
         pass #Calculate blocks here
+    
     def TryDraw(self, NumBlocks):
         if self.IsOneUse:
             self.pPlayer.SetPluginData(DRAW_KEY, None)
@@ -194,9 +271,14 @@ class DrawAction(object):
             LogFile = self.pPlayer.ServerControl.CommandHandle.LogFile
             if LogFile is not None and self.IsLogged:
                 LogFile.write(LogLine)
+            
+            if NumBlocks < UNDO_REDO_LIMIT:
+                self.UndoRedoData = UndoRedoInformationManager(self.pPlayer, True)
             self.DoDraw()
+            self.UndoRedoData = None
             if NumBlocks > LOCK_LEVEL and self.EnableWorldLocking:
                 self.pPlayer.GetWorld().UnLock()
+        
     def DoDraw(self):
         pass        
         
@@ -286,9 +368,6 @@ class Sphere(DrawAction):
                     if ((x - self.X1) ** 2 + (y - self.Y1) ** 2 + (z - self.Z1) ** 2) ** 0.5 <= self.Radius:
                         self.DrawBlock(x, y, z, self.Material)
         self.pPlayer.SendMessage("&SFinished drawing sphere!")
-        
-
-
         
 class Cuboid(TwoStepDrawAction):
     def __init__(self, pPlayer, Material):
@@ -449,7 +528,7 @@ class PasteAction(DrawAction):
                     self.DrawBlock(self.X + x, self.Y + y, self.Z + z, self.CopyData.Blocks[Index])
                     Index += 1
         self.pPlayer.SendMessage("&SPasting complete.")
-        
+
 class DestroyTowerAction(DrawAction):
     def __init__(self, pPlayer):
         DrawAction.__init__(self, pPlayer)
