@@ -133,7 +133,7 @@ class PluginManager(object):
         try:
             PluginModule = __import__("%s" % PluginFile)
             reload(PluginModule) #Ensure the most up to date version from disk is loaded
-        except ImportError, e:
+        except Exception, e:
             Console.Warning("PluginMgr", "Plugin file %s could not be imported (%s)" % (PluginFile, e))
             return False
         self.PluginModules.append(PluginFile.lower())
@@ -149,7 +149,9 @@ class PluginManager(object):
                     self.Plugins.add(pPlugin)
                     pPlugin.OnLoad()
                 except Exception as exc:
-                    if pPlugin in self.Plugins:
+                    if pPlugin in self.Plugins: #The plugin may of added some hooks or commands before it exploded.
+                        self.RemovePluginHooks(pPlugin)
+                        self.RemovePluginCommands(pPlugin.ModuleName)
                         self.Plugins.remove(pPlugin)
                     Console.Warning("PluginMgr", "Error loading plugin object \"%s\" from file \"%s\"" % (Key, PluginFile))
                     Console.Debug("PluginMgr", "Exception: %s" % str(exc))
@@ -162,12 +164,7 @@ class PluginManager(object):
         if PluginName in self.PluginModules:
             self.PluginModules.remove(PluginName)
         #Remove commands
-        for Module in self.Commands:
-            if Module == PluginName:
-                for CommandObj in self.Commands[Module]:
-                    self.ServerControl.CommandHandle.RemoveCommand(CommandObj)
-                del self.Commands[PluginName]
-                break
+        self.RemovePluginCommands(PluginName)
 
         ToRemove = list()
         for pPlugin in self.Plugins:
@@ -176,22 +173,32 @@ class PluginManager(object):
 
         while len(ToRemove) > 0:
             pPlugin = ToRemove.pop()
-            #Not very effecient code...
-            for HookName in self.Hooks:
-                DeadHooks = list()
-                HookList = self.Hooks[HookName]
-                for pHook in HookList:
-                    if pHook.Plugin == pPlugin:
-                        DeadHooks.append(pHook)
-                while len(DeadHooks) > 0:
-                    HookList.remove(DeadHooks.pop())
+            self.RemovePluginHooks(pPlugin)
             #All hooks removed, time for commands
             #TODO: Commands! >:)
             pPlugin.OnUnload()
             self.Plugins.remove(pPlugin) #Goodbye, cruel world!
         Console.Out("PluginMgr", "Successfully unloaded plugin \"%s\"" % PluginName)
         return True
-
+    
+    def RemovePluginHooks(self, pPlugin):
+        for HookName in self.Hooks:
+            DeadHooks = list()
+            HookList = self.Hooks[HookName]
+            for pHook in HookList:
+                if pHook.Plugin == pPlugin:
+                    DeadHooks.append(pHook)
+            while len(DeadHooks) > 0:
+                HookList.remove(DeadHooks.pop())        
+    
+    def RemovePluginCommands(self, PluginName):
+        for Module in self.Commands:
+            if Module == PluginName:
+                for CommandObj in self.Commands[Module]:
+                    self.ServerControl.CommandHandle.RemoveCommand(CommandObj)
+                del self.Commands[PluginName]
+                break        
+    
     def RegisterHook(self, Plugin, Function, HookName):
         '''Registers the plugin and function for the hook'''
         NumArgs = PluginBase.HookSpecs.get(HookName, None)
