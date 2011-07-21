@@ -505,12 +505,12 @@ class ServerController(object):
                 
     def LoadIPCache(self):
         try:
-            Console.Debug("IPCache", "Attempting to load IP Cache")
+            Console.Out("IPCache", "Attempting to load IP Cache")
             start = time.time()
             Result = self.PlayerDBConnection.execute("SELECT Username, LastIP from Players")
             for Row in Result:
                 self.IPCache[Row["username"]] = Row["LastIP"]
-            Console.Debug("IPCache", "Loaded IP Cache in %dms" % (time.time() - start))
+            Console.Out("IPCache", "Loaded IP Cache in %dms" % ((time.time() - start) * 1000))
         except:
             #Non-critical
             Console.Debug("IPCache", "Failed to load IPCache")
