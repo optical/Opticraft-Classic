@@ -705,17 +705,13 @@ class World(object):
         self.SetSpawnZ((self.Z / 2 + 2) * 32 + 51)
         self.SetSpawnOrientation(0)
         self.SetSpawnPitch(0)
+        
         self.Blocks = array('c')
-        for z in xrange(self.Z):
-            if z < SandLevel:
-                Block = chr(BLOCK_ROCK)
-            elif z >= SandLevel and z < GrassLevel:
-                Block = chr(BLOCK_DIRT)
-            elif z == GrassLevel:
-                Block = chr(BLOCK_GRASS)
-            else:
-                Block = chr(BLOCK_AIR)
-            self.Blocks.fromstring((self.X * self.Y) * Block)
+        self.Blocks.fromstring((self.X * self.Y) * chr(BLOCK_ROCK) * (SandLevel - 1))
+        self.Blocks.fromstring((self.X * self.Y) * chr(BLOCK_DIRT) * 2)
+        self.Blocks.fromstring((self.X * self.Y) * chr(BLOCK_GRASS))
+        self.Blocks.fromstring((self.X * self.Y) * chr(BLOCK_AIR) * GrassLevel)
+        
         self.IsDirty = True
         self.InitialiseBuiltInMetaData()
         self.InitialiseBuiltInDataStore()
