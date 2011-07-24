@@ -71,6 +71,7 @@ class DrawCommandPlugin(PluginBase):
         self.AddCommand("cuboidr", CuboidRCommand, 'builder', 'Replaces all the "Material1" with "Material2 in a given cuboid', 'Incorrect syntax! Usage: /cuboidr <replacewhat> <replacewith>', 2)
         self.AddCommand("copy", CopyCommand, 'builder', 'Used to copy and then paste an area of blocks', '', 0)
         self.AddCommand("paste", PasteCommand, 'builder', 'Used to paste blocks after you have copied them with /copy', '', 0)
+        self.AddCommand("rotate", RotateCommand, 'builder', 'Used to rotate copy data 90 degrees clockwise', '', 0)
         self.AddCommand("destroytower", DestroyTowerCommand, 'operator', 'Destroys tower of the same block. Useful for cleaning', '', 0)
 
 class CancelCommand(CommandObject):
@@ -152,6 +153,16 @@ class PasteCommand(CommandObject):
         else:
             pPlayer.SendMessage("&SPlace a block, or use /place where you want to paste")
             pPlayer.SetPluginData(DRAW_KEY, PasteAction(pPlayer))
+            
+class RotateCommand(CommandObject):
+    def Run(self, pPlayer, Args, Message):
+        CopyData = pPlayer.GetPluginData(COPY_KEY)
+        if CopyData is None:
+            pPlayer.SendMessage("&RYou have not copied anything! Use /copy first")
+            return
+        else:
+            CopyData.Rotate()
+            pPlayer.SendMessage("&SThe copied data has been rotated")
 
 class MeasureCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
@@ -478,6 +489,20 @@ class CopyInformation(object):
         self.Y = Y
         self.Z = Z
         self.Blocks = array.array('B')
+        
+    def Rotate(self):
+        Offset = self.Z * self.Y
+        NewBlocks = array.array('B')
+        
+        for y in xrange(self.Y, 0, -1):
+            min = (self.Z * y - self.Z)
+            for x in xrange(self.X):                
+                max = min + self.Z
+                NewBlocks.extend(self.Blocks[min:max])
+                min = min + Offset
+        
+        self.X, self.Y = self.Y, self.X
+        self.Blocks = NewBlocks
         
 class CopyAction(TwoStepDrawAction):
     def __init__(self, pPlayer):
