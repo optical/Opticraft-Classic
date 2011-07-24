@@ -735,6 +735,8 @@ class ServerController(object):
         return self._ExampleRanks
 
     def SetRank(self, Initiator, Username, Rank):
+        Rank = Rank.lower()
+        Username = Username.lower()
         if Rank != 'guest':
             self.RankedPlayers[Username.lower()] = Rank.lower()
             self.RankStore.set("ranks", Username, Rank)

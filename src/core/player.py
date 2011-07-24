@@ -156,6 +156,7 @@ class Player(object):
                     Name = WorldName
                     break
             NewWorld = self.ServerControl.LoadWorld(Name)
+            
         if NewWorld is not None and NewWorld != False:
             self.UpdateLastWorldChange()
             self.World.RemovePlayer(self, True)

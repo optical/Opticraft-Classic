@@ -947,7 +947,7 @@ class DeleteTemplateCmd(CommandObject):
         except Exception, e:
             pPlayer.SendMessage("&RCould not remove: %s" % e)
         else:
-            pPlayer.SendMessage("&SSucessfully deleted template")
+            pPlayer.SendMessage("&SSuccessfully deleted template")
         
 class SetDefaultWorldCmd(CommandObject):
     '''Handler for the /setdefaultworld command'''
