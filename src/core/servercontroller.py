@@ -227,6 +227,7 @@ class ServerController(object):
     def __init__(self, Tag = ''):
         self.StartTime = int(time.time())
         self.Now = time.time()
+        self.HasStarted = False
         self.ConfigValues = ConfigReader()
         self.RankStore = ConfigReader()
         self.ConfigValues.read("opticraft.ini")
@@ -793,6 +794,7 @@ class ServerController(object):
         Console.Out("Startup", "Startup procedure completed in %.0fms" % ((time.time() - self.StartTime) * 1000))
         Console.Out("Server", "Press Ctrl-C at any time to shutdown the sever safely.")
         self.PluginMgr.OnServerStart()
+        self.HasStarted = True
         while self.Running == True:
             self.Now = time.time()
             self.SockManager.Run()

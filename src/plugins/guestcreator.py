@@ -50,23 +50,25 @@ class GuestCreator(PluginBase):
     def __init__(self, PluginMgr, ServerControl, Name):
         PluginBase.__init__(self, PluginMgr, ServerControl, Name)
         self.LastCreation = None
-        self.Initialized = False
         
     def OnLoad(self):
         self.PluginMgr.RegisterHook(self, self.OnTick, Hooks.ON_SERVER_TICK)
-        self.PluginMgr.RegisterHook(self, self.OnServerStart, Hooks.ON_SERVER_START)
+        if self.ServerControl.HasStarted == False:
+            self.PluginMgr.RegisterHook(self, self.OnServerStart, Hooks.ON_SERVER_START)
+        else:
+            self.Initialize()
 
     def OnServerStart(self):
-        self.Initialized = True
+        self.Initialize()
+    
+    def Initialize(self):
         GuestMetaData = self.ServerControl.GetWorldMetaData(GUEST_NAME)
         if GuestMetaData is None:
             self.CreateNewGuestWorld()
         else:
-            self.LastCreation = GuestMetaData[MetaDataKey.CreationDate]       
+            self.LastCreation = GuestMetaData[MetaDataKey.CreationDate]    
     
     def OnTick(self):
-        if self.Initialized == False:
-            return
         if self.LastCreation + CREATION_PERIOD < time.time():
             self.CreateNewGuestWorld()
     
