@@ -480,12 +480,12 @@ class World(object):
     def GetMinimumJoinRank(self):
         return self.GetMetaDataEntry(MetaDataKey.MinimumJoinRank)
     def SetMinimumJoinRank(self, Value):
-        return self.SetMetaDataEntry(MetaDataKey.MinimumJoinRank, Value)
+        self.SetMetaDataEntry(MetaDataKey.MinimumJoinRank, Value)
     
     def GetCreationDate(self):
         return self.GetMetaDataEntry(MetaDataKey.CreationDate)
     def SetCreationDate(self, Value):
-        return self.SetMetaDataEntry(MetaDataKey.CreationDate, Value)
+        self.SetMetaDataEntry(MetaDataKey.CreationDate, Value)
     
     ########################################
     #End of MetaData Accessors and mutators#
