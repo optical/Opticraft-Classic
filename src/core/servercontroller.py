@@ -358,27 +358,21 @@ class ServerController(object):
                 self.ChatLogHandle = self.PMLogHandle = None
         else:
             self.ChatLogHandle = self.PMLogHandle = None
-            
+        self.LastKeepAlive = -1
         self.LoadBans() 
         self.IPCache = dict()
         self.LoadIPCache()
-        self.PluginMgr = PluginManager(self)
-        self.PluginMgr.LoadPlugins()
         self.Rules = list()
         self.LoadRules()
         self.Greeting = list()
-        self.LoadGreeting()
+        self.LoadGreetings()
+        self.PluginMgr = PluginManager(self)
+        self.PluginMgr.LoadPlugins()
         self.LoadWorlds()
-        #write out pid to opticraft.pid
-        try:
-            pidHandle = open("opticraft.pid", "w")
-            pidHandle.write(str(os.getpid()))
-            pidHandle.close()
-        except IOError:
-            Console.Warning("Startup", "Failed to write process id to opticraft.pid")
+        self.RecordPID()
+        
 
-        self.LastKeepAlive = -1
-
+        
     def GenerateSalt(self):
         Salt = ''
         #attempt to seed with a non-deterministic value
@@ -597,7 +591,7 @@ class ServerController(object):
         except WorldRequiresUpdateException, e:
             raise e
         except Exception, e:
-            Console.Warning("Worlds", "Could not load world %s's metadata. The world is corrupt" % WorldName)
+            Console.Warning("World", "Could not load world %s's metadata. The world is corrupt" % WorldName)
     
     def GetWorldMetaData(self, WorldName):
         '''Returns the metadata block if it exists, else returns None'''
@@ -630,11 +624,21 @@ class ServerController(object):
         for Item in Items:
             self.Rules.append(Item[1])
 
-    def LoadGreeting(self):
+    def LoadGreetings(self):
         Items = self.ConfigValues.GetItems("greeting")
         Items.sort(key = lambda item: item[0])
         for Item in Items:
             self.Greeting.append(Item[1])
+  
+    def RecordPID(self):
+        #write out pid to opticraft.pid
+        try:
+            pidHandle = open("opticraft.pid", "w")
+            pidHandle.write(str(os.getpid()))
+            pidHandle.close()
+        except IOError:
+            Console.Warning("Startup", "Failed to write process id to opticraft.pid")
+
   
     def GetMemoryUsage(self):
         '''Attempts to retrieve memory usage. Works on Windows and unix like operating systems
@@ -1137,6 +1141,7 @@ class ServerController(object):
     def DeleteWorld(self, WorldName):
         '''Attempts to delete a world. Returns True on success. Exceptions thrown otherwise'''
         self.PluginMgr.OnWorldDelete(WorldName)
+        WorldName = WorldName.lower()
         ActiveWorlds, IdleWorlds = self.GetWorlds()
         for pWorld in ActiveWorlds:
             if pWorld.Name.lower() == WorldName:
@@ -1168,6 +1173,7 @@ class ServerController(object):
     def RenameWorld(self, OldName, NewName):
         '''Attempts to rename a world. Returns True on success. Exceptions thrown otherwise'''
         self.PluginMgr.OnWorldRename(OldName, NewName)
+        OldName = OldName.lower()
         #Is it an idle world?
         ActiveWorlds, IdleWorlds = self.GetWorlds()
         FoundWorld = False
