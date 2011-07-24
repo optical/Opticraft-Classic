@@ -256,9 +256,9 @@ class DrawAction(object):
     
     def DrawBlock(self, x, y, z, Value):
         try:
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, Value, AutomatedChange = True, ResendToClient = True)
             if self.UndoRedoData is not None:
                 self.UndoRedoData.BlockStore.append(UndoRedoBlockInformation(x, y, z, self.pPlayer.GetWorld().GetBlock(x, y, z)))
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, Value, AutomatedChange = True, ResendToClient = True)
         except:
             pass
         
