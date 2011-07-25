@@ -164,6 +164,7 @@ class GrassCmd(CommandObject):
         else:
             pPlayer.SetBlockOverride(BLOCK_GRASS)
             pPlayer.SendMessage("&SEvery block you create will now be grass. Type /grass to disable.")
+            
 class PaintCmd(CommandObject):
     '''Command handler for /paint command. When you destroy a block it is replaced with the block you are holding'''
     def Run(self, pPlayer, Args, Message):
@@ -174,6 +175,7 @@ class PaintCmd(CommandObject):
         else:
             pPlayer.SetPaintCmd(True)
             pPlayer.SendMessage("&SPaint command enabled. Type /paint again to disable")
+            
 class HelpCmd(CommandObject):
     '''Returns a helpful message about a command'''
     def Run(self, pPlayer, Args, Message):
@@ -183,6 +185,7 @@ class HelpCmd(CommandObject):
         else:
             CmdObj = self.CmdHandler.CommandTable[Args[0].lower()]
             pPlayer.SendMessage("&S" + CmdObj.HelpMsg)
+            
 class RulesCmd(CommandObject):
     '''Lists all of the servers rules'''
     def Run(self, pPlayer, Args, Message):
