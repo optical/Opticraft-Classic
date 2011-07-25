@@ -27,106 +27,126 @@
 
 from core.pluginmanager import PluginBase, Hooks
 from core.commandhandler import CommandObject
+from core.jsondict import JsonSerializeableObject
 from core.console import *
 import os
 import os.path
 import shutil
 
+class TitleData(JsonSerializeableObject):
+    '''Simple object to store title information on a player object'''
+    def __init__(self, pPlayer = None, Title = None):
+        self.pPlayer = pPlayer
+        self.Title = Title
+
 class TitlePlugin(PluginBase):
-    #TitlePlugin is a singleton. This acts as a kind of static reference to us.
-    Instance = None
-    def __init__(self, PluginMgr, ServerControl, Name):
-        PluginBase.__init__(self, PluginMgr, ServerControl, Name)
-        TitlePlugin.Instance = self
-        self.TitlePlayers = dict()
-        self.LoadTitles()
+    TITLE_KEY = "TITLES"
+
         
     def RegisterCommands(self):
         self.AddCommand("titleset", TitleSetCmd, 'admin', 'Sets the title of a user', 'Incorrect syntax! Usage: /titleset <username> <title>', 2)
         self.AddCommand("titleget", TitleGetCmd, 'admin', 'Gets the title of a user', 'Incorrect syntax! Usage: /titleget <username>', 1)
         self.AddCommand("titledel", TitleDelCmd, 'admin', 'Gets the title of a user', 'Incorrect syntax! Usage: /titledel <username>', 1)
-        
-    def LoadTitles(self):
-        if os.path.exists("titles.txt") == False:
-            open("titles.txt", "w").close()
             
-        with open("titles.txt", "r") as fHandle:
-            for Line in fHandle:
-                Username, Title = Line.split("=")
-                self.TitlePlayers[Username.lower()] = Title
-                
-    def SaveTitles(self):
-        with open("titles.tmp", "w") as fHandle:
-            for Username, Title in self.TitlePlayers.iteritems():
-                fHandle.write("%s=%s\n" % (Username, Title))
-        
-        shutil.copy("titles.tmp", "titles.txt")
-        os.remove("titles.tmp")
-        
     def OnLoad(self):
         self.RegisterCommands()
-        self.PluginMgr.RegisterHook(self, self.OnPlayerLogin, Hooks.ON_PLAYER_CONNECT)
-        self.PluginMgr.RegisterHook(self, self.OnServerShutdown, Hooks.ON_SERVER_SHUTDOWN)
-        
-    def OnServerShutdown(self):
-        self.SaveTitles()
+        self.PluginMgr.RegisterHook(self, self.OnPlayerDataLoaded, Hooks.ON_PLAYER_DATA_LOADED)
     
-    def OnPlayerLogin(self, pPlayer):
-        Title = self.TitlePlayers.get(pPlayer.GetName().lower(), None)
-        if Title is not None:
-            pPlayer.SetColouredName("%s %s" % (Title, pPlayer.GetColouredName()))
-                                            
-    def DeleteTitle(self, Username):
-        Username = Username.lower()
-        
-        pPlayer = self.ServerControl.GetPlayerFromName(Username)
-        if pPlayer is not None:
-            pPlayer.SetColouredName(pPlayer.GetColouredName().replace("%s " % self.TitlePlayers[Username], ""))
-                                    
-        del self.TitlePlayers[Username.lower()]                         
-
-    def SetTitle(self, Username, Title):
-        Username = Username.lower()
-        self.TitlePlayers[Username] = Title
-        
-        pPlayer = self.ServerControl.GetPlayerFromName(Username)
-        if pPlayer is not None:
-            pPlayer.SetColouredName("%s %s" % (Title, pPlayer.GetColouredName()))
-    
-    def GetTitle(self, Username):
-        return self.TitlePlayers.get(Username.lower(), None)
+    def OnPlayerDataLoaded(self, pPlayer):
+        JsonTitleData = pPlayer.GetPermanentPluginData(TitlePlugin.TITLE_KEY)
+        if JsonTitleData is None:
+            return
+        PlayerTitle = TitleData(pPlayer)
+        PlayerTitle.FromJson(JsonTitleData)
+        pPlayer.SetPermanentPluginData(TitlePlugin.TITLE_KEY, PlayerTitle)
+        pPlayer.SetColouredName("%s %s" % (PlayerTitle.Title, pPlayer.GetColouredName()))
     
 ##############################
 #        Commands            #
 ##############################
 
-class TitleSetCmd(CommandObject):
+class TitleCommand(CommandObject):
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Alias = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Alias)
+        self.ServerControl = self.CmdHandler.ServerControl
+        
+    def DeleteTitle(self, Username):
+        self._RemoveTitleFromName(Username)
+        self.ServerControl.FetchPlayerDataEntryAsync(Username, TitleCommand._DeleteTitleCallback)
+    
+    def _RemoveTitleFromName(self, Username):
+        '''Removes the title from a Player objects name. Does not remove it from the database!'''
+        pPlayer = self.ServerControl.GetPlayerFromName(Username)
+        if pPlayer is not None:
+            CurrentTitle = pPlayer.GetPermanentPluginData(TitlePlugin.TITLE_KEY)
+            if CurrentTitle is not None:
+                pPlayer.SetColouredName(pPlayer.GetColouredName().replace("%s " % CurrentTitle.Title, ""))
+                
+    @staticmethod
+    def _DeleteTitleCallback(DataEntry, kwArgs):
+        if DataEntry is None:
+            return
+        if DataEntry.PermanentPluginData.has_key(TitlePlugin.TITLE_KEY):
+            del DataEntry.PermanentPluginData[TitlePlugin.TITLE_KEY]   
+            DataEntry.Save()
+    
+    def SetTitle(self, Username, Title):
+        Username = Username.lower()
+        
+        pPlayer = self.ServerControl.GetPlayerFromName(Username)
+        if pPlayer is not None:
+            self._RemoveTitleFromName(Username)  
+                
+            pPlayer.SetColouredName("%s %s" % (Title, pPlayer.GetColouredName()))
+        self.ServerControl.FetchPlayerDataEntryAsync(Username, TitleCommand._SetTitleCallback, {"Title": Title})
+            
+    @staticmethod
+    def _SetTitleCallback(DataEntry, kwArgs):
+        if DataEntry is None:
+            return
+        PlayerTitleData = TitleData(Title = kwArgs["Title"])
+        DataEntry.PermanentPluginData[TitlePlugin.TITLE_KEY] = PlayerTitleData
+        DataEntry.Save()    
+
+class TitleSetCmd(TitleCommand):
     def Run(self, pPlayer, Args, Message):
         Username = Args[0].lower()
         Title = ' '.join(Args[1:])
-        if "=" in Title:
-            pPlayer.SendMessage("&RTitles may not contain the '=' symbol.")
-            return
-        
-        if TitlePlugin.Instance.TitlePlayers.has_key(Username):
-            TitlePlugin.Instance.DeleteTitle(Username)
-            
+             
         pPlayer.SendMessage("&SSet player &V%s's &Stitle to: %s" % (Username, Title))
-        TitlePlugin.Instance.SetTitle(Username, Title)
+        self.SetTitle(Username, Title)
         
-    
-class TitleGetCmd(CommandObject):
+class TitleGetCmd(TitleCommand):
     def Run(self, pPlayer, Args, Message):
         Username = Args[0].lower()
-        Title = TitlePlugin.Instance.GetTitle(Username)
+        self.ServerControl.FetchPlayerDataEntryAsync(Username, TitleGetCmd._TitleGetCallback, {"pPlayerName": pPlayer.GetName(), "ServerControl": self.ServerControl})
+    
+    @staticmethod
+    def _TitleGetCallback(DataEntry, kwArgs):
+        ServerControl = kwArgs["ServerControl"]
+        pPlayer = ServerControl.GetPlayerFromName(kwArgs["pPlayerName"])
+        if pPlayer is None:
+            return
+        if DataEntry is None:
+            pPlayer.SendMessage("&RThat player does not exist!")
+            return
+
+        Title = DataEntry.PermanentPluginData.get(TitlePlugin.TITLE_KEY, None)
+        
         if Title is not None:
-            pPlayer.SendMessage("&SPlayer &V%s's &Stitle is: %s" % (Username, Title))
+            if type(Title) == dict:
+                #Player is offline, data needs to be deserialized
+                PlayerTitle = TitleData()
+                PlayerTitle.FromJson(Title)
+                Title = PlayerTitle
+                
+            pPlayer.SendMessage("&SPlayer &V%s's &Stitle is: %s" % (DataEntry.Username, Title.Title))
         else:
             pPlayer.SendMessage("&RThat player does not have a title!")
-    
-class TitleDelCmd(CommandObject):
+
+class TitleDelCmd(TitleCommand):
     def Run(self, pPlayer, Args, Message):
         Username = Args[0].lower()
-        TitlePlugin.Instance.DeleteTitle(Username)
+        self.DeleteTitle(Username)
         pPlayer.SendMessage("&SThat players title has been deleted.")
     
