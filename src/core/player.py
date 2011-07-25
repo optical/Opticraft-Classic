@@ -697,18 +697,16 @@ class Player(object):
             #No data found, must be the first login.
             self.DatabaseEntry.LastIps = self.GetIP()
             self.DatabaseEntry.JoinTime = int(self.ServerControl.Now)
-            self.DatabaseEntry.LoginCount = 1
             self.DatabaseEntry.Username = self.Name.lower()
         else:
             self.DatabaseEntry = DatabaseEntry
-            self.DatabaseEntry.LoginCount += 1
-            self.DatabaseEntry.LastIP = self.GetIP()
-
             #Update the IpLog
             Tokens = self.DatabaseEntry.LastIps.split(",")
             if self.GetIP() not in Tokens:
                 self.DatabaseEntry.LastIps = "%s,%s" % (self.DatabaseEntry.LastIps, self.GetIP())
 
+        self.DatabaseEntry.LoginCount += 1
+        self.DatabaseEntry.LastIP = self.GetIP()
         self.ServerControl.PluginMgr.OnPlayerDataLoaded(self)
 
     def Teleport(self, x, y, z, o, p):
