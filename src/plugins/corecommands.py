@@ -30,6 +30,7 @@ from core.commandhandler import CommandObject
 from core.world import MetaDataKey
 from core.console import *
 from core.constants import *
+#from core.servercontroller import ServerController
 
 from core.world import World
 import os.path
@@ -263,23 +264,32 @@ class WorldsCmd(CommandObject):
 class StatsCmd(CommandObject):
     '''Handler for the /stats command. Returns information'''
     def Run(self, pPlayer, Args, Message):
+        TargetName = None
         if len(Args) == 0:
-            Target = pPlayer
+            TargetName = pPlayer.GetName()
         else:
-            Target = pPlayer.ServerControl.GetPlayerFromName(Args[0])
-            if Target is None or Target.CanBeSeenBy(pPlayer) == False:
-                pPlayer.SendMessage("&RThat player is not online")
-                return
-
-        if Target.IsDataLoaded():
-            Target.UpdatePlayedTime()
-            pPlayer.SendMessage("&S%s's join date was: &V%s" % (Target.GetName(), time.ctime(Target.GetJoinedTime())))
-            pPlayer.SendMessage("&SSince then they have logged in &V%d &Stimes" % Target.GetLoginCount())
-            pPlayer.SendMessage("&SAnd have created &V%d &Sblocks and deleted &V%d" % (Target.GetBlocksMade(), Target.GetBlocksErased()))
-            pPlayer.SendMessage("&STheir played time is &V%s" % ElapsedTime(Target.GetTimePlayed()))
-            pPlayer.SendMessage("&SAnd they have spoken &V%d &Slines thus far" % Target.GetChatMessageCount())
-        else:
-            pPlayer.SendMessage("&RDatabase is loading data. Try again soon!")
+            TargetName = Args[0]
+    
+        pPlayer.SendMessage("&SLooking up stats...")
+        pPlayer.ServerControl.FetchPlayerDataEntryAsync(TargetName, StatsCmd.StatsLookupCallback, {"ServerControl": pPlayer.ServerControl, "pPlayerName": pPlayer.GetName()})
+            
+    @staticmethod
+    def StatsLookupCallback(DataEntry, kwArgs):
+        ServerControl = kwArgs["ServerControl"]
+        pPlayer = ServerControl.GetPlayerFromName(kwArgs["pPlayerName"])
+        if pPlayer is None:
+            return
+        
+        if DataEntry is None:
+            pPlayer.SendMessage("&RThat player does not exist!")
+            return
+            
+        pPlayer.SendMessage("&S%s's join date was: &V%s" % (DataEntry.Username, time.ctime(DataEntry.JoinTime)))
+        pPlayer.SendMessage("&SSince then they have logged in &V%d &Stimes" % DataEntry.LoginCount)
+        pPlayer.SendMessage("&SAnd have created &V%d &Sblocks and deleted &V%d" % (DataEntry.BlocksMade, DataEntry.BlocksErased))
+        pPlayer.SendMessage("&STheir played time is &V%s" % ElapsedTime(DataEntry.TimePlayed))
+        pPlayer.SendMessage("&SAnd they have spoken &V%d &Slines thus far" % DataEntry.ChatMessageCount)       
+        
 class ToggleNotificationsCmd(CommandObject):
     '''Handler for the /togglenotifications command. Enables/Disables join notices'''
     def Run(self, pPlayer, Args, Message):
@@ -344,10 +354,12 @@ class VersionCmd(CommandObject):
     '''Handler for the /version command. Returns version information'''
     def Run(self, pPlayer, Args, Message):
         pPlayer.SendMessage("&SThis server is running &V%s" % pPlayer.ServerControl.VersionString)
+        
 class CreditsCmd(CommandObject):
     '''Handler for the /credits command. Returns credit information'''
     def Run(self, pPlayer, Args, Message):
-        pPlayer.SendMessage("&SOpticraft was developed by Jared Klopper using the Python programming language, vers                  ion 2.6")
+        pPlayer.SendMessage("&SOpticraft was developed by Jared Klopper using the Python programming language, version 2.6+")
+        
 class RanksCmd(CommandObject):
     '''Handler for the /ranks command'''
     def Run(self, pPlayer, Args, Message):
@@ -365,43 +377,33 @@ class PlayerInfoCmd(CommandObject):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
         if Target is None or Target.CanBeSeenBy(pPlayer) == False:
-            #Try load some data from the DB
+            #Player is not online, so we will actually query db which can take time. let user know.
             pPlayer.SendMessage("&SLooking up players information. One moment.")
-            Query = "SELECT * FROM Players where Username = ?"
-            QueryParams = (Username.lower(),)
-            kwArgs = {"Username": Username, "pPlayer": pPlayer.GetName(), "ServerControl": pPlayer.ServerControl }
-            pPlayer.ServerControl.AsynchronousQuery(Query, QueryParams, PlayerInfoCmd.QueryResultCallback, kwArgs)
-        else:
-            pPlayer.SendMessage("&S%s has been online for &V%s" % (Target.GetName(), ElapsedTime(int(pPlayer.ServerControl.Now) - Target.GetLoginTime())))
-            if pPlayer.HasPermission('operator'):
-                pPlayer.SendMessage("&SCurrent IP: &V%s" % (Target.GetIP()))
-                if Target.GetRankedBy() != '':
-                    pPlayer.SendMessage("&STheir rank was set by &V%s" % Target.GetRankedBy())
-            if Target.GetWorld() is not None:
-                pPlayer.SendMessage("&SThey are on world &V\"%s\"" % Target.GetWorld().Name)
-            pPlayer.SendMessage("&STheir rank is &V%s" % Target.GetRank().capitalize())
-            if Target.IsInvisible(): #Dont check CanBeSeenBy() - thats been done already.
-                pPlayer.SendMessage("&SThey are currently invisible")
-                
+        pPlayer.ServerControl.FetchPlayerDataEntryAsync(Username, PlayerInfoCmd.RowCallbackHandler, kwArgs = {"pPlayerName": pPlayer.GetName(), "ServerControl": pPlayer.ServerControl})
+        
     @staticmethod
-    def QueryResultCallback(Results, kwArgs, isException):
+    def RowCallbackHandler(DataEntry, kwArgs):
         ServerControl = kwArgs["ServerControl"]
-        pPlayer = ServerControl.GetPlayerFromName(kwArgs["pPlayer"])
+        pPlayer = ServerControl.GetPlayerFromName(kwArgs["pPlayerName"])
         if pPlayer is None:
             return
-        Username = kwArgs["Username"]
-        if len(Results) == 0:
+        if DataEntry is None:
             pPlayer.SendMessage("&RThat player does not exist!")
             return
-        Row = Results[0]
-        pPlayer.SendMessage("&S%s is &ROffline. &SRank: &V%s" % (Username, ServerControl.GetRank(Username).capitalize()))
-        pPlayer.SendMessage("&SLast login was: &V%s &Sago" % (ElapsedTime(int(ServerControl.Now) - Row["LastLogin"])))
-        pPlayer.SendMessage("&SJoined on: &V%s" % (time.ctime(Row["Joined"])))
-        if pPlayer.HasPermission('operator'):
-            pPlayer.SendMessage("&STheir last ip was &V%s" % (Row["LastIp"]))
-            if Row["BannedBy"] != '':
-                pPlayer.SendMessage("&SThey were banned by &V%s" % (Row["BannedBy"]))
-                Date = pPlayer.ServerControl.GetUsernameBanExpiryDate(Username)
+        Username = DataEntry.Username
+        Target = ServerControl.GetPlayerFromName(Username)
+        
+        if Target is None:
+            #Offline player - use past tense.
+            pPlayer.SendMessage("&S%s is &ROffline. &SRank: &V%s" % (Username, ServerControl.GetRank(Username).capitalize()))
+            pPlayer.SendMessage("&SLast login was: &V%s &Sago" % (ElapsedTime(int(time.time()) - DataEntry.LoginTime)))
+            pPlayer.SendMessage("&SJoined on: &V%s" % (time.ctime(DataEntry.JoinTime)))
+            if pPlayer.HasPermission('operator'):
+                pPlayer.SendMessage("&STheir last ip was &V%s" % (DataEntry.LastIP))
+                if DataEntry.BannedBy != "":
+                    pPlayer.SendMessage("&SThey were banned by &V%s" % (DataEntry.BannedBy))
+                Date = ServerControl.GetUsernameBanExpiryDate(Username)
+                
                 if Date is not None:
                     if Date == 0:
                         pPlayer.SendMessage("&SThis is a &Vpermanent &Sban")
@@ -411,8 +413,23 @@ class PlayerInfoCmd(CommandObject):
                         except ValueError:
                             #This happens when a bans is so long, it goes beyond the platforms time_t size (32/64bits). The ban is basically permanent if this happens.
                             pPlayer.SendMessage("&SThis is a &Vpermanent &SBan")
-            if Row["RankedBy"] != '':
-                pPlayer.SendMessage("&STheir rank was set by &V%s" % (Row["RankedBy"]))
+                
+                if DataEntry.RankedBy != "":
+                    pPlayer.SendMessage("&STheir rank was set by &V%s" % DataEntry.RankedBy)
+        else:
+            #Online player - Use present tense
+            pPlayer.SendMessage("&S%s has been online for &V%s" % (Target.GetName(), ElapsedTime(int(time.time()) - Target.GetLoginTime())))
+            pPlayer.SendMessage("&SJoined on: &V%s" % (time.ctime(DataEntry.JoinTime)))
+            if pPlayer.HasPermission('operator'):
+                pPlayer.SendMessage("&SCurrent IP: &V%s" % (Target.GetIP()))
+                if Target.GetRankedBy() != '':
+                    pPlayer.SendMessage("&STheir rank was set by &V%s" % Target.GetRankedBy())
+            if Target.GetWorld() is not None:
+                pPlayer.SendMessage("&SThey are on world &V\"%s\"" % Target.GetWorld().Name)
+            pPlayer.SendMessage("&STheir rank is &V%s" % Target.GetRank().capitalize())
+            if Target.IsInvisible(): #Dont check CanBeSeenBy() - thats been done already.
+                pPlayer.SendMessage("&SThey are currently invisible")            
+                        
 
 
 
