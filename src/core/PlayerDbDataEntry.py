@@ -54,7 +54,7 @@ class PlayerDbDataEntry(object):
     def Save(self):
         '''Saves the values back to the player database asynchronously'''
         QueryString = "REPLACE INTO Players Values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"     
-        QueryParams = (self.Username, self.JoinTime, self.LoginTime, self.BlocksMade, self.BlocksErased, '', self.LastIps, self.JoinNotifications,
+        QueryParams = (self.Username, self.JoinTime, self.LoginTime, self.BlocksMade, self.BlocksErased, self.LastIP, self.LastIps, self.JoinNotifications,
                       self.TimePlayed, self.KickCount, self.ChatMessageCount, self.LoginCount, self.BannedBy, self.RankedBy,
                       self.PermanentPluginData.AsJSON())
         self.ServerControl.PlayerDBThread.Tasks.put(["EXECUTE", QueryString, QueryParams])
