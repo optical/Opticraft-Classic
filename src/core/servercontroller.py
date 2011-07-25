@@ -47,6 +47,7 @@ from core.configreader import ConfigReader
 from core.world import World, WorldLoadFailedException, WorldRequiresUpdateException, MetaDataKey, AsynchronousIOThread
 from core.pluginmanager import PluginManager
 from core.asynchronousquery import AsynchronousQueryResult
+from core.PlayerDbDataEntry import PlayerDbDataEntry
 from core.constants import * 
 from core.console import *
 class SigkillException(Exception):
@@ -63,6 +64,8 @@ class PlayerDbThread(threading.Thread):
         self.Running = True
         self.Lock = threading.Lock()
         self.ShuttingDown = False
+        self.LastCommit = -1
+        self.CommitPeriod = 1 #minimum time to have elapsed before calling commit() again.
     
     def IsShuttingDown(self):
         self.Lock.acquire()
@@ -74,21 +77,6 @@ class PlayerDbThread(threading.Thread):
         self.Lock.acquire()
         self.ShuttingDown = True
         self.Lock.release()
-
-    def SavePlayerData(self, pPlayer):
-        QueryString = "REPLACE INTO Players Values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-        try:
-            self.Connection.execute(QueryString, (pPlayer.GetName().lower(), pPlayer.GetJoinedTime(), pPlayer.GetLoginTime(),
-                                    pPlayer.GetBlocksMade(), pPlayer.GetBlocksErased(), pPlayer.GetIP(), pPlayer.GetIpLog(),
-                                    pPlayer.GetJoinNotifications(), pPlayer.GetTimePlayed(), pPlayer.GetKickCount(),
-                                    pPlayer.GetChatMessageCount(), pPlayer.GetLoginCount(), pPlayer.GetBannedBy(),
-                                    pPlayer.GetRankedBy(), pPlayer.GetPluginDataDictionary(JSON = True)))
-            if self.IsShuttingDown() == False:
-                self.Connection.commit()
-        except dbapi.OperationalError:
-            #Try again later
-            Console.Debug("PlayerDB", "Failed to save player %s. Trying again soon" % pPlayer.GetName())
-            self.Tasks.put(["SAVE_PLAYER", pPlayer])
 
     def Initialise(self):
         self.Connection = dbapi.connect("Player.db")
@@ -133,11 +121,7 @@ class PlayerDbThread(threading.Thread):
         self.Initialise()
         while self.Running:
             Task = self.Tasks.get()
-            if Task[0] == "GET_PLAYER":
-                self.LoadPlayerData(Task[1])
-            elif Task[0] == "SAVE_PLAYER":
-                self.SavePlayerData(Task[1])
-            elif Task[0] == "ASYNC_QUERY":
+            if Task[0] == "ASYNC_QUERY":
                 self._AsynchronousQuery(Task[1], Task[2], Task[3], Task[4])
             elif Task[0] == "EXECUTE":
                 self.Execute(Task[1], Task[2])
@@ -163,18 +147,12 @@ class PlayerDbThread(threading.Thread):
         '''Executes a query on the database'''
         try:
             self.Connection.execute(QueryText, Args)
-            self.Connection.commit()
+            if time.time() > self.LastCommit + self.CommitPeriod:
+                self.Connection.commit()
+                self.CommitPeriod = time.time()
         except dbapi.OperationalError:
             self.Tasks.put(["EXECUTE", QueryText, Args])
             time.sleep(0.05)
-
-    def LoadPlayerData(self, Username):
-        try:
-            Result = self.Connection.execute("SELECT * FROM Players where Username = ?", (Username,))
-            Result = Result.fetchone()
-            self.ServerControl.LoadResults.put((Username, Result))
-        except dbapi.OperationalError:
-            self.Tasks.put(["GET_PLAYER", Username])
 
     #Version updates..
     #TODO: Clean this mess up.
@@ -329,7 +307,6 @@ class ServerController(object):
         self.LastDownloadBytes = 0
         self.CurrentUploadRate = 0.0 #Bytes per second
         self.CurrentDownloadRate = 0.0
-        self.LoadResults = Queue.Queue()
         self.AsynchronousQueryResults = Queue.Queue()
         self.PlayerDBThread = PlayerDbThread(self)
         self.PlayerDBConnection = dbapi.connect("Player.db", timeout = 0.1)
@@ -774,8 +751,34 @@ class ServerController(object):
         '''Called by the Player DB thread when a query returns'''
         self.AsynchronousQueryResults.put(QueryResult)
     
+    def AsynchronousFetchPlayerDataEntry(self, Username, CallbackFunc, kwArgs = None):
+        '''Asynchronously fetches a players DB entry. kwArgs is any additional information to be passed to the callback function'''
+        pPlayer = self.GetPlayerFromName(Username)
+        if pPlayer is not None and pPlayer.DataIsLoaded:
+            #The row is loaded, execute callback immediately
+            CallbackFunc(pPlayer.GetDatabaseEntry(), kwArgs)
+        else:
+            #Query the DB for the row
+            OutterkwArgs = { "Callback": CallbackFunc, "ServerControl": self, "kwArgs": kwArgs }
+            self.AsynchronousQuery("SELECT * FROM Players WHERE Username = ?", (Username,), ServerController._AsynchronousFetchPlayerDataEntryCallback, OutterkwArgs)
+    
+    @staticmethod
+    def _AsynchronousFetchPlayerDataEntryCallback(Results, OutterkwArgs, isException):
+        '''Called when the asynchronous query result returns, which in turns fires off our own callback'''
+        Entry = None
+        self = OutterkwArgs["ServerControl"]
+        if len(Results) == 1:
+            Entry = PlayerDbDataEntry(self, Results[0])
+            
+        kwArgs = OutterkwArgs["kwArgs"]
+        Callback = OutterkwArgs["Callback"]
+        Callback(Entry, kwArgs)
+    
     def HandleKill(self, SignalNumber, Frame):
+        '''Called when the application recieves a Kill signal from the operating system. Shutdown gracefully'''
         raise SigkillException
+    
+    
     def Run(self):
         '''Main Thread from the application. Runs The sockets and worlds'''
         self.Running = True
@@ -799,13 +802,16 @@ class ServerController(object):
             self.Now = time.time()
             self.SockManager.Run()
             #Remove any players which need to be deleted.
+            
             while len(self.PlayersPendingRemoval) > 0:
                 self._RemovePlayer(self.PlayersPendingRemoval.pop())
             ToRemove = list()
+            
             for pPlayer in self.AuthPlayers:
                 pPlayer.ProcessPackets()
                 if pPlayer.IsAuthenticated():
                     ToRemove.append(pPlayer)
+                    
             #Remove Authenitcating players from our duty
             while len(ToRemove) > 0:
                 pPlayer = ToRemove.pop()
@@ -840,6 +846,7 @@ class ServerController(object):
                 #Send a SMSG_KEEPALIVE packet to all our clients across all worlds.
                 for pPlayer in self.PlayerSet:
                     pPlayer.SendPacket(Packet)
+                    
             if self.LastResourceCheck + 60 < self.Now:
                 self.LastCpuTimes = self.CurrentCpuTimes
                 self.CurrentCpuTimes = os.times()
@@ -853,24 +860,11 @@ class ServerController(object):
                     self.SendMessageToAll(Message)
                     self.LastAnnounce = self.Now
 
-
             #Remove idle players and lagging players
             if self.IdlePlayerLimit != 0:
                 if self.LastIdleCheck + self.IdleCheckPeriod < self.Now:
                     self.RemoveInactivePlayers()
                     self.LastIdleCheck = self.Now
-            #Check for SQL Results from the PlayerDBThread
-            while True:
-                try:
-                    Result = self.LoadResults.get_nowait()
-                except Queue.Empty:
-                    break
-                #Got a result.
-                Username = Result[0]
-                Rows = Result[1]
-                pPlayer = self.GetPlayerFromName(Username)
-                if pPlayer is not None:
-                    pPlayer.LoadData(Rows)
                     
             #Check for Asynchornous Query Results
             while True:
@@ -885,8 +879,9 @@ class ServerController(object):
             SleepTime = 0.05 - (time.time() - self.Now)
             if 0 < SleepTime:
                 time.sleep(SleepTime)
+                
     def Shutdown(self, Crash):
-        '''Starts shutting down the server. If crash is true it only saves what is needed'''
+        '''Starts shutting down the server'''
         self.ShuttingDown = True
         self.HeartBeatControl.Running = False
         self.PluginMgr.OnServerShutdown()
@@ -1077,7 +1072,7 @@ class ServerController(object):
         if pPlayer.IsDataLoaded():
             #Update the played time.
             pPlayer.UpdatePlayedTime()
-            self.PlayerDBThread.Tasks.put(["SAVE_PLAYER", pPlayer])
+            pPlayer.GetDatabaseEntry().Save()
         pPlayer.SetWorld(None)
         self.HeartBeatControl.DecreaseClients()
         self.NumPlayers -= 1

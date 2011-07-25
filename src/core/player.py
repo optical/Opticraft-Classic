@@ -32,8 +32,60 @@ from core.packet import PacketReader, PacketWriter
 from core.constants import *
 from core.console import *
 from core.jsondict import PluginDict, JSONDict
+from core.PlayerDbDataEntry import PlayerDbDataEntry
 class Player(object):
     #Constructor is located at the bottom
+    def __init__(self, PlayerSocket, SockAddress, ServerControl):
+        self.PlayerSocket = PlayerSocket
+        self.PlayerIP = SockAddress
+        self.Name = ''
+        self.ColouredName = ''
+        self.IsIdentified = False
+        self.IsFrozen = False
+        self.IsMuted = False
+        self.IsDeafened = False
+        self.Id = -1
+        self.ServerControl = ServerControl
+        self.World = None #Pointer to our current world.
+        self.NewWorld = None #Pointer to the world we are currently changing to.
+        self.NewId = -1 #New ID For changing worlds
+        self.AboutCmd = False
+        self.PaintCmd = False
+        self.Rank = 'guest'
+        self.RankLevel = ServerControl.GetRankLevel('guest')
+        self.Invisible = False
+        self.LoginTime = int(self.ServerControl.Now)
+        self.DatabaseEntry = PlayerDbDataEntry(self.ServerControl)
+        self.LastBlock = BLOCK_ROCK
+        self.LastPlayedTimeUpdate = self.LoginTime
+        self.LastAction = self.LoginTime
+        self.FloodPeriodCount = 0
+        self.FloodPeriodTime = self.ServerControl.Now
+        self.BlockChangeCount = 0
+        self.BlockChangeTime = self.ServerControl.Now
+        self.LastPmUsername = ''
+        self.LastWorldChange = 0
+        self.Disconnecting = False
+        self.DataIsLoaded = False
+        self.MultiLineChatMessageBuffer = ''
+        self.LastIps = ''
+        #This is used for commands such as /lava, /water, and /grass
+        self.BlockOverride = -1
+        self.X, self.Y, self.Z, self.O, self.P = -1, -1, -1, -1, -1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
+        self.BlockX, self.BlockY, self.BlockZ = -1, -1, -1 #Player position in block coordinates (not pixels)
+        self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnO, self.SpawnP = -1, -1, -1, -1, -1 #Used to spawn at a location when chaning worlds
+        Console.Debug("Player", "Player object created. IP: %s" % SockAddress[0])
+        self.SockBuffer = list()
+        self.OutBuffer = list()
+        self.TemporaryPluginData = PluginDict() #Destroyed during logout
+        self.PermanentPluginData = JSONDict() #Loaded and saved to DB.
+        self.OpcodeHandler = {
+            CMSG_IDENTIFY: Player.HandleIdentify,
+            CMSG_BLOCKCHANGE: Player.HandleBlockChange,
+            CMSG_POSITIONUPDATE: Player.HandleMovement,
+            CMSG_MESSAGE: Player.HandleChatMessage
+        }
+            
     def ProcessPackets(self):
         LocalPacketSizes = PacketSizes #Micro optimization. Store reference in local scope
         ProcessingPackets = True
@@ -53,362 +105,7 @@ class Player(object):
                 self.OpcodeHandler[OpCode](self, Packet)
             else:
                 ProcessingPackets = False
-            
-    def PushRecvData(self, Data):
-        '''Called by the Socketmanager. Gives us raw data to be processed'''
-        self.SockBuffer.append(Data)
-    
-    def SendPacket(self, Packet):
-        '''Appends data to the end of our buffer
-            *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO SendPacketToAll functions!'''
-        self.OutBuffer.append(Packet)
 
-    def IsDisconnecting(self):
-        return self.Disconnecting
-    def Disconnect(self, Message = ''):
-        if self.Disconnecting == True:
-            return
-        self.Disconnecting = True
-        Console.Debug("Player", "Disconnecting player %s for \"%s\"" % (self.Name, Message))
-        if Message != '':
-            Packet = PacketWriter.MakeDisconnectPacket(Message)
-            self.SendPacket(Packet)
-        self.ServerControl.SockManager.CloseSocket(self.PlayerSocket)
-        self.ServerControl.RemovePlayer(self)
-
-    def SendMessage(self, Message, ColourNewLines = True):
-        '''Message must be of type str'''
-        Message = Message.strip()
-        Message = self.ServerControl.ConvertColours(Message)
-        if len(Message) > 63:
-            self._SlowSendMessage(Message, ColourNewLines)
-        else:
-            if len(Message) > 2 and Message[-1] in ColourChars and Message[-2] == "&":
-                Message = Message[:-2].strip() #Any messages ending in a colour control code will crash the client
-            Packet = PacketWriter.MakeMessagePacket(0, Message)
-            self.SendPacket(Packet)
-
-    def _SlowSendMessage(self, Message, ColourNewLines = True):
-        '''Sends a multiline message'''
-        Tokens = Message.split()
-        if Tokens[0][0] == "&" and ColourNewLines:
-            ColourTag = Tokens[0][0] + Tokens[0][1]
-        else:
-            ColourTag = ''
-        OutStr = str()
-        for Token in Tokens:
-            if len(Token) >= 63:
-                continue #too long
-            elif len(Token) + len(OutStr) + 1 > 63:
-                self.SendMessage(OutStr)
-                if len(Token) < 2 or Token[0] != '&':
-                    OutStr = ColourTag + Token
-                else:
-                    OutStr = Token
-            else:
-                OutStr = OutStr + ' ' + Token
-
-        if len(OutStr) > 0:
-            self.SendMessage(OutStr)
-
-    def GetId(self):
-        return self.Id
-    def SetId(self, Id):
-        self.Id = Id
-    def GetNewId(self):
-        return self.NewId
-    def SetNewId(self, Id):
-        self.NewId = Id
-    def GetName(self):
-        return self.Name
-    def GetColouredName(self):
-        return self.ColouredName
-    def SetColouredName(self, NewName):
-        self.ColouredName = NewName
-    def GetSocket(self):
-        return self.PlayerSocket
-    def GetIP(self):
-        return self.PlayerIP[0]
-
-    def GetWorld(self):
-        return self.World
-    def SetWorld(self, pWorld):
-        self.World = pWorld
-        self.NewWorld = None
-    def GetNewWorld(self):
-        return self.NewWorld
-    def SetNewWorld(self, pWorld):
-        self.NewWorld = pWorld
-    def ChangeWorld(self, Name):
-        #is this an active world? If so - leave and join
-        #else - Boot up new world and then leave/join
-        #Leave our world first.
-        Name = Name.lower()
-        ActiveWorlds, IdleWorlds = self.ServerControl.GetWorlds()
-        NewWorld = None
-        for pWorld in ActiveWorlds:
-            if pWorld.Name.lower() == Name:
-                NewWorld = pWorld
-        if NewWorld is None:
-            #Its idle...
-            for WorldName in IdleWorlds:
-                if Name == WorldName.lower():
-                    Name = WorldName
-                    break
-            NewWorld = self.ServerControl.LoadWorld(Name)
-            
-        if NewWorld is not None and NewWorld != False:
-            self.UpdateLastWorldChange()
-            self.World.RemovePlayer(self, True)
-            OldWorld = self.World
-            self.World = None
-            #Send packet telling client were changing the world.
-            OutPacket = PacketWriter.MakeIdentifcationPacket(self.ServerControl.Name,
-                            self.ServerControl.Motd,
-                            0x64 if self.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
-            self.SendPacket(OutPacket)
-            NewWorld.AddPlayer(self, True)
-            self.NewWorld = NewWorld
-            self.ServerControl.PluginMgr.OnChangeWorld(self, OldWorld, NewWorld)
-            if self.Invisible == False:
-                self.ServerControl.SendJoinMessage("&N%s changed map to %s%s" % (self.Name, self.ServerControl.RankColours[NewWorld.GetMinimumBuildRank()], NewWorld.Name))
-        else:
-            #World couldn't be loaded (Probably because the block-log is still in use)
-            #This is a very very rare condition which can occur on slow computers with high load (100+ users etc)
-            self.SendMessage("&RCould not change your world. Try again in a minute")
-
-
-    def SetLocation(self, x, y, z, o, p):
-        '''Stores client position. X Y Z are floats with the fractal bit at position 5'''
-        self.X = x
-        self.Y = y
-        self.Z = z
-        self.O = o
-        self.P = p
-    def SetSpawnPosition(self, x, y, z, o, p):
-        '''Stores client position. X Y Z are floats with the fractal bit at position 5'''
-        self.SpawnX = x
-        self.SpawnY = y
-        self.SpawnZ = z
-        self.SpawnO = o
-        self.SpawnP = p
-    def GetSpawnPosition(self):
-        return self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnO, self.SpawnP
-    def GetX(self):
-        return self.X
-    def GetY(self):
-        return self.Y
-    def GetLoginTime(self):
-        return self.LoginTime
-    def GetZ(self):
-        return self.Z
-    def GetOrientation(self):
-        return self.O
-    def GetPitch(self):
-        return self.P
-    def GetRank(self):
-        return self.Rank
-    def GetRankLevel(self):
-        return self.RankLevel
-    def SetRank(self, Rank):
-        self.Rank = Rank
-        self.RankLevel = self.ServerControl.RankLevels[Rank]
-        self.ColouredName = '%s%s' % (self.ServerControl.RankColours[self.Rank], self.Name)
-        Packet = PacketWriter.MakeUpdateUserPacket(0x64 if self.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
-        self.SendPacket(Packet)
-    def HasPermission(self, Permission):
-        return self.RankLevel >= self.ServerControl.GetRankLevel(Permission)
-    def SetBlockOverride(self, Block):
-        self.BlockOverride = Block
-    def GetBlockOverride(self):
-        return self.BlockOverride
-    def GetPaintCmd(self):
-        return self.PaintCmd
-    def SetPaintCmd(self, Value):
-        self.PaintCmd = Value
-    def GetAboutCmd(self):
-        return self.AboutCmd
-    def SetAboutCmd(self, Value):
-        self.AboutCmd = Value
-    def GetLastAction(self):
-        return self.LastAction
-    def IsAuthenticated(self):
-        return self.IsIdentified
-    def GetJoinNotifications(self):
-        return self.JoinNotifications
-    def SetJoinNotifications(self, Value):
-        self.JoinNotifications = int(Value)
-    def GetDeafened(self):
-        return self.IsDeafened
-    def SetDeafened(self, Value):
-        self.IsDeafened = bool(Value)      
-    def GetTimePlayed(self):
-        return self.TimePlayed
-    def GetKickCount(self):
-        return self.KickCount
-    def IncreaseKickCount(self):
-        self.KickCount += 1
-    def GetIpLog(self):
-        return self.LastIps
-    def GetBlocksErased(self):
-        return self.BlocksErased
-    def IncreaseBlocksErased(self):
-        self.BlocksErased += 1
-    def GetBlocksMade(self):
-        return self.BlocksMade
-    def IncreaseBlocksMade(self):
-        self.BlocksMade += 1
-    def GetJoinedTime(self):
-        return self.JoinTime
-    def GetChatMessageCount(self):
-        return self.ChatMessageCount
-    def IncreaseChatMessageCount(self):
-        self.ChatMessageCount += 1
-    def GetLoginCount(self):
-        return self.LoginCount
-    def GetBannedBy(self):
-        return self.BannedBy
-    def SetBannedBy(self, Value):
-        self.BannedBy = Value
-    def SetRankedBy(self, Value):
-        self.RankedBy = Value
-    def GetRankedBy(self):
-        return self.RankedBy
-    def IncreaseLoginCount(self):
-        self.LoginCount += 1
-    def GetLastWorldChange(self):
-        return self.LastWorldChange
-    def UpdateLastWorldChange(self):
-        self.LastWorldChange = int(self.ServerControl.Now)
-    def IsDataLoaded(self):
-        return self.DataIsLoaded
-    def UpdatePlayedTime(self):
-        self.TimePlayed += int(self.ServerControl.Now) - self.LastPlayedTimeUpdate
-        self.LastPlayedTimeUpdate = int(self.ServerControl.Now)
-        
-    def GetPluginDataDictionary(self, JSON = False):
-        '''Returns a reference to the pluginData Dictionary, or a json encoded version of it'''
-        if not JSON:
-            return self.PermanentPluginData
-        else:
-            return self.PermanentPluginData.AsJSON()
-        
-    def GetPluginData(self, Key):
-        '''This is used for temporary values being stored by plugins
-        Key must be a string. Value may be any type'''
-        return self.TemporaryPluginData.get(Key, None)
-    
-    def SetPluginData(self, Key, Value):
-        '''This is used for temporary values being stored by plugins
-        Key must be a string. Value may be any type'''
-        self.TemporaryPluginData[Key] = Value
-        
-    def GetPermanentPluginData(self, Key):
-        '''Returns values which persist in the database
-        ...Key must be a string, value must be json encodeable'''
-        return self.PermanentPluginData.get(Key, None)
-    
-    def SetPermanentPluginData(self, Key, Value):
-        '''Sets values which persist in the database
-        ...Key must be a string, value must be json encodeable'''
-        self.PermanentPluginData[Key] = Value
-
-    def IsInvisible(self):
-        return self.Invisible
-    
-    def SetInvisible(self, Value):
-        if Value == True:
-            self.Invisible = True
-            Packet = PacketWriter.MakeDespawnPacket(self.GetId())
-            for pPlayer in self.World.Players:
-                #Make us invisible to all players who shouldnt be able to see us
-                if pPlayer != self and self.CanBeSeenBy(pPlayer) == False:
-                    pPlayer.SendPacket(Packet)
-        else:
-            #Make us visible to all those who previously couldnt see us.
-            Packet = PacketWriter.MakeSpawnPointPacket(self.GetId(), self.GetColouredName(),
-                        self.X, self.Y, self.Z, self.O, self.P)
-            for pPlayer in self.World.Players:
-                if self.CanBeSeenBy(pPlayer) == False:
-                    pPlayer.SendPacket(Packet)
-            self.Invisible = False
-
-    def CanBeSeenBy(self, pPlayer):
-        '''Can i be seen by pPlayer'''
-        if self.Invisible and self.RankLevel > pPlayer.GetRankLevel():
-            return False
-        else:
-            return True
-        
-    def LoadData(self, Row):
-        self.DataIsLoaded = True
-        if Row is None:
-            #No data found, must be the first login.
-            self.LastIps = self.GetIP()
-            self.JoinTime = int(self.ServerControl.Now)
-            self.LoginCount = 1
-        else:
-            self.JoinTime = Row["Joined"]
-            self.BlocksMade = Row["BlocksMade"]
-            self.BlocksErased = Row["BlocksDeleted"]
-            self.LastIps = Row["IpLog"]
-            self.JoinNotifications = Row["JoinNotifications"]
-            self.ChatMessageCount = Row["ChatLines"]
-            self.KickCount = Row["KickCount"]
-            self.TimePlayed = Row["PlayedTime"]
-            self.LoginCount = Row["LoginCount"] + 1
-            self.BannedBy = Row["BannedBy"]
-            self.RankedBy = Row["RankedBy"]
-            JSONData = Row["PluginData"]
-            if JSONData != "":
-                self.PermanentPluginData = JSONDict.FromJSON(Row["PluginData"])
-
-            #Update the IpLog
-            Tokens = self.LastIps.split(",")
-            if self.GetIP() not in Tokens:
-                self.LastIps = "%s,%s" % (self.LastIps, self.GetIP())
-
-        self.ServerControl.PluginMgr.OnPlayerDataLoaded(self)
-
-    def Teleport(self, x, y, z, o, p):
-        '''Teleports the player to X Y Z. These coordinates are on pixel. Multiply by 32 for blocks'''
-        self.SetLocation(x, y, z, o, p)
-        Packet = PacketWriter.MakeFullMovePacket(255, x, z, y, o, p)
-        self.SendPacket(Packet)
-
-    def SetLastPM(self, Username):
-        self.LastPmUsername = Username
-        
-    def GetLastPM(self):
-        return self.LastPmUsername
-    
-    def CalcDistance(self, x, y, z):
-        '''Returns the distance to another point in absolute coordinates'''
-        dx = self.X / 32 - x
-        dy = self.Y / 32 - y
-        dz = self.Z / 32 - z
-        return math.sqrt(dx * dx + dy * dy + dz * dz)
-    
-    def ReplaceColours(self, Message):
-        OutMessage = bytearray()
-        SeenPercent = False
-        for i in xrange(len(Message)):
-            Char = Message[i]
-            if Char == '%':
-                SeenPercent = True
-                
-            if SeenPercent and Char in ColourChars and i != len(Message) - 1:
-                #Replace all, but not if there is no more content in the message (clients crash :()
-                OutMessage[i - 1] = '&'
-            
-            if SeenPercent and Char != '%':
-                SeenPercent = False
-            
-            OutMessage += Char
-        
-        return str(OutMessage) 
-                
-    
     #Opcode handlers go below this line
     def HandleIdentify(self, Packet):
         '''Handles the initial packet sent by the client'''
@@ -451,7 +148,7 @@ class Player(object):
             if self.Name == "opticalza" and self.ServerControl.LanMode == False:
                 #please do not remove this line of code. <3
                 self.ColouredName = "&ao&bp&ft&ai&bc&fa&al&bz&fa"
-            self.ServerControl.PlayerDBThread.Tasks.put(["GET_PLAYER", self.Name.lower()])
+            self.ServerControl.AsynchronousFetchPlayerDataEntry(self.GetName().lower(), self.LoadDataCallback, {"Username": self.GetName(), "ServerControl": self.ServerControl })
             self.ServerControl.PluginMgr.OnPlayerConnect(self)
             return
         else:
@@ -629,62 +326,425 @@ class Player(object):
         Reciever.SetLastPM(self.Name)
         self.SendMessage('&bto %s&b: %s' % (Reciever.GetColouredName(), Contents))
 
-    def __init__(self, PlayerSocket, SockAddress, ServerControl):
-        self.PlayerSocket = PlayerSocket
-        self.PlayerIP = SockAddress
-        self.Name = ''
-        self.ColouredName = ''
-        self.IsIdentified = False
-        self.IsFrozen = False
-        self.IsMuted = False
-        self.IsDeafened = False
-        self.Id = -1
-        self.ServerControl = ServerControl
-        self.World = None #Pointer to our current world.
-        self.NewWorld = None #Pointer to the world we are currently changing to.
-        self.NewId = -1 #New ID For changing worlds
-        self.AboutCmd = False
-        self.PaintCmd = False
-        self.Rank = 'guest'
-        self.RankLevel = ServerControl.GetRankLevel('guest')
-        self.Invisible = False
-        self.LoginTime = int(self.ServerControl.Now)
-        self.BannedBy = ''
-        self.RankedBy = ''
-        self.LastBlock = BLOCK_ROCK
-        self.LastPlayedTimeUpdate = self.LoginTime
-        self.LastAction = self.LoginTime
-        self.FloodPeriodCount = 0
-        self.FloodPeriodTime = self.ServerControl.Now
-        self.BlockChangeCount = 0
-        self.BlockChangeTime = self.ServerControl.Now
-        self.LastPmUsername = ''
-        self.LastWorldChange = 0
-        self.Disconnecting = False
-        self.DataIsLoaded = False
-        self.ChatMessageCount = 0
-        self.MultiLineChatMessageBuffer = ''
-        self.BlocksMade = 0
-        self.KickCount = 0 
-        self.BlocksErased = 0
-        self.LastIps = ''
-        self.JoinNotifications = self.ServerControl.JoinNotificationsDefault
-        self.JoinTime = 0 #This it the time when the player logged in for the first time ever
-        self.TimePlayed = 0
-        self.LoginCount = 0
-        #This is used for commands such as /lava, /water, and /grass
-        self.BlockOverride = -1
-        self.X, self.Y, self.Z, self.O, self.P = -1, -1, -1, -1, -1 #X,Y,Z,Orientation and pitch with the fractional position at 5 bits
-        self.BlockX, self.BlockY, self.BlockZ = -1, -1, -1 #Player position in block coordinates (not pixels)
-        self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnO, self.SpawnP = -1, -1, -1, -1, -1 #Used to spawn at a location when chaning worlds
-        Console.Debug("Player", "Player object created. IP: %s" % SockAddress[0])
-        self.SockBuffer = list()
-        self.OutBuffer = list()
-        self.TemporaryPluginData = PluginDict() #Destroyed during logout
-        self.PermanentPluginData = JSONDict() #Loaded and saved to DB.
-        self.OpcodeHandler = {
-            CMSG_IDENTIFY: Player.HandleIdentify,
-            CMSG_BLOCKCHANGE: Player.HandleBlockChange,
-            CMSG_POSITIONUPDATE: Player.HandleMovement,
-            CMSG_MESSAGE: Player.HandleChatMessage
-        }
+            
+    def PushRecvData(self, Data):
+        '''Called by the Socketmanager. Gives us raw data to be processed'''
+        self.SockBuffer.append(Data)
+    
+    def SendPacket(self, Packet):
+        '''Appends data to the end of our buffer
+            *ANY CHANGES TO THIS FUNCTION NEED TO BE MADE TO SendPacketToAll functions!'''
+        self.OutBuffer.append(Packet)
+
+    def IsDisconnecting(self):
+        return self.Disconnecting
+    
+    def Disconnect(self, Message = ''):
+        if self.Disconnecting == True:
+            return
+        self.Disconnecting = True
+        Console.Debug("Player", "Disconnecting player %s for \"%s\"" % (self.Name, Message))
+        if Message != '':
+            Packet = PacketWriter.MakeDisconnectPacket(Message)
+            self.SendPacket(Packet)
+        self.ServerControl.SockManager.CloseSocket(self.PlayerSocket)
+        self.ServerControl.RemovePlayer(self)
+
+    def SendMessage(self, Message, ColourNewLines = True):
+        '''Message must be of type str'''
+        Message = Message.strip()
+        Message = self.ServerControl.ConvertColours(Message)
+        if len(Message) > 63:
+            self._SlowSendMessage(Message, ColourNewLines)
+        else:
+            if len(Message) > 2 and Message[-1] in ColourChars and Message[-2] == "&":
+                Message = Message[:-2].strip() #Any messages ending in a colour control code will crash the client
+            Packet = PacketWriter.MakeMessagePacket(0, Message)
+            self.SendPacket(Packet)
+
+    def _SlowSendMessage(self, Message, ColourNewLines = True):
+        '''Sends a multiline message'''
+        Tokens = Message.split()
+        if Tokens[0][0] == "&" and ColourNewLines:
+            ColourTag = Tokens[0][0] + Tokens[0][1]
+        else:
+            ColourTag = ''
+        OutStr = str()
+        for Token in Tokens:
+            if len(Token) >= 63:
+                continue #too long
+            elif len(Token) + len(OutStr) + 1 > 63:
+                self.SendMessage(OutStr)
+                if len(Token) < 2 or Token[0] != '&':
+                    OutStr = ColourTag + Token
+                else:
+                    OutStr = Token
+            else:
+                OutStr = OutStr + ' ' + Token
+
+        if len(OutStr) > 0:
+            self.SendMessage(OutStr)
+
+    def GetId(self):
+        return self.Id
+    
+    def SetId(self, Id):
+        self.Id = Id
+        
+    def GetNewId(self):
+        return self.NewId
+    
+    def SetNewId(self, Id):
+        self.NewId = Id
+        
+    def GetName(self):
+        return self.Name
+    
+    def GetColouredName(self):
+        return self.ColouredName
+    
+    def SetColouredName(self, NewName):
+        self.ColouredName = NewName
+        
+    def GetSocket(self):
+        return self.PlayerSocket
+    
+    def GetIP(self):
+        return self.PlayerIP[0]
+
+    def GetWorld(self):
+        return self.World
+    
+    def SetWorld(self, pWorld):
+        self.World = pWorld
+        self.NewWorld = None
+        
+    def GetNewWorld(self):
+        return self.NewWorld
+    
+    def SetNewWorld(self, pWorld):
+        self.NewWorld = pWorld
+        
+    def ChangeWorld(self, Name):
+        #is this an active world? If so - leave and join
+        #else - Boot up new world and then leave/join
+        #Leave our world first.
+        Name = Name.lower()
+        ActiveWorlds, IdleWorlds = self.ServerControl.GetWorlds()
+        NewWorld = None
+        for pWorld in ActiveWorlds:
+            if pWorld.Name.lower() == Name:
+                NewWorld = pWorld
+        if NewWorld is None:
+            #Its idle...
+            for WorldName in IdleWorlds:
+                if Name == WorldName.lower():
+                    Name = WorldName
+                    break
+            NewWorld = self.ServerControl.LoadWorld(Name)
+            
+        if NewWorld is not None and NewWorld != False:
+            self.UpdateLastWorldChange()
+            self.World.RemovePlayer(self, True)
+            OldWorld = self.World
+            self.World = None
+            #Send packet telling client were changing the world.
+            OutPacket = PacketWriter.MakeIdentifcationPacket(self.ServerControl.Name,
+                            self.ServerControl.Motd,
+                            0x64 if self.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
+            self.SendPacket(OutPacket)
+            NewWorld.AddPlayer(self, True)
+            self.NewWorld = NewWorld
+            self.ServerControl.PluginMgr.OnChangeWorld(self, OldWorld, NewWorld)
+            if self.Invisible == False:
+                self.ServerControl.SendJoinMessage("&N%s changed map to %s%s" % (self.Name, self.ServerControl.RankColours[NewWorld.GetMinimumBuildRank()], NewWorld.Name))
+        else:
+            #World couldn't be loaded (Probably because the block-log is still in use)
+            #This is a very very rare condition which can occur on slow computers with high load (100+ users etc)
+            self.SendMessage("&RCould not change your world. Try again in a minute")
+
+
+    def SetLocation(self, x, y, z, o, p):
+        '''Stores client position. X Y Z are floats with the fractal bit at position 5'''
+        self.X = x
+        self.Y = y
+        self.Z = z
+        self.O = o
+        self.P = p
+        
+    def SetSpawnPosition(self, x, y, z, o, p):
+        '''Stores client position. X Y Z are floats with the fractal bit at position 5'''
+        self.SpawnX = x
+        self.SpawnY = y
+        self.SpawnZ = z
+        self.SpawnO = o
+        self.SpawnP = p
+        
+    def GetSpawnPosition(self):
+        return self.SpawnX, self.SpawnY, self.SpawnZ, self.SpawnO, self.SpawnP
+    
+    def GetX(self):
+        return self.X
+    
+    def GetY(self):
+        return self.Y
+    
+    def GetLoginTime(self):
+        return self.LoginTime
+    
+    def GetZ(self):
+        return self.Z
+    
+    def GetOrientation(self):
+        return self.O
+    
+    def GetPitch(self):
+        return self.P
+    
+    def GetRank(self):
+        return self.Rank
+    
+    def GetRankLevel(self):
+        return self.RankLevel
+    
+    def SetRank(self, Rank):
+        self.Rank = Rank
+        self.RankLevel = self.ServerControl.RankLevels[Rank]
+        self.ColouredName = '%s%s' % (self.ServerControl.RankColours[self.Rank], self.Name)
+        Packet = PacketWriter.MakeUpdateUserPacket(0x64 if self.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
+        self.SendPacket(Packet)
+        
+    def HasPermission(self, Permission):
+        return self.RankLevel >= self.ServerControl.GetRankLevel(Permission)
+    
+    def SetBlockOverride(self, Block):
+        self.BlockOverride = Block
+        
+    def GetBlockOverride(self):
+        return self.BlockOverride
+    
+    def GetPaintCmd(self):
+        return self.PaintCmd
+    
+    def SetPaintCmd(self, Value):
+        self.PaintCmd = Value
+        
+    def GetAboutCmd(self):
+        return self.AboutCmd
+    
+    def SetAboutCmd(self, Value):
+        self.AboutCmd = Value
+        
+    def GetLastAction(self):
+        return self.LastAction
+    
+    def IsAuthenticated(self):
+        return self.IsIdentified
+    
+    def GetJoinNotifications(self):
+        return self.DatabaseEntry.JoinNotifications
+    
+    def GetDeafened(self):
+        return self.IsDeafened
+    
+    def SetDeafened(self, Value):
+        self.IsDeafened = bool(Value)
+        
+    #######################################
+    #        Database wrappers            #
+    #######################################
+         
+    def SetJoinNotifications(self, Value):
+        self.DatabaseEntry.JoinNotifications = int(Value) 
+          
+    def GetTimePlayed(self):
+        return self.DatabaseEntry.TimePlayed
+    def GetKickCount(self):
+        return self.DatabaseEntry.KickCount
+    
+    def IncreaseKickCount(self):
+        self.DatabaseEntry.KickCount += 1
+        
+    def GetIpLog(self):
+        return self.DatabaseEntry.LastIps
+    
+    def GetBlocksErased(self):
+        return self.DatabaseEntry.BlocksErased
+    
+    def IncreaseBlocksErased(self):
+        self.DatabaseEntry.BlocksErased += 1
+        
+    def GetBlocksMade(self):
+        return self.DatabaseEntry.BlocksMade
+    
+    def IncreaseBlocksMade(self):
+        self.DatabaseEntry.BlocksMade += 1
+        
+    def GetJoinedTime(self):
+        return self.DatabaseEntry.JoinTime
+    
+    def GetChatMessageCount(self):
+        return self.DatabaseEntry.ChatMessageCount
+    
+    def IncreaseChatMessageCount(self):
+        self.DatabaseEntry.ChatMessageCount += 1
+        
+    def GetLoginCount(self):
+        return self.DatabaseEntry.LoginCount
+    
+    def GetBannedBy(self):
+        return self.DatabaseEntry.BannedBy
+    
+    def SetBannedBy(self, Value):
+        self.DatabaseEntry.BannedBy = Value
+        
+    def SetRankedBy(self, Value):
+        self.DatabaseEntry.RankedBy = Value
+        
+    def GetRankedBy(self):
+        return self.DatabaseEntry.RankedBy
+    
+    def IncreaseLoginCount(self):
+        self.DatabaseEntry.LoginCount += 1
+        
+    def GetLastWorldChange(self):
+        return self.LastWorldChange
+    
+    def UpdateLastWorldChange(self):
+        self.LastWorldChange = int(self.ServerControl.Now)
+        
+    def IsDataLoaded(self):
+        return self.DataIsLoaded
+    
+    def UpdatePlayedTime(self):
+        self.DatabaseEntry.TimePlayed += int(self.ServerControl.Now) - self.LastPlayedTimeUpdate
+        self.LastPlayedTimeUpdate = int(self.ServerControl.Now)
+        
+    def GetPluginDataDictionary(self, JSON = False):
+        '''Returns a reference to the pluginData Dictionary, or a json encoded version of it'''
+        if not JSON:
+            return self.DatabaseEntry.PermanentPluginData
+        else:
+            return self.PermanentPluginData.AsJSON()
+        
+    def GetPermanentPluginData(self, Key):
+        '''Returns values which persist in the database
+        ...Key must be a string, value must be json encodeable'''
+        return self.DatabaseEntry.PermanentPluginData.get(Key, None)
+    
+    def SetPermanentPluginData(self, Key, Value):
+        '''Sets values which persist in the database
+        ...Key must be a string, value must be json encodeable'''
+        self.DatabaseEntry.PermanentPluginData[Key] = Value
+    
+    def GetDatabaseEntry(self):
+        return self.DatabaseEntry
+    
+        
+    #######################################
+    #        End of Database wrappers     #
+    #######################################
+    
+    def GetPluginData(self, Key):
+        '''This is used for temporary values being stored by plugins
+        Key must be a string. Value may be any type'''
+        return self.TemporaryPluginData.get(Key, None)
+    
+    def SetPluginData(self, Key, Value):
+        '''This is used for temporary values being stored by plugins
+        Key must be a string. Value may be any type'''
+        self.TemporaryPluginData[Key] = Value 
+    
+    def IsInvisible(self):
+        return self.Invisible
+    
+    def SetInvisible(self, Value):
+        if Value == True:
+            self.Invisible = True
+            Packet = PacketWriter.MakeDespawnPacket(self.GetId())
+            for pPlayer in self.World.Players:
+                #Make us invisible to all players who shouldnt be able to see us
+                if pPlayer != self and self.CanBeSeenBy(pPlayer) == False:
+                    pPlayer.SendPacket(Packet)
+        else:
+            #Make us visible to all those who previously couldnt see us.
+            Packet = PacketWriter.MakeSpawnPointPacket(self.GetId(), self.GetColouredName(),
+                        self.X, self.Y, self.Z, self.O, self.P)
+            for pPlayer in self.World.Players:
+                if self.CanBeSeenBy(pPlayer) == False:
+                    pPlayer.SendPacket(Packet)
+            self.Invisible = False
+
+    def CanBeSeenBy(self, pPlayer):
+        '''Can i be seen by pPlayer'''
+        if self.Invisible and self.RankLevel > pPlayer.GetRankLevel():
+            return False
+        else:
+            return True
+    
+    @staticmethod
+    def LoadDataCallback(Entry, kwArgs):
+        Username = kwArgs["Username"]
+        ServerControl = kwArgs["ServerControl"]
+        pPlayer = ServerControl.GetPlayerFromName(Username)
+        if pPlayer is not None:
+            pPlayer.LoadData(Entry)
+    
+    def LoadData(self, DatabaseEntry):
+        '''Called when database entry has been fetched asynchronously. DatabaseEntry is None if no record was found'''
+        self.DataIsLoaded = True
+        if DatabaseEntry is None:
+            #No data found, must be the first login.
+            self.DatabaseEntry.LastIps = self.GetIP()
+            self.DatabaseEntry.JoinTime = int(self.ServerControl.Now)
+            self.DatabaseEntry.LoginCount = 1
+            self.DatabaseEntry.Username = self.Name.lower()
+        else:
+            self.DatabaseEntry = DatabaseEntry
+            self.DatabaseEntry.LoginCount += 1
+            self.DatabaseEntry.LastIP = self.GetIP()
+
+            #Update the IpLog
+            Tokens = self.DatabaseEntry.LastIps.split(",")
+            if self.GetIP() not in Tokens:
+                self.DatabaseEntry.LastIps = "%s,%s" % (self.DatabaseEntry.LastIps, self.GetIP())
+
+        self.ServerControl.PluginMgr.OnPlayerDataLoaded(self)
+
+    def Teleport(self, x, y, z, o, p):
+        '''Teleports the player to X Y Z. These coordinates are on pixel. Multiply by 32 for blocks'''
+        self.SetLocation(x, y, z, o, p)
+        Packet = PacketWriter.MakeFullMovePacket(255, x, z, y, o, p)
+        self.SendPacket(Packet)
+
+    def SetLastPM(self, Username):
+        self.LastPmUsername = Username
+        
+    def GetLastPM(self):
+        return self.LastPmUsername
+    
+    def CalcDistance(self, x, y, z):
+        '''Returns the distance to another point in absolute coordinates'''
+        dx = self.X / 32 - x
+        dy = self.Y / 32 - y
+        dz = self.Z / 32 - z
+        return math.sqrt(dx * dx + dy * dy + dz * dz)
+    
+    def ReplaceColours(self, Message):
+        OutMessage = bytearray()
+        SeenPercent = False
+        for i in xrange(len(Message)):
+            Char = Message[i]
+            if Char == '%':
+                SeenPercent = True
+                
+            if SeenPercent and Char in ColourChars and i != len(Message) - 1:
+                #Replace all, but not if there is no more content in the message (clients crash :()
+                OutMessage[i - 1] = '&'
+            
+            if SeenPercent and Char != '%':
+                SeenPercent = False
+            
+            OutMessage += Char
+        
+        return str(OutMessage) 
