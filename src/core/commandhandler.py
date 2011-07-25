@@ -28,9 +28,9 @@
 
 from core.constants import *
 from core.ordereddict import OrderedDict
+from core.console import *
 import time
 
-from core.console import *
 class CommandObject(object):
     '''Parents class for all commands'''
     '''Abstract'''
