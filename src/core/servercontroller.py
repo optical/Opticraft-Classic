@@ -751,11 +751,12 @@ class ServerController(object):
         '''Called by the Player DB thread when a query returns'''
         self.AsynchronousQueryResults.put(QueryResult)
     
-    def AsynchronousFetchPlayerDataEntry(self, Username, CallbackFunc, kwArgs = None):
+    def FetchPlayerDataEntryAsync(self, Username, CallbackFunc, kwArgs = None):
         '''Asynchronously fetches a players DB entry. kwArgs is any additional information to be passed to the callback function'''
         pPlayer = self.GetPlayerFromName(Username)
         if pPlayer is not None and pPlayer.DataIsLoaded:
             #The row is loaded, execute callback immediately
+            pPlayer.UpdatePlayedTime()
             CallbackFunc(pPlayer.GetDatabaseEntry(), kwArgs)
         else:
             #Query the DB for the row

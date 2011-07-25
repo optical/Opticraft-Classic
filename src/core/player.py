@@ -148,7 +148,7 @@ class Player(object):
             if self.Name == "opticalza" and self.ServerControl.LanMode == False:
                 #please do not remove this line of code. <3
                 self.ColouredName = "&ao&bp&ft&ai&bc&fa&al&bz&fa"
-            self.ServerControl.AsynchronousFetchPlayerDataEntry(self.GetName().lower(), self.LoadDataCallback, {"Username": self.GetName(), "ServerControl": self.ServerControl })
+            self.ServerControl.FetchPlayerDataEntryAsync(self.GetName().lower(), self.LoadDataCallback, {"Username": self.GetName(), "ServerControl": self.ServerControl })
             self.ServerControl.PluginMgr.OnPlayerConnect(self)
             return
         else:
