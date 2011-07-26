@@ -136,7 +136,7 @@ class Player(object):
                 self.Disconnect("Disconnecting your duplicate login. Please reconnect.")
                 self.ServerControl.GetPlayerFromName(self.Name).Disconnect("Disonnecting for second login")
                 return
-            Console.Out("Player", "%s connected to the server" % self.Name)
+            Console.Debug("Player", "%s connected to the server" % self.Name)
             self.ServerControl.PlayerNames[self.Name.lower()] = self
             self.IsIdentified = True
             self.SetRank(self.ServerControl.GetRank(self.Name))

@@ -29,6 +29,7 @@ import random
 import time
 import platform
 import os
+import gc
 import os.path
 import shutil
 import signal
@@ -301,6 +302,7 @@ class ServerController(object):
         self.ShuttingDown = False
         self.PreviousResourceCheck = 0
         self.LastResourceCheck = 0
+        self.CollectionLoop = 0
         self.InitialCpuTimes = os.times()
         self.LastCpuTimes = 0
         self.LastUploadBytes = 0
@@ -854,6 +856,9 @@ class ServerController(object):
                 self.PreviousResourceCheck = self.LastResourceCheck
                 self.LastResourceCheck = time.time()
                 self.UpdateBWUsage()
+                self.CollectionLoop += 1
+                if gc.isenabled() and self.CollectionLoop % 3 == 0:
+                    Console.Debug("GarbageCollector", "Collected %d objects" % gc.collect())
 
             if self.PeriodicAnnounceFrequency:
                 if self.LastAnnounce + self.PeriodicAnnounceFrequency < self.Now:
@@ -1050,7 +1055,7 @@ class ServerController(object):
     def _RemovePlayer(self, pPlayer):
         '''Internally removes a player
         Note:Player poiner may not neccessarily exist in our storage'''
-        Console.Out("Player", "Player '%s' (%s) has left the server" % (pPlayer.GetName(), pPlayer.GetIP()))
+        Console.Debug("Player", "Player '%s' (%s) has left the server" % (pPlayer.GetName(), pPlayer.GetIP()))
         self.PluginMgr.OnDisconnect(pPlayer)
         if pPlayer in self.PlayerSet:
             self.PlayerSet.remove(pPlayer)
