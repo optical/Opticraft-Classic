@@ -259,8 +259,8 @@ class DrawAction(object):
             if self.UndoRedoData is not None:
                 self.UndoRedoData.BlockStore.append(UndoRedoBlockInformation(x, y, z, self.pPlayer.GetWorld().GetBlock(x, y, z)))
             self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, Value, AutomatedChange = True, ResendToClient = True)
-        except Exception, e:
-            print e
+        except:
+            pass
         
     def PreDraw(self):
         pass #Calculate blocks here
