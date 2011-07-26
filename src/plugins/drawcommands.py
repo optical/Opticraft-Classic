@@ -232,7 +232,7 @@ class UndoRedoInformationManager(object):
         
         for pBlock in self.BlockStore:
             UndoRedoData.BlockStore.append(UndoRedoBlockInformation(pBlock.X, pBlock.Y, pBlock.Z, self.pPlayer.GetWorld().GetBlock(pBlock.X, pBlock.Y, pBlock.Z)))
-            self.pPlayer.GetWorld().SetBlock(self.pPlayer, pBlock.X, pBlock.Y, pBlock.Z, pBlock.Value, ResendToClient = True)
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, pBlock.X, pBlock.Y, pBlock.Z, pBlock.Value, AutomatedChange = True, ResendToClient = True)
 
         if Locked:
             self.pPlayer.GetWorld().UnLock()                    
@@ -256,11 +256,11 @@ class DrawAction(object):
     
     def DrawBlock(self, x, y, z, Value):
         try:
-            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, Value, AutomatedChange = True, ResendToClient = True)
             if self.UndoRedoData is not None:
                 self.UndoRedoData.BlockStore.append(UndoRedoBlockInformation(x, y, z, self.pPlayer.GetWorld().GetBlock(x, y, z)))
-        except:
-            pass
+            self.pPlayer.GetWorld().AttemptSetBlock(self.pPlayer, x, y, z, Value, AutomatedChange = True, ResendToClient = True)
+        except Exception, e:
+            print e
         
     def PreDraw(self):
         pass #Calculate blocks here
