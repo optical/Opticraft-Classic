@@ -706,6 +706,7 @@ class Player(object):
                 self.DatabaseEntry.LastIps = "%s,%s" % (self.DatabaseEntry.LastIps, self.GetIP())
 
         self.DatabaseEntry.LoginCount += 1
+        self.DatabaseEntry.LoginTime = self.LoginTime
         self.DatabaseEntry.LastIP = self.GetIP()
         self.ServerControl.PluginMgr.OnPlayerDataLoaded(self)
 
