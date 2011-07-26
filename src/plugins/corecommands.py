@@ -78,6 +78,8 @@ class Commands(PluginBase):
         self.AddCommand("me", EmoteCmd, 'guest', 'Emotes an aceiont', 'Incorrect syntax! Usage: /me <message>', 1)
         self.AddCommand("emote", EmoteCmd, 'guest', 'Emotes an aceiont', 'Incorrect syntax! Usage: /emote <message>', 1, Alias = True)
         self.AddCommand("r", ReplyCmd, 'guest', 'Replys to the last person who sent you a PM', 'Incorrect syntax! Usage: /reply <Message>', 1)
+        self.AddCommand("time", TimeCmd, 'guest', 'Returns current server time', '', 0)
+        self.AddCommand("date", TimeCmd, 'guest', 'Returns current server time', '', 0, Alias = True)
 
         ########################
         #BUILDER COMMANDS HERE #
@@ -433,6 +435,11 @@ class PlayerInfoCmd(CommandObject):
 
 
 
+class TimeCmd(CommandObject):
+    '''Handler for the /time command. Returns server time'''
+    def Run(self, pPlayer, Args, Message):
+        pPlayer.SendMessage("&SCurrent server time: &V%s" % time.ctime(time.time()))
+        
 class PlayerListCmd(CommandObject):
     '''Handler for the /players command. Lists all online players'''
     def Run(self, pPlayer, Args, Message):
