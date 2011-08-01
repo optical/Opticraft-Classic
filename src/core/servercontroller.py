@@ -34,6 +34,7 @@ import os.path
 import shutil
 import signal
 import asyncore
+import multiprocessing
 import sqlite3 as dbapi
 import threading
 import copy
