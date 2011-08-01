@@ -94,6 +94,7 @@ class JsonSerializeableObject(object):
         '''Sets the objects internal dictionary to the value of the JsonDict'''
         self.__dict__.update(JsonDict)
         self.OnJsonLoad()
+        return self
         
     def OnJsonLoad(self):
         '''Called when the objects internal dictionary is loaded from JSON'''
