@@ -1057,7 +1057,8 @@ class ServerController(object):
         '''Internally removes a player
         Note:Player poiner may not neccessarily exist in our storage'''
         Console.Debug("Player", "Player '%s' (%s) has left the server" % (pPlayer.GetName(), pPlayer.GetIP()))
-        self.PluginMgr.OnDisconnect(pPlayer)
+        if pPlayer.IsAuthenticated():
+            self.PluginMgr.OnDisconnect(pPlayer)
         if pPlayer in self.PlayerSet:
             self.PlayerSet.remove(pPlayer)
             del self.SocketToPlayer[pPlayer.GetSocket()]

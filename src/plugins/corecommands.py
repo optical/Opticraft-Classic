@@ -1110,6 +1110,6 @@ class DeleteWorldCmd(CommandObject):
         
         try:
             pPlayer.ServerControl.DeleteWorld(WorldName)
-            pPlayer.SendMessage("&SSucessfully deleted world \"&V%s&S\"" % WorldName)
+            pPlayer.SendMessage("&SSuccessfully deleted world \"&V%s&S\"" % WorldName)
         except Exception, e:
             pPlayer.SendMessage("&RFailed to erase world. Error: %s" % e)
