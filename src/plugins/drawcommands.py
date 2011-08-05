@@ -71,7 +71,7 @@ class DrawCommandPlugin(PluginBase):
         self.AddCommand("cuboidr", CuboidRCommand, 'builder', 'Replaces all the "Material1" with "Material2 in a given cuboid', 'Incorrect syntax! Usage: /cuboidr <replacewhat> <replacewith>', 2)
         self.AddCommand("copy", CopyCommand, 'builder', 'Used to copy and then paste an area of blocks', '', 0)
         self.AddCommand("paste", PasteCommand, 'builder', 'Used to paste blocks after you have copied them with /copy', '', 0)
-        self.AddCommand("rotate", RotateCommand, 'builder', 'Used to rotate copy data 90 degrees clockwise', '', 0)
+        self.AddCommand("rotate", RotateCommand, 'builder', 'Used to rotate copy data 90 degrees on a specified axis.', 'Incorrect syntax! Usage: /rotate <axis>', 1)
         self.AddCommand("destroytower", DestroyTowerCommand, 'operator', 'Destroys tower of the same block. Useful for cleaning', '', 0)
 
 class CancelCommand(CommandObject):
@@ -157,12 +157,20 @@ class PasteCommand(CommandObject):
 class RotateCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
         CopyData = pPlayer.GetPluginData(COPY_KEY)
+        Axis = Args[0].lower()
         if CopyData is None:
             pPlayer.SendMessage("&RYou have not copied anything! Use /copy first")
             return
+        if Axis == "x":
+            CopyData.RotateX()
+        elif Axis == "y":
+            CopyData.RotateY()
+        elif Axis == "z":
+            CopyData.RotateZ()
         else:
-            CopyData.Rotate()
-            pPlayer.SendMessage("&SThe copied data has been rotated")
+            pPlayer.SendMessage("&REnter a valid axis! <x, y, z>")
+            return
+        pPlayer.SendMessage("&SThe copied data has been rotated")
 
 class MeasureCommand(CommandObject):
     def Run(self, pPlayer, Args, Message):
@@ -490,7 +498,34 @@ class CopyInformation(object):
         self.Z = Z
         self.Blocks = array.array('B')
         
-    def Rotate(self):
+    def RotateX(self):
+        NewBlocks = array.array('B')
+        
+        for x in xrange(self.X):
+            Offset = self.Z * self.Y * x
+            for z in xrange(self.Z, 0, -1):
+                for y in xrange(self.Y, 0, -1):
+                    index = (self.Z * y - z) + Offset
+                    NewBlocks.append(self.Blocks[index])
+        
+        self.Z, self.Y = self.Y, self.Z
+        self.Blocks = NewBlocks
+        
+    def RotateY(self):
+        NewBlocks = array.array('B')
+        Offset = self.Z * self.Y
+        
+        for z in xrange(self.Z, 0, -1):
+            for y in xrange(self.Y):
+                Min = (z-1) + (self.Z * y)
+                for x in xrange(self.X):
+                    index = Min + (Offset * x)
+                    NewBlocks.append(self.Blocks[index])
+        
+        self.Z, self.X = self.X, self.Z
+        self.Blocks = NewBlocks
+        
+    def RotateZ(self):
         Offset = self.Z * self.Y
         NewBlocks = array.array('B')
         
