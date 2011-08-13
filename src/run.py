@@ -97,6 +97,7 @@ if __name__ == "__main__":
         elif sys.argv[i].lower() == "-disablegc":
             import gc
             gc.disable()
+
             print "Garbage collection has been disabled."
         elif sys.argv[i].lower() == "-disablepsyco":
             UsePsyco = False
