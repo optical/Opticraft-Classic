@@ -169,4 +169,8 @@ class OConsole(object):
         stdout.flush()
         self.Lock.release()
 
+    def FlushLog(self):
+        if self.FileLogging:
+            self.LogHandle.flush()
+    
 Console = OConsole()

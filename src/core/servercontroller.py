@@ -901,6 +901,7 @@ class ServerController(object):
         for pPlayer in ToRemove:
             self._RemovePlayer(pPlayer)
         self.PlayerDBThread.Tasks.put(["SHUTDOWN"])
+        Console.FlushLog()
 
     def GetUptimeStr(self):
         return ElapsedTime((int(self.Now)) - int(self.StartTime))
