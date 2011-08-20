@@ -487,6 +487,9 @@ class EmoteCmd(CommandObject):
         pPlayer.ServerControl.PluginMgr.OnEmote(pPlayer, ' '.join(Args))
 
 class ReplyCmd(CommandObject):
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name)
+        self.Aliases = set(["reply"])    
     '''Handler for the /reply command. Shortcut command to reply to a PM'''
     def Run(self, pPlayer, Args, Message):
         if pPlayer.IsMuted:
