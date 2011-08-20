@@ -51,24 +51,17 @@ class Commands(PluginBase):
         self.AddCommand("rules", RulesCmd, 'guest', 'Displays a list of rules for this server', '', 0)
         self.AddCommand("about", AboutCmd, 'guest', 'Displays history of a block when you destroy/create one', '', 0)
         self.AddCommand("cmdlist", CmdListCmd, 'guest', 'Lists all commands available to you', '', 0)
-        self.AddCommand("commands", CmdListCmd, 'guest', 'Lists all commands available to you', '', 0, Alias = True)
         self.AddCommand("help", HelpCmd, 'guest', 'Gives help on a specific command. Usage: /help <cmd>', 'Incorrect syntax! Usage: /help <cmd>. /cmdlist for a list of commands', 1)
         self.AddCommand("worlds", WorldsCmd, 'guest', 'Lists all available worlds', '', 0)
-        self.AddCommand("maps", WorldsCmd, 'guest', 'Lists all available worlds', '', 0, Alias = True)
         self.AddCommand("join", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1)
-        self.AddCommand("j", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1, Alias = True)
-        self.AddCommand("warp", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1, Alias = True)
-        self.AddCommand("goto", JoinWorldCmd, 'guest', 'Changes the world you are in', 'Incorrect syntax! Usage: /join <world>. Use /worlds to see a list of worlds.', 1, Alias = True)
         self.AddCommand("gps", GPSCmd, 'guest', 'Returns your current position', '', 0)
         self.AddCommand("grass", GrassCmd, 'guest', 'Allows you to place grass', '', 0)
         self.AddCommand("place", PlaceCommand, 'guest', 'Places a block where you are standing', '', 0)
         self.AddCommand("paint", PaintCmd, 'guest', 'When you destroy a block it will be replaced by what you are currently holding', '', 0)
         self.AddCommand("sinfo", sInfoCmd, 'guest', 'Displays information about the server', '', 0)
         self.AddCommand("winfo", wInfoCmd, 'guest', 'Displays information about a world', '', 0)
-        self.AddCommand("info", sInfoCmd, 'guest', 'Displays information about the server', '', 0, Alias = True)
-        self.AddCommand("serverreport", sInfoCmd, 'guest', 'Displays information about the server', '', 0, Alias = True)
-        self.AddCommand("version", VersionCmd, 'guest', 'Displays information about the server', '', 0, Alias = True) #Hidden
-        self.AddCommand("credits", CreditsCmd, 'guest', 'Displays information about the server', '', 0, Alias = True) #Hidden
+        self.AddCommand("version", VersionCmd, 'guest', 'Displays information about the server', '', 0, Hidden = True) #Hidden
+        self.AddCommand("credits", CreditsCmd, 'guest', 'Displays information about the server', '', 0, Hidden = True) #Hidden
         self.AddCommand("stats", StatsCmd, 'guest', 'Displays a players statistics. Usage: /stats [Username]', '', 0)
         self.AddCommand("togglenotifications", ToggleNotificationsCmd, 'guest', 'Turns join/leave messages on or off', '', 0)
         self.AddCommand("deafen", DeafenCmd, 'guest', 'Deafens yourself to other players chat messages', '', 0)
@@ -76,18 +69,15 @@ class Commands(PluginBase):
         self.AddCommand("whois", PlayerInfoCmd, 'guest', 'Returns information on a player', 'Incorrect syntax! Usage: /whois <username>', 1)
         self.AddCommand("players", PlayerListCmd, 'guest', 'Lists all online players', '', 0)
         self.AddCommand("me", EmoteCmd, 'guest', 'Emotes an aceiont', 'Incorrect syntax! Usage: /me <message>', 1)
-        self.AddCommand("emote", EmoteCmd, 'guest', 'Emotes an aceiont', 'Incorrect syntax! Usage: /emote <message>', 1, Alias = True)
         self.AddCommand("r", ReplyCmd, 'guest', 'Replys to the last person who sent you a PM', 'Incorrect syntax! Usage: /reply <Message>', 1)
         self.AddCommand("time", TimeCmd, 'guest', 'Returns current server time', '', 0)
-        self.AddCommand("date", TimeCmd, 'guest', 'Returns current server time', '', 0, Alias = True)
 
         ########################
         #BUILDER COMMANDS HERE #
         ########################
         self.AddCommand("water", WaterCmd, 'builder', 'Allows you to place water', '', 0)
         self.AddCommand("lava", LavaCmd, 'builder', 'Allows you to place lava', '', 0)
-        self.AddCommand("appear", AppearCmd, 'builder', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1)
-        self.AddCommand("tp", AppearCmd, 'builder', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1, Alias = True)
+        self.AddCommand("tp", AppearCmd, 'builder', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1)
         #########################
         #OPERATOR COMMANDS HERE #
         #########################
@@ -96,21 +86,16 @@ class Commands(PluginBase):
         self.AddCommand("unban", UnbanCmd, 'operator', 'Unbans a player from the server', 'Incorrect syntax! Usage: /unban <username>', 1)
         self.AddCommand("kick", KickCmd, 'operator', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)
         self.AddCommand("freeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1)
-        self.AddCommand("unfreeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1, Alias = True)
-        self.AddCommand("defreeze", FreezeCmd, 'operator', 'Freezes and unfreezes a player in place, preventing movement', 'Incorrect syntax! Usage: /freeze <username>', 1, Alias = True)
         self.AddCommand("mute", MuteCmd, 'operator', 'Mutes and unmutes a player, temporarily preventing them from talking', 'Incorrect syntax! Usage: /mute <username>', 1)
-        self.AddCommand("unmute", MuteCmd, 'operator', 'Mutes and unmutes a player, temporarily preventing them from talking', 'Incorrect syntax! Usage: /mute <username>', 1, Alias = True)
-        self.AddCommand("playerinfo", PlayerInfoCmd, 'operator', 'Returns information on a player', 'Incorrect syntax! Usage: /playerinfo <username>', 1, Alias = True)
         self.AddCommand("summon", SummonCmd, 'operator', 'Teleports a player to your location', 'Incorrect syntax! Usage: /summon <username>', 1)
         self.AddCommand("undoactions", UndoActionsCmd, 'operator', 'Undoes all of a a players actions in the last X seconds', 'Incorrect Syntax! Usage: /undoactions <username> <seconds>', 2)
         self.AddCommand("invisible", InvisibleCmd, 'operator', "Makes you invisible to other players", "", 0)
-        self.AddCommand("ModifyRank", ModifyRankCmd, 'operator', 'Modify\'s a players rank.', 'Incorrect syntax. Usage: /addrank <username> <rank>', 2)
+        self.AddCommand("ModifyRank", ModifyRankCmd, 'operator', 'Modify\'s a players rank.', 'Incorrect syntax. Usage: /modifyrank <username> <rank>', 2)
         ######################
         #ADMIN COMMANDS HERE #
         ######################
         self.AddCommand("serversay", ServerSayCmd, 'admin', 'Sends a message to the whole server, like an announcement', 'Enter a message to announce', 1)
-        self.AddCommand("addipban", AddIPBanCmd, 'admin', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username>', 1)
-        self.AddCommand("ipban", AddIPBanCmd, 'admin', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username> <duration>', 1, Alias = True)
+        self.AddCommand("ipban", AddIPBanCmd, 'admin', 'Ip bans a player from the server.', 'Incorrect syntax! Usage: /addipban <ip/username> <duration>', 1)
         self.AddCommand("delipban", DelIPBanCmd, 'admin', 'Removes an IP ban', 'Incorrect syntax! Usage: /delipban <ip/username>', 1)
         self.AddCommand("save", SaveCmd, 'admin', 'Saves all actively running worlds', '', 0)
         self.AddCommand("backup", BackupCmd, 'admin', 'Backs up all actively running worlds', '', 0)
@@ -118,7 +103,6 @@ class Commands(PluginBase):
         self.AddCommand("tempop", TempOpCmd, 'admin', 'Grants a user operator privledges until they log off', 'Incorrect syntax! Usage: /tempop <username>', 1)
         self.AddCommand("wbuildrank", WorldSetBuildRankCmd, 'admin', 'Sets the minimum rank to build on a world', 'Incorrect syntax. Usage: /wbuildrank <world> <rank>', 2)
         self.AddCommand("wjoinrank", WorldSetAccessRankCmd, 'admin', 'Sets the minimum rank to join a world', 'Incorrect syntax. Usage: /wjoinrank <world> <rank>', 2)
-        self.AddCommand("waccessrank", WorldSetAccessRankCmd, 'admin', 'Sets the minimum rank to join a world', 'Incorrect syntax. Usage: /wjoinrank <world> <rank>', 2, Alias = True)
         self.AddCommand("createworld", CreateWorldCmd, 'admin', 'Creates a new world.', 'Incorrect syntax. Usage: /createworld <name> <length> <width> <height>', 4)
         self.AddCommand("setdefaultworld", SetDefaultWorldCmd, 'admin', 'Sets the world you specify to be the default one', 'Incorrect syntax. Usage: /setdefaultworld <name>', 1)
         self.AddCommand("renameworld", RenameWorldCmd, 'admin', 'Renames a world', 'Incorrect syntax! Usage: /renameworld <oldname> <newname>', 2)
@@ -142,11 +126,16 @@ class Commands(PluginBase):
 ######################
 class CmdListCmd(CommandObject):
     '''Handle for the /cmdlist command'''
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name)
+        self.Aliases = set(["commands"])
+        
+    
     def Run(self, pPlayer, Args, Message):
         Commands = ''
         for key in self.CmdHandler.CommandTable:
             CmdObj = self.CmdHandler.CommandTable[key]
-            if CmdObj.IsAlias == True:
+            if CmdObj.Hidden == True or key in CmdObj.Aliases:
                 continue
             if CmdObj.Permissions != '':
                 if pPlayer.HasPermission(CmdObj.Permissions) == False:
@@ -215,6 +204,10 @@ class PlaceCommand(CommandObject):
         pPlayer.SendMessage("&SBlock placed")
         
 class JoinWorldCmd(CommandObject):
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name)
+        self.Aliases = set(["j", "warp", "goto"])
+            
     '''Handler for the /join command. Changes the players world'''
     def Run(self, pPlayer, Args, Message):
         World = Args[0]
@@ -244,8 +237,13 @@ class JoinWorldCmd(CommandObject):
 class GPSCmd(CommandObject):
     '''Handler for the /gps command. Returns current coordinates on the world'''
     def Run(self, pPlayer, Args, Message):
-        pPlayer.SendMessage("&SYour current position is: &V(%d,%d,%d)" % (pPlayer.GetX() / 32, pPlayer.GetY() / 32, pPlayer.GetZ() / 32))        
+        pPlayer.SendMessage("&SYour current position is: &V(%d,%d,%d)" % (pPlayer.GetX() / 32, pPlayer.GetY() / 32, pPlayer.GetZ() / 32))   
+             
 class WorldsCmd(CommandObject):
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name)
+        self.Aliases = set(["maps"])
+            
     '''Handler for the /worlds command. Lists all available worlds.'''
     def Run(self, pPlayer, Args, Message):
         ActiveWorlds, IdleWorlds = pPlayer.ServerControl.GetWorlds()
@@ -313,6 +311,10 @@ class DeafenCmd(CommandObject):
             pPlayer.SetDeafened(False)
 
 class sInfoCmd(CommandObject):
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name)
+        self.Aliases = set(["info", "serverreport"])    
+    
     '''Handler for the /sinfo command. Returns server information'''
     def Run(self, pPlayer, Args, Message):
         System = platform.system()
@@ -374,6 +376,9 @@ class RanksCmd(CommandObject):
                 pPlayer.SendMessage("&V %s%s&V: %s" % (Colour, Rank, Description))
 
 class PlayerInfoCmd(CommandObject):
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name)
+        self.Aliases = set(["playerinfo"])
     '''Handler for the /whois command. Returns info on a player'''
     def Run(self, pPlayer, Args, Message):
         Username = Args[0]
@@ -436,6 +441,10 @@ class PlayerInfoCmd(CommandObject):
 
 
 class TimeCmd(CommandObject):
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name)
+        self.Aliases = set(["date"])
+    
     '''Handler for the /time command. Returns server time'''
     def Run(self, pPlayer, Args, Message):
         pPlayer.SendMessage("&SCurrent server time: &V%s" % time.ctime(time.time()))
@@ -463,7 +472,12 @@ class PlayerListCmd(CommandObject):
         if OutStr != '':
             pPlayer.SendMessage(OutStr)
 
-class EmoteCmd(CommandObject):
+class EmoteCmd(CommandObject):    
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name)
+        self.Aliases = set(["emote"])
+        
+
     '''Handler for the /me command. Emotes an action'''
     def Run(self, pPlayer, Args, Message):
         if pPlayer.IsMuted:
@@ -508,6 +522,9 @@ class LavaCmd(CommandObject):
             pPlayer.SendMessage("&SEvery block you create will now be lava. Type /lava to disable.")
             
 class AppearCmd(CommandObject):
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name)
+        self.Aliases = set(["appear"])
     '''Appear command handler. Teleports user to specified players location'''
     def Run(self, pPlayer, Args, Message):
         Username = Args[0]
@@ -620,6 +637,10 @@ class KickCmd(CommandObject):
             pPlayer.SendMessage("&RThat user is not online!")
 
 class MuteCmd(CommandObject):
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name)
+        self.Aliases = set(["unmute"])
+        
     '''Mutes a player from talking'''
     def Run(self, pPlayer, Args, Message):
         Username = Args[0]
@@ -639,6 +660,10 @@ class MuteCmd(CommandObject):
 
 class FreezeCmd(CommandObject):
     '''Freezes a player in place'''
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name)
+        self.Aliases = set(["unfreeze", "defreeze"])
+        
     def Run(self, pPlayer, Args, Message):
         Username = Args[0]
         Target = pPlayer.ServerControl.GetPlayerFromName(Username)
@@ -734,6 +759,10 @@ class ServerSayCmd(CommandObject):
         pPlayer.SendMessage("&SMessage sent.")
 
 class AddIPBanCmd(CommandObject):
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name)
+        self.Aliases = set(["addipban"])
+        
     '''Handler for the /ipban command. Bans an IP Address from the server'''
     def Run(self, pPlayer, Args, Message):
         Arg = Args[0]

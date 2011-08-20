@@ -33,8 +33,8 @@ import time
 
 class CommandObject(object):
     '''Parents class for all commands'''
-    '''Abstract'''
-    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Alias = False):
+    '''Abstract / Interface'''
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
         self.Permissions = Permissions
         self.PermissionLevel = CmdHandler.ServerControl.GetRankLevel(Permissions)
         self.Name = Name
@@ -42,7 +42,8 @@ class CommandObject(object):
         self.ErrorMsg = ErrorMsg
         self.MinArgs = MinArgs
         self.CmdHandler = CmdHandler
-        self.IsAlias = Alias
+        self.Aliases = set()
+        self.Hidden = Hidden
 
     def Execute(self, pPlayer, Message):
         '''Checks player has correct permissions and number of arguments'''
@@ -64,12 +65,13 @@ class CommandObject(object):
         TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]", time.localtime())
         OutStr = "%s User %s (%s) used command %s with args: %s\n" % (TimeFormat, pPlayer.GetName(), pPlayer.GetIP(), Command, ' '.join(Args))
         self.CmdHandler.LogFile.write(OutStr)
+        
     def Run(self, pPlayer, Args, Message):
         '''Subclasses will perform their work here'''
         pass
 
 class CommandHandler(object):
-    '''Stores all the commands avaliable on opticraft and processes any command messages'''
+    '''Stores all the commands available on opticraft and processes any command messages'''
     def __init__(self, ServerControl):
         self.CommandTable = OrderedDict()
         self.ServerControl = ServerControl
@@ -95,21 +97,35 @@ class CommandHandler(object):
             CommandObj.Execute(pPlayer, Message)
 
     def AddCommandObj(self, CmdObj):
-        self.CommandTable[CmdObj.Name.lower()] = CmdObj
-        Permission = self.ServerControl.ConfigValues.GetValue("commandoverrides", CmdObj.Name, '')
+        self._AddCommandObj(CmdObj, CmdObj.Name)
+        for Alias in CmdObj.Aliases:
+            self._AddCommandObj(CmdObj, Alias)
+            
+    def _AddCommandObj(self, CmdObj, Name):
+        if self.CommandTable.has_key(Name.lower()):
+            Console.Warning("Commands", "Command %s has been defined twice. Posible plugin conflict" % Name)
+        self.CommandTable[Name.lower()] = CmdObj
+        
+        Permission = self.ServerControl.ConfigValues.GetValue("commandoverrides", Name, '')
         if Permission != '':
             if self.ServerControl.IsValidRank(Permission):
-                Console.Out("CommandOverride", "Overrode command %s to rank %s" % (CmdObj.Name, Permission))
+                Console.Out("CommandOverride", "Overrode command %s to rank %s" % (Name, Permission))
                 self.OverrideCommandPermissions(CmdObj, Permission)
             else:
-                Console.Warning("CommandOverride", "Failed to override command %s, rank %s does not exist" % (CmdObj.Name, Permission))
+                Console.Warning("CommandOverride", "Failed to override command %s, rank %s does not exist" % (Name, Permission))
         self._SortCommands()
-    
+            
     def _SortCommands(self):
         self.CommandTable = OrderedDict(sorted(self.CommandTable.items(), key = lambda i: i[0]))
 
     def RemoveCommand(self, CmdObj):
-        del self.CommandTable[CmdObj.Name.lower()]
+        ToRemove = []
+        for CommandName in self.CommandTable:
+            if self.CommandTable[CommandName] == CmdObj:
+                ToRemove.append(CommandName)
+                
+        while len(ToRemove) > 0:
+            del self.CommandTable[ToRemove.pop()]
 
     def OverrideCommandPermissions(self, CmdObj, NewPermission):
         CmdObj.Permissions = NewPermission.lower()

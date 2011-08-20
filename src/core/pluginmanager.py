@@ -27,9 +27,10 @@
 
 '''Plugin support'''
 import inspect
-from core.console import Console
+from core.console import Console, LOG_LEVEL_DEBUG
 import sys
 import json
+import traceback
 
 sys.path.append("plugins")
 
@@ -94,8 +95,8 @@ class PluginBase(object):
         ...Besides hooks and commands (PluginMgr will handle them)'''
         pass
 
-    def AddCommand(self, Command, CmdObj, Permissions, HelpMsg, ErrorMsg, MinArgs, Alias = False):
-        self.PluginMgr.RegisterCommand(self, CmdObj(self.ServerControl.CommandHandle, Permissions, HelpMsg, ErrorMsg, MinArgs, Command, Alias))
+    def AddCommand(self, Command, CmdObj, Permissions, HelpMsg, ErrorMsg, MinArgs, Hidden = False):
+        self.PluginMgr.RegisterCommand(self, CmdObj(self.ServerControl.CommandHandle, Permissions, HelpMsg, ErrorMsg, MinArgs, Command, Hidden))
 class Hook(object):
     '''Simple struct to store Hook info'''
     __slots__ = ['Plugin', 'Function']
@@ -154,7 +155,10 @@ class PluginManager(object):
                         self.RemovePluginCommands(pPlugin.ModuleName)
                         self.Plugins.remove(pPlugin)
                     Console.Warning("PluginMgr", "Error loading plugin object \"%s\" from file \"%s\"" % (Key, PluginFile))
-                    Console.Debug("PluginMgr", "Exception: %s" % str(exc))
+                    if Console.LogLevel == LOG_LEVEL_DEBUG:
+                        Console.Debug("PluginMgr", "Exception: %s" % str(exc))
+                        Console.Debug("PluginMgr", "Callstack:")
+                        traceback.print_exc()
                     continue
         return True
 
