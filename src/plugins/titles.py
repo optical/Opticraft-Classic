@@ -66,8 +66,8 @@ class TitlePlugin(PluginBase):
 ##############################
 
 class TitleCommand(CommandObject):
-    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Alias = False):
-        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Alias)
+    def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
+        CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden)
         self.ServerControl = self.CmdHandler.ServerControl
         
     def DeleteTitle(self, Username):
