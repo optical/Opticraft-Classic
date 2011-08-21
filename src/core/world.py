@@ -510,7 +510,7 @@ class World(object):
         return self.GetDataStoreEntry(DataStoreKey.Blocks)
     def SetGzippedBlockStore(self, Value):
         '''Sets the value of the gzipped block store,
-        ...This has no real use other then to initialise it on a new world'''
+        ...This has no real use other than to initialise it on a new world'''
         self.SetDataStoreEntry(DataStoreKey.Blocks, Value)
     
     ########################################
