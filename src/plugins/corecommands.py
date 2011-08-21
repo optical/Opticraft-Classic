@@ -584,7 +584,7 @@ class BanCmd(CommandObject):
     def Run(self, pPlayer, Args, Message):
         Username = Args[0]
         if pPlayer.ServerControl.GetRankLevel(pPlayer.ServerControl.GetRank(Username)) >= pPlayer.GetRankLevel():
-            pPlayer.SendMessage("&RYou may not ban someone with the same rank or higher then yours")
+            pPlayer.SendMessage("&RYou may not ban someone with the same rank or higher than yours")
             return
         if len(Args) == 1:
             pPlayer.SendMessage("&RBans require a duration. Eg: /ban joe 1day. 0 for permanent")
@@ -624,7 +624,7 @@ class KickCmd(CommandObject):
         Username = Args[0]
         ReasonTokens = Args[1:]
         if pPlayer.ServerControl.GetRankLevel(pPlayer.ServerControl.GetRank(Username)) >= pPlayer.GetRankLevel():
-            pPlayer.SendMessage("&RYou may not kick someone with the same rank or higher then yours")
+            pPlayer.SendMessage("&RYou may not kick someone with the same rank or higher than yours")
             return
         Reason = ''
         for Token in ReasonTokens:
@@ -734,7 +734,7 @@ class InvisibleCmd(CommandObject):
             pPlayer.SendMessage("&SYou are no longer invisible")
         else:
             pPlayer.SetInvisible(True)
-            pPlayer.SendMessage("&SYou are now invisible to all users with a lower rank then yours.")
+            pPlayer.SendMessage("&SYou are now invisible to all users with a lower rank than yours.")
 ######################
 #ADMIN COMMANDS HERE #
 ######################
@@ -809,7 +809,7 @@ class AddIPBanCmd(CommandObject):
             return
         
         
-        #Check to see it wont affect anyone of higher rank then us currently connected.
+        #Check to see it wont affect anyone of higher rank than us currently connected.
         for aPlayer in pPlayer.ServerControl.PlayerSet:
             if aPlayer.GetIP() == Arg and aPlayer.GetRankLevel() >= pPlayer.GetRankLevel():
                 pPlayer.SendMessage("&RYou may not ban that user.")
