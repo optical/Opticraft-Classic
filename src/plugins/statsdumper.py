@@ -63,12 +63,13 @@ class StatusDumperPlugin(PluginBase):
         with open(os.path.join(DUMP_PATH, DUMP_FILE), "w") as fHandle:
             Stats = ServerStatus(self.ServerControl)._AsJson()
             json.dump(Stats, fHandle, indent = 1)
-        Console.Out("Statistics", "Successfully wrote %s to disk" % DUMP_FILE)
+        Console.Debug("Statistics", "Successfully wrote %s to disk" % DUMP_FILE)
         
 class ServerStatus(JsonSerializeableObject):
     def __init__(self, ServerControl):
         self.PlayersOnline = len(ServerControl.PlayerSet)
         self.PeakPlayers = ServerControl.PeakPlayers
+        self.MaxPlayers = ServerControl.MaxClients
         self.UptimeString = ServerControl.GetUptimeStr()
         
         self.CurrentCpuUsage, self.CurrentCpuUserTime, self.CurrentCpuSysTime = ServerControl.GetCurrentCpuUsage()
@@ -82,6 +83,7 @@ class ServerStatus(JsonSerializeableObject):
 
         self.UploadRate = ServerControl.GetCurrentBwRate(IsUpload = True)
         self.DownloadRate = ServerControl.GetCurrentBwRate(IsUpload = False)
+        self.MemoryUsage = ServerControl.GetMemoryUsage()
         self.VersionString = ServerControl.VersionString
         
         self.Platform = platform.system()
