@@ -559,6 +559,7 @@ class Player(object):
           
     def GetTimePlayed(self):
         return self.DatabaseEntry.TimePlayed
+    
     def GetKickCount(self):
         return self.DatabaseEntry.KickCount
     

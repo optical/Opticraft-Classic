@@ -578,6 +578,10 @@ class ServerController(object):
         '''Returns the metadata block if it exists, else returns None'''
         return self.WorldMetaDataCache.get(WorldName.lower(), None)
     
+    def GetWorldMetaDataCache(self):
+        '''Returns a reference to the World metadata cache'''
+        return self.WorldMetaDataCache
+    
     def SetWorldMetaData(self, WorldName, Value):
         '''Sets the metadata block of the world. Called when a world is created'''
         self.WorldMetaDataCache[WorldName.lower()] = Value
@@ -703,6 +707,7 @@ class ServerController(object):
         User = (self.CurrentCpuTimes[0] - self.LastCpuTimes[0]) / float(self.LastResourceCheck - self.PreviousResourceCheck) * 100.0
         System = (self.CurrentCpuTimes[1] - self.LastCpuTimes[1]) / float(self.LastResourceCheck - self.PreviousResourceCheck) * 100.0
         return (User + System, User, System)
+    
     def GetTotalCpuUsage(self):
         '''Returns the average cpu usage since startup in a tuple of (Total,user,system)'''
         User = (os.times()[0] - self.InitialCpuTimes[0]) / (self.Now - self.StartTime) * 100.0
