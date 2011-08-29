@@ -294,8 +294,9 @@ class Player(object):
                     self.SendMessage("&RYou are sending messages too quickly. Muted for %d seconds" % self.ServerControl.FloodMutePeriod)
                     self.FloodPeriodTime = self.ServerControl.Now - self.ServerControl.FloodPeriod + self.ServerControl.FloodMutePeriod
                     return
-            self.ServerControl.PluginMgr.OnChat(self, Contents)
-            self.ServerControl.SendChatMessage(self.GetColouredName(), Contents)
+            Result = self.ServerControl.PluginMgr.OnChat(self, Contents)
+            if Result == True:
+                self.ServerControl.SendChatMessage(self.GetColouredName(), Contents)
             if self.ServerControl.LogChat:
                 TimeFormat = time.strftime("%d %b %Y [%H:%M:%S]", time.localtime())
                 self.ServerControl.ChatLogHandle.write("%s <%s>: %s\n" % (TimeFormat, self.GetName(), Contents))

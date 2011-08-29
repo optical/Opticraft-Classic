@@ -292,8 +292,11 @@ class PluginManager(object):
     def OnChat(self, pPlayer, ChatMessage):
         '''Called when a player types a message
         ...This fires for any message besides slash "/" commands and PM's'''
+        Result = True
         for Hook in self.Hooks[Hooks.ON_PLAYER_CHAT]:
-            Hook.Function(pPlayer, ChatMessage)
+            if Hook.Function(pPlayer, ChatMessage) == False:
+                Result = False
+        return Result
 
     def OnChangeWorld(self, pPlayer, OldWorld, NewWorld):
         '''Called when a player changes world, be it via
