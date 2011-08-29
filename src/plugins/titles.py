@@ -51,6 +51,7 @@ class TitlePlugin(PluginBase):
     def OnLoad(self):
         self.RegisterCommands()
         self.PluginMgr.RegisterHook(self, self.OnPlayerDataLoaded, Hooks.ON_PLAYER_DATA_LOADED)
+        self.PluginMgr.RegisterHook(self, self.OnChat, Hooks.ON_PLAYER_CHAT)
     
     def OnPlayerDataLoaded(self, pPlayer):
         JsonTitleData = pPlayer.GetPermanentPluginData(TitlePlugin.TITLE_KEY)
@@ -59,7 +60,14 @@ class TitlePlugin(PluginBase):
         PlayerTitle = TitleData(pPlayer)
         PlayerTitle.FromJson(JsonTitleData)
         pPlayer.SetPermanentPluginData(TitlePlugin.TITLE_KEY, PlayerTitle)
-        pPlayer.SetColouredName("%s %s" % (PlayerTitle.Title, pPlayer.GetColouredName()))
+        
+    def OnChat(self, pPlayer, Message):
+        PlayerTitle = pPlayer.GetPermanentPluginData(TitlePlugin.TITLE_KEY)
+        Title = ""
+        if PlayerTitle is not None:
+            Title = PlayerTitle.Title + " "
+        self.ServerControl.SendChatMessage("%s%s" % (Title, pPlayer.GetColouredName()), Message)
+        return False
     
 ##############################
 #        Commands            #
@@ -71,16 +79,8 @@ class TitleCommand(CommandObject):
         self.ServerControl = self.CmdHandler.ServerControl
         
     def DeleteTitle(self, Username):
-        self._RemoveTitleFromName(Username)
         self.ServerControl.FetchPlayerDataEntryAsync(Username, TitleCommand._DeleteTitleCallback)
     
-    def _RemoveTitleFromName(self, Username):
-        '''Removes the title from a Player objects name. Does not remove it from the database!'''
-        pPlayer = self.ServerControl.GetPlayerFromName(Username)
-        if pPlayer is not None:
-            CurrentTitle = pPlayer.GetPermanentPluginData(TitlePlugin.TITLE_KEY)
-            if CurrentTitle is not None:
-                pPlayer.SetColouredName(pPlayer.GetColouredName().replace("%s " % CurrentTitle.Title, ""))
                 
     @staticmethod
     def _DeleteTitleCallback(DataEntry, kwArgs):
@@ -92,12 +92,6 @@ class TitleCommand(CommandObject):
     
     def SetTitle(self, Username, Title):
         Username = Username.lower()
-        
-        pPlayer = self.ServerControl.GetPlayerFromName(Username)
-        if pPlayer is not None:
-            self._RemoveTitleFromName(Username)  
-                
-            pPlayer.SetColouredName("%s %s" % (Title, pPlayer.GetColouredName()))
         self.ServerControl.FetchPlayerDataEntryAsync(Username, TitleCommand._SetTitleCallback, {"Title": Title})
             
     @staticmethod
