@@ -454,7 +454,7 @@ class Player(object):
                             self.ServerControl.Motd,
                             0x64 if self.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
             self.SendPacket(OutPacket)
-            NewWorld.AddPlayer(self, True)
+            NewWorld.AddPlayer(self)
             self.NewWorld = NewWorld
             self.ServerControl.PluginMgr.OnChangeWorld(self, OldWorld, NewWorld)
             if self.Invisible == False:
