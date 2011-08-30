@@ -119,6 +119,8 @@ class Commands(PluginBase):
         ######################
         self.AddCommand("flushblocklog", FlushBlockLogCmd, 'owner', 'Flushes the worlds blocklog to disk', '', 0)
         self.AddCommand("removeworld", DeleteWorldCmd, 'owner', 'Deletes a world from the server', 'Incorrect syntax! Usage: /removeworld <worldname>', 1)
+        self.AddCommand("worldsummon", WorldSummonCmd, 'owner', 'Summons everyone on your world to your position', '', 0)
+        self.AddCommand("masssummon", MassSummonCmd, 'owner', 'Summons everyone on the server to your position', '', 0)
 
 
 ######################
@@ -699,6 +701,7 @@ class SummonCmd(CommandObject):
             pPlayer.SendMessage("&SSuccessfully summoned %s" % Target.GetName())
         else:
             pPlayer.SendMessage("&RThat player is not online!")
+                          
 class UndoActionsCmd(CommandObject):
     '''Handle for the /UndoActions command - revereses all the block changes by a player for X seconds'''
     def Run(self, pPlayer, Args, Message):
@@ -1145,3 +1148,28 @@ class DeleteWorldCmd(CommandObject):
             pPlayer.SendMessage("&SSuccessfully deleted world \"&V%s&S\"" % WorldName)
         except Exception, e:
             pPlayer.SendMessage("&RFailed to erase world. Error: %s" % e)
+
+class WorldSummonCmd(CommandObject):
+    '''Summons all players on your world to you'''
+    def Run(self, pPlayer, Args, Message):
+        for Target in pPlayer.GetWorld().Players:
+            Target.Teleport(pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ(), pPlayer.GetOrientation(), pPlayer.GetPitch())
+            
+        pPlayer.SendMessage("&SEveryone on your world has been summoned to you.")
+        
+class MassSummonCmd(CommandObject):
+    '''Summons everyone on the server to your position, or until the world is full'''
+    def Run(self, pPlayer, Args, Message):
+        for Target in pPlayer.ServerControl.PlayerSet:
+            if Target.GetWorld() is not None:
+                if Target.GetWorld() == pPlayer.GetWorld():
+                    Target.Teleport(pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ(), pPlayer.GetOrientation(), pPlayer.GetPitch())
+                else:
+                    if pPlayer.GetWorld().IsFull():
+                        pPlayer.SendMessage("&SSummon completed. Ran out of space on your world.")
+                        return
+                    else:
+                        Target.SetSpawnPosition(pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ(), pPlayer.GetOrientation(), pPlayer.GetPitch())
+                        Target.ChangeWorld(pPlayer.GetWorld().Name)
+                        
+        pPlayer.SendMessage("&SMass summon completed.")    

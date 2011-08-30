@@ -904,7 +904,7 @@ class World(object):
         Packet = PacketWriter.MakeBlockSetPacket(x, z, y, ord(self.Blocks[self._CalculateOffset(x, y, z)]))
         pPlayer.SendPacket(Packet)
         
-    def AddPlayer(self, pPlayer, Transferring = False):
+    def AddPlayer(self, pPlayer):
         self.JoiningPlayers.append(pPlayer)
         pPlayer.SetNewId(self.PlayerIDs.pop())
 
