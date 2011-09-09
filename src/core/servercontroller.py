@@ -52,8 +52,10 @@ from core.asynchronousquery import AsynchronousQueryResult
 from core.PlayerDbDataEntry import PlayerDbDataEntry
 from core.constants import * 
 from core.console import *
+
 class SigkillException(Exception):
     pass
+
 class PlayerDbThread(threading.Thread):
     '''This thread performs asynchronous querys on the player databases, specifically for loading
     and saving player data'''
