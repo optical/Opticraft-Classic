@@ -912,7 +912,7 @@ class CreateWorldCmd(CommandObject):
             assert(Y % 16 == 0)
             assert(Z % 16 == 0)
         except AssertionError:
-            pPlayer.SendMessage("&RYour length, width and height coorinates need to be a multiple of 16")
+            pPlayer.SendMessage("&RYour length, width and height coordinates need to be a multiple of 16")
             return
         if pPlayer.ServerControl.WorldExists(Name):
             pPlayer.SendMessage("&RThat world already exists!")
