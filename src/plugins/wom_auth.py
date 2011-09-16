@@ -32,6 +32,7 @@
 #I also recommend you do not allow anyone with op+ to login with wom auth, should WOM ever be compromised. (WOM_MAX_RANK = "builder")
 ###README###
 
+
 ##########################
 #        SETTINGS        #
 ##########################
@@ -90,7 +91,7 @@ class WOMAuthenticationPlugin(PluginBase):
         
     def SendHeartBeat(self):
         data = {
-            "port": self.ServerControl.Port,
+            "port": int(self.ServerControl.Port.split(",")[0]),
             "max": self.ServerControl.MaxClients,
             "name": WOM_NAME_OVERRIDE if WOM_NAME_OVERRIDE is not None else self.ServerControl.Name,
             "public": self.ServerControl.Public,
