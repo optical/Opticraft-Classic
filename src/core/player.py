@@ -128,6 +128,8 @@ class Player(object):
         
         IpAuthOk = self.ServerControl.RelaxedAuthentication and self.ServerControl.CheckIpCache(self)
         isAuthenticated = CorrectPass == HashedPass or OldPass == HashedPass or self.ServerControl.LanMode == True or IpAuthOk
+        CancelResult = self.ServerControl.PluginMgr.OnPlayerAuthCheck(self, HashedPass, CorrectPass)
+        isAuthenticated = (isAuthenticated and CancelResult is None) or CancelResult == True
         
         if isAuthenticated:
             self.ServerControl.IPCache[self.Name.lower()] = self.GetIP()

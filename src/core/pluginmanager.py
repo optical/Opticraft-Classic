@@ -53,6 +53,7 @@ class Hooks:
     ON_SERVER_TICK = 15
     ON_SERVER_SHUTDOWN = 16
     ON_PLAYER_EMOTE = 17
+    ON_PLAYER_AUTH_CHECK = 18
 
 class PluginBase(object):
     #These numbers do not include the "self" argument, though all objects need to have this!
@@ -75,6 +76,7 @@ class PluginBase(object):
         Hooks.ON_SERVER_TICK: 0,
         Hooks.ON_SERVER_SHUTDOWN: 0,
         Hooks.ON_PLAYER_EMOTE: 2,
+        Hooks.ON_PLAYER_AUTH_CHECK: 3,
     }
 
     def __init__(self, PluginMgr, ServerControl, Name):
@@ -349,3 +351,18 @@ class PluginManager(object):
         '''Called when a player uses the /me command or any other form of emoting'''
         for Hook in self.Hooks[Hooks.ON_PLAYER_EMOTE]:
             Hook.Function(pPlayer, Message)
+            from checkbox.message import Message
+            
+    def OnPlayerAuthCheck(self, pPlayer, HashProvided, CorrectHash):
+        '''Called when a player attempts to auth. Return values:
+           None = Default behaviour
+           True = Accept the auth
+           False = Reject the auth'''
+        CancelResult = None
+        Result = None
+        for Hook in self.Hooks[Hooks.ON_PLAYER_AUTH_CHECK]:
+            Result = Hook.Function(pPlayer, HashProvided, CorrectHash)
+            if Result != None:
+                CancelResult = Result
+                
+        return CancelResult
