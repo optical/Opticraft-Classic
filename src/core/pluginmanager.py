@@ -351,7 +351,6 @@ class PluginManager(object):
         '''Called when a player uses the /me command or any other form of emoting'''
         for Hook in self.Hooks[Hooks.ON_PLAYER_EMOTE]:
             Hook.Function(pPlayer, Message)
-            from checkbox.message import Message
             
     def OnPlayerAuthCheck(self, pPlayer, HashProvided, CorrectHash):
         '''Called when a player attempts to auth. Return values:
