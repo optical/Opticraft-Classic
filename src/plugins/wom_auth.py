@@ -97,6 +97,7 @@ class WOMAuthenticationPlugin(PluginBase):
             "public": self.ServerControl.Public,
             "version": 7,
             "salt": self.Salt,
+            "noforward": 1,
             "users": len(self.ServerControl.PlayerSet)
         }
         url = 'http://direct.worldofminecraft.com/hb.php?%s' % urllib.urlencode(data)
