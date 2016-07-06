@@ -847,12 +847,12 @@ class World(object):
 
         Packet3 = None
         if pPlayer.GetSpawnPosition()[0] == -1:
-            Packet3 = PacketWriter.MakeSpawnPointPacket(255, "", self.GetSpawnX(), self.GetSpawnZ(), self.GetSpawnY(),
+            Packet3 = PacketWriter.MakeSpawnPointPacket(255, pPlayer.GetColouredName(), self.GetSpawnX(), self.GetSpawnZ(), self.GetSpawnY(),
                                                     self.GetSpawnOrientation(), self.GetSpawnPitch())
         else:
             Location = pPlayer.GetSpawnPosition()
             pPlayer.SetSpawnPosition(-1, -1, -1, -1, -1)
-            Packet3 = PacketWriter.MakeSpawnPointPacket(255, "", Location[0], Location[2], Location[1],
+            Packet3 = PacketWriter.MakeSpawnPointPacket(255, pPlayer.GetColouredName(), Location[0], Location[2], Location[1],
                                                     Location[3], Location[4])            
             
         pPlayer.SendPacket(Packet3)
