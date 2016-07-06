@@ -206,7 +206,7 @@ class PlayerDbThread(threading.Thread):
 
 
 class ServerController(object):
-    def __init__(self, Tag = ''):
+    def __init__(self):
         self.StartTime = int(time.time())
         self.Now = time.time()
         self.HasStarted = False
@@ -229,11 +229,7 @@ class ServerController(object):
         Console.SetLogLevel(int(self.ConfigValues.GetValue("logs", "ConsoleLogLevel", LOG_LEVEL_DEBUG)))
         Console.SetFileLogging(bool(int(self.ConfigValues.GetValue("logs", "ConsoleFileLogs", "0"))))
         Console.SetColour(int(self.ConfigValues.GetValue("server", "ConsoleColour", "1")))
-        self.RawRevision = "$Revision$"
-        self.RawDate = "$Date$"
-        self.Revision = -1 if len(self.RawRevision.split()) < 2 else self.RawRevision.split()[1]
-        self.Tag = Tag
-        self.VersionString = "Opticraft v0.2 r%s%s" % (self.Revision, self.Tag)
+        self.VersionString = "Opticraft v0.3"
         Console.Out("Startup", "%s is starting up." % self.VersionString)
         self.Port = self.ConfigValues.GetValue("server", "Port", "25565")
         self.Name = self.ConfigValues.GetValue("server", "Name", "An opticraft server")
