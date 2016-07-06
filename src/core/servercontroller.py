@@ -281,14 +281,28 @@ class ServerController(object):
         self._ExampleRanks = str()
         self.LoadRanks()
         self.LoadPlayerRanks()
-        self.AdmincreteRank = self.ConfigValues.GetValue("server", "AdmincreteRank", 'operator')
-        self.ColourRank = self.ConfigValues.GetValue("server", "ColourRank", 'operator')
+        self.AdmincreteRank = self.ConfigValues.GetValue("server", "AdmincreteRank", "operator")
+        self.ColourRank = self.ConfigValues.GetValue("server", "ColourRank", "operator")
+        self.WaterRank = self.ConfigValues.GetValue("server", "WaterRank", "builder")
+        self.LavaRank = self.ConfigValues.GetValue("server", "LavaRank", "builder")
+        self.PlaceAdmincreteRank = self.ConfigValues.GetValue("server", "PlaceAdmincreteRank", "operator")
+
         if self.IsValidRank(self.AdmincreteRank) == False:
             Console.Warning("Startup", "Admincreterank refers to an unknown rank %s" % self.AdmincreteRank)
-            self.AdmincreteRank = 'operator'
+            self.AdmincreteRank = "operator"
         if self.IsValidRank(self.ColourRank) == False:
             Console.Warning("Startup", "ColourRank refers to an unknown rank %s" % self.ColourRank)
-            self.ColourRank = 'operator'
+            self.ColourRank = "operator"
+        if self.IsValidRank(self.WaterRank) == False:
+            Console.Warning("Startup", "WaterRank refers to an unknown rank %s" % self.WaterRank)
+            self.ColourRank = "builder"
+        if self.IsValidRank(self.LavaRank) == False:
+            Console.Warning("Startup", "LavaRank refers to an unknown rank %s" % self.LavaRank)
+            self.ColourRank = "builder"
+        if self.IsValidRank(self.PlaceAdmincreteRank) == False:
+            Console.Warning("Startup", "PlaceAdmincreteRank refers to an unknown rank %s" % self.PlaceAdmincreteRank)
+            self.ColourRank = "operator"
+
         self.LastIdleCheck = time.time()
         self.IdleCheckPeriod = 60
         self.IPCount = dict()
@@ -349,8 +363,6 @@ class ServerController(object):
         self.PluginMgr.LoadPlugins()
         self.LoadWorlds()
         self.RecordPID()
-        
-
         
     def GenerateSalt(self):
         Salt = ''

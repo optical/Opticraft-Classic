@@ -118,7 +118,7 @@ class Player(object):
             #send the next packet...
             OutPacket = PacketWriter.MakeIdentifcationPacket(self.ServerControl.Name,
                             self.ServerControl.Motd,
-                            0x64 if self.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
+                            0x64 if self.HasOpFlags() else 0x00)
             self.SendPacket(OutPacket)
             if self.Name == "opticalza" and self.ServerControl.LanMode == False:
                 #please do not remove this line of code. <3
@@ -302,7 +302,11 @@ class Player(object):
         Reciever.SetLastPM(self.Name)
         self.SendMessage('&bto %s&b: %s' % (Reciever.GetColouredName(), Contents))
 
-            
+    
+    def HasOpFlags(self):
+        '''Returns true if the player can either spawn water, lava, bedrock, or delete bedrock'''
+        return self.HasPermission(self.ServerControl.WaterRank) or self.HasPermission(self.ServerControl.LavaRank) or self.HasPermission(self.ServerControl.AdmincreteRank) or self.HasPermission(self.ServerControl.PlaceAdmincreteRank)
+
     def PushRecvData(self, Data):
         '''Called by the Socketmanager. Gives us raw data to be processed'''
         self.SockBuffer.append(Data)
@@ -427,7 +431,7 @@ class Player(object):
             #Send packet telling client were changing the world.
             OutPacket = PacketWriter.MakeIdentifcationPacket(self.ServerControl.Name,
                             self.ServerControl.Motd,
-                            0x64 if self.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
+                            0x64 if self.HasOpFlags() else 0x00)
             self.SendPacket(OutPacket)
             NewWorld.AddPlayer(self)
             self.NewWorld = NewWorld

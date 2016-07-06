@@ -48,13 +48,10 @@ class Commands(PluginBase):
         ########################
         #BUILDER COMMANDS HERE #
         ########################
-        self.AddCommand("water", WaterCmd, 'builder', 'Allows you to place water', '', 0)
-        self.AddCommand("lava", LavaCmd, 'builder', 'Allows you to place lava', '', 0)
         self.AddCommand("tp", AppearCmd, 'builder', 'Teleports you to a players location', 'Incorrect syntax! Usage: /appear <username>', 1)
         #########################
         #OPERATOR COMMANDS HERE #
         #########################
-        self.AddCommand("solid", SolidCmd, 'operator', 'Allows you to place adminium', '', 0)
         self.AddCommand("ban", BanCmd, 'operator', 'Bans a player from the server', 'Incorrect syntax! Usage: /ban <username> <duration>', 1)
         self.AddCommand("unban", UnbanCmd, 'operator', 'Unbans a player from the server', 'Incorrect syntax! Usage: /unban <username>', 1)
         self.AddCommand("kick", KickCmd, 'operator', 'Kicks a player from the server', 'Incorrect syntax! Usage: /kick <username> [reason]', 1)
@@ -94,6 +91,13 @@ class Commands(PluginBase):
         self.AddCommand("removeworld", DeleteWorldCmd, 'owner', 'Deletes a world from the server', 'Incorrect syntax! Usage: /removeworld <worldname>', 1)
         self.AddCommand("worldsummon", WorldSummonCmd, 'owner', 'Summons everyone on your world to your position', '', 0)
         self.AddCommand("masssummon", MassSummonCmd, 'owner', 'Summons everyone on the server to your position', '', 0)
+
+        ######################
+        #CONFIG COMMANDS HERE#
+        ######################
+        self.AddCommand("water", WaterCmd, self.ServerControl.WaterRank, 'Allows you to place water', '', 0)
+        self.AddCommand("lava", LavaCmd, self.ServerControl.LavaRank, 'Allows you to place lava', '', 0)        
+        self.AddCommand("solid", SolidCmd, self.ServerControl.PlaceAdmincreteRank, 'Allows you to place bedrock', '', 0)
 
 
 ######################
@@ -477,28 +481,7 @@ class ReplyCmd(CommandObject):
 ########################
 #BUILDER COMMANDS HERE #
 ########################
-class WaterCmd(CommandObject):
-    '''Command handler for /water command. Replaces all block placed with water'''
-    def Run(self, pPlayer, Args, Message):
-        if pPlayer.GetBlockOverride() == BLOCK_STILLWATER:
-            pPlayer.SendMessage("&SYou are no longer placing water")
-            pPlayer.SetBlockOverride(-1)
-            return
-        else:
-            pPlayer.SetBlockOverride(BLOCK_STILLWATER)
-            pPlayer.SendMessage("&SEvery block you create will now be water. Type /water to disable.")
-
-class LavaCmd(CommandObject):
-    '''Command handler for /lava command. Replaces all block placed with lava'''
-    def Run(self, pPlayer, Args, Message):
-        if pPlayer.GetBlockOverride() == BLOCK_STILLLAVA:
-            pPlayer.SendMessage("&SYou are no longer placing lava")
-            pPlayer.SetBlockOverride(-1)
-            return
-        else:
-            pPlayer.SetBlockOverride(BLOCK_STILLLAVA)
-            pPlayer.SendMessage("&SEvery block you create will now be lava. Type /lava to disable.")
-            
+           
 class AppearCmd(CommandObject):
     def __init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name, Hidden = False):
         CommandObject.__init__(self, CmdHandler, Permissions, HelpMsg, ErrorMsg, MinArgs, Name)
@@ -524,16 +507,6 @@ class AppearCmd(CommandObject):
 #########################
 #OPERATOR COMMANDS HERE #
 #########################
-class SolidCmd(CommandObject):
-    '''Command handler for /solid command. Replaces all block placed with adminium/admincrete'''
-    def Run(self, pPlayer, Args, Message):
-        if pPlayer.GetBlockOverride() == BLOCK_HARDROCK:
-            pPlayer.SendMessage("&SYou are no longer placing adminium")
-            pPlayer.SetBlockOverride(-1)
-            return
-        else:
-            pPlayer.SetBlockOverride(BLOCK_HARDROCK)
-            pPlayer.SendMessage("&SEvery block you create will now be adminium. Type /solid to disable.")
 class ModifyRankCmd(CommandObject):
     '''Handle for the /addrank command - gives a username a rank. Can only be used by admins'''
     def Run(self, pPlayer, Args, Message):
@@ -1146,3 +1119,37 @@ class MassSummonCmd(CommandObject):
                         Target.ChangeWorld(pPlayer.GetWorld().Name)
                         
         pPlayer.SendMessage("&SMass summon completed.")    
+
+
+class SolidCmd(CommandObject):
+    '''Command handler for /solid command. Replaces all block placed with adminium/admincrete'''
+    def Run(self, pPlayer, Args, Message):
+        if pPlayer.GetBlockOverride() == BLOCK_HARDROCK:
+            pPlayer.SendMessage("&SYou are no longer placing adminium")
+            pPlayer.SetBlockOverride(-1)
+            return
+        else:
+            pPlayer.SetBlockOverride(BLOCK_HARDROCK)
+            pPlayer.SendMessage("&SEvery block you create will now be adminium. Type /solid to disable.")
+
+class WaterCmd(CommandObject):
+    '''Command handler for /water command. Replaces all block placed with water'''
+    def Run(self, pPlayer, Args, Message):
+        if pPlayer.GetBlockOverride() == BLOCK_STILLWATER:
+            pPlayer.SendMessage("&SYou are no longer placing water")
+            pPlayer.SetBlockOverride(-1)
+            return
+        else:
+            pPlayer.SetBlockOverride(BLOCK_STILLWATER)
+            pPlayer.SendMessage("&SEvery block you create will now be water. Type /water to disable.")
+
+class LavaCmd(CommandObject):
+    '''Command handler for /lava command. Replaces all block placed with lava'''
+    def Run(self, pPlayer, Args, Message):
+        if pPlayer.GetBlockOverride() == BLOCK_STILLLAVA:
+            pPlayer.SendMessage("&SYou are no longer placing lava")
+            pPlayer.SetBlockOverride(-1)
+            return
+        else:
+            pPlayer.SetBlockOverride(BLOCK_STILLLAVA)
+            pPlayer.SendMessage("&SEvery block you create will now be lava. Type /lava to disable.")

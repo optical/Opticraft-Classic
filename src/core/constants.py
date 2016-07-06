@@ -204,7 +204,8 @@ def GetBlockNameFromID(ID):
     return IDFromName.get(ID, None)
 
 import string
-DisabledBlocks = set([BLOCK_WATER, BLOCK_STILLWATER, BLOCK_LAVA, BLOCK_STILLLAVA, BLOCK_HARDROCK])
+WaterBlocks = frozenset([BLOCK_WATER, BLOCK_STILLWATER])
+LavaBlocks = frozenset([BLOCK_LAVA, BLOCK_STILLLAVA])
 DisabledChars = ''.join([c for c in map(chr, range(256)) if c not in string.ascii_letters + string.digits + string.punctuation + string.whitespace]) + '&\r\n'
 ColourChars = frozenset('1234567890abcedfABCEDF')
 

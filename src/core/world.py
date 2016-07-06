@@ -523,9 +523,12 @@ class World(object):
         if pPlayer.GetAboutCmd() == True:
             self.HandleAboutCmd(pPlayer, x, y, z)
             return False  
-        if not AutomatedChange and val in DisabledBlocks and pPlayer.GetBlockOverride() != val:
-            pPlayer.SendMessage("&RThat block is disabled!")
-            return False
+        
+        if not AutomatedChange:
+            if (val in WaterBlocks and not pPlayer.HasPermission(self.ServerControl.WaterRank)) or (val in LavaBlocks and not pPlayer.HasPermission(self.ServerControl.LavaRank)) or (val == BLOCK_HARDROCK and not pPlayer.HasPermission(self.ServerControl.PlaceAdmincreteRank)):
+                   pPlayer.SendMessage("&RYou do not have the required rank to place that block!")
+                   return False
+
         #Plugins
         PluginResult = self.ServerControl.PluginMgr.OnAttemptPlaceBlock(self, pPlayer, val, x, y, z)
         if PluginResult != True:
@@ -541,7 +544,7 @@ class World(object):
                     return False
         if ord(self.Blocks[ArrayValue]) == BLOCK_HARDROCK:
             if pPlayer.HasPermission(self.ServerControl.AdmincreteRank) == False:
-                #not allowed to delete admincrete
+                pPlayer.SendMessage("&RYou are not allowed to delete bedrock")
                 return False
         if self.LogBlocks == True:
             self.BlockHistory[ArrayValue] = BlockLog(pPlayer.GetName().lower(), int(self.ServerControl.Now), self.Blocks[ArrayValue])
@@ -803,7 +806,7 @@ class World(object):
         for pPlayer in self.Players:
             Packet = PacketWriter.MakeIdentifcationPacket("Reloading map...",
                         "The map is being refreshed",
-                        0x64 if pPlayer.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
+                        0x64 if pPlayer.HasOpFlags() else 0x00)
             pPlayer.SetSpawnPosition(pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ(), pPlayer.GetOrientation(), pPlayer.GetPitch())
             self.SendWorld(pPlayer)
             pPlayer.SendPacket(Packet)
@@ -837,7 +840,7 @@ class World(object):
             #Sending this causes InsideBots draw commands to break
             BadPacket = PacketWriter.MakeIdentifcationPacket("Finished loading world: %s" % self.Name,
                          self.ServerControl.Motd,
-                         0x64 if pPlayer.HasPermission(self.ServerControl.AdmincreteRank) else 0x00)
+                         0x64 if pPlayer.HasOpFlags() else 0x00)
             pPlayer.SendPacket(BadPacket)
             
         Packet2 = PacketWriter.MakeLevelSizePacket(self.X, self.Z, self.Y)
