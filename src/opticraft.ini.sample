@@ -1,0 +1,344 @@
+;################################
+;#	Opticraft config file	#
+;################################
+
+;You do not need to edit these settings, however it is strongly advised
+;that you do look over them and change them as you see fit.
+;If you are totally new to this, i advise not changing any values besides the server name and Motd
+;Entering an invalid value can cause the server to not start or crash. So be careful!
+
+[server]
+Name=An Opticraft server
+
+Motd=This server is powered by Opticraft
+
+;Maximum number of players. Minecraft only supports up to 128 players!
+Max=32
+
+;Do you want the server to be open to the public?
+Public=1
+
+;This is the port the server listens on. If you are behind a router this is the
+;port you need to forward to your pc
+;Default: 25565
+Port=25565
+
+;Do not change this unless you run a server and want to bind the server to a specific IP only!
+ListenInterface=0.0.0.0
+
+;When the server shutsdown, would you like the console to terminate instantly
+;Default: 0
+InstantClose=0
+
+;This sets the interval at which the server randomly announces to all clients.
+;These messages can be set below in the [announcements] section
+;A setting of 0 disables this
+PeriodicAnnounceFrequency=0
+
+;This controls the level of authentication security
+;Setting this to 1 will reduce security by allowing users to automatically reconnect
+;...and only checking their IP is the same, instead of ensuring their password is correct.
+;The only time this should matter is for users reconnecting immediately after the server restarts (with a new salt)
+;Default: 0
+RelaxedAuth = 0
+
+;ADVANCED;
+;This controls whether to generate a new random salt for authentication everytime the server starts up
+;...or to use the same salt every time.
+;You may want to reuse the salt if you are making use of WOM's direct connect feature
+;The salt will be stored in opticraft.salt
+;Default: 1
+ReuseSalt = 1
+
+;If this is a LAN only server, enable this.
+;This will change the url being printed to url.txt to be the ip of the local PC.
+;WARNING - Do not enable this for an online server.
+;        - You will expose yourself to serious security issues, as there will be no username authentication!
+;	 - This is not fully developed yet. Do not use it!
+;Default: 0
+LanMode = 0
+
+;This will disable the use "InsideBot", a popular bot used for automated building
+;Note: This only breaks their draw commands. they will still be able to connect
+;Default: 0
+DisableBots = 0
+
+;This setting can be used to disable colours being displayed in the console
+;This is is useful under unix if you are using nohup and want to read the logs.
+;Default: 1
+ConsoleColour = 1
+
+;This controls the colour of ingame messages
+;A table of colour codes to actual colours can be found at: http://www.minecraftwiki.net/wiki/Classic_Server_Protocol#Color_Codes
+;Please note that the "&" character can be omitted.
+;ValueColour is the colour of text which is variable, eg cpu usage percent in /sinfo. Default: e
+;StaticColour is the colour of text which does not change, eg "Current cpu usage:" in /sinfo. Default: a
+;ErrorColour is the colour of error messages, such as when you enter in a command which doesn't exist. Default: c
+;NoticeColour is the colour of Notice message, such as "X has connected, joined map Y". Default: e
+ValueColour = e
+StaticColour = a
+ErrorColour = c
+NoticeColour = e
+
+;This setting allows you to prevent spamming/flooding of the chat
+;It will throttle players messages should they exceed the limits
+;To disable flood control, set period to 0
+;If flooding is detected, the player will be muted for FloodMute secods;
+;Default: 4 Messages allowed every 5 seconds, else 10 second mute.
+FloodPeriod = 5
+FloodMessages = 4
+FloodMute = 10
+
+;This will allow you to tweak the block-spam detection thresholds.
+;This is useful for detecting and preventing bots from automatically damaging
+;and destroying your worlds.
+;Default: 45 block changes every 5 seconds
+BlockChangePeriod = 5
+BlockChangeCount = 45
+
+;Rank required to delete admincrete.
+;This is the block created by the /solid command, also known as admimium or bedrock.
+;This only allows users of this rank and above to DELETE adminium, not create it!
+AdmincreteRank = operator
+
+;Rank required to place admincrete.
+;This only allows users of this rank and above to PLACE adminium, not delete it!
+PlaceAdmincreteRank = operator
+
+;Rank required to place lava.
+LavaRank = builder
+
+;Rank required to place water
+WaterRank = builder
+
+;Rank required to add colour to their messages
+;This allows players of this rank and above to use colours in their chat
+;This can be done by sending a message with % followed by a colour code.
+;Example message: %4Red text. %eYellow Text.
+;Colours are based on the normal colour table used elsewhere in minecraft.
+ColourRank = operator
+
+;This settings will allow the use of fully capsed sentences if set to 1.
+;Min length controls how long the sentence must be to be affected by this setting.
+;Default: 0
+AllowCaps = 0
+MinLength = 10
+
+;This controls the default value for displaying join notifications
+;(The messages displayed when someone connects, disconnects, changes world)
+;Note, this is only the default settings. Users can still override it for themselves ingame with /togglenotifications
+EnableJoinNotifcations = 1
+
+;This controls whether Idle guests are removed from the server after a specified period of time
+;Note: Anyone above the guest rank will not be kicked for being idle
+;Default: 3600 (one hour)
+IdleLimit=3600
+
+;Max number of connections allowed from a single IP-Address
+;This is to prevent abuse/flooding the server with connections.
+;Set to 0 to disable
+;Default: 6
+MaxConnections=6
+
+;ADVANCED
+;This controls the use of the Nagle algorithmn
+;Enabling "LowLatencyMode" will disable Nagles algorithmn, which will
+;-> increase BW usage, and reduce latency.
+;Default: 0
+LowLatencyMode=0
+
+;This section controls settings related to worlds
+[worlds]
+;Name for the default world players spawn in
+DefaultName=Guest
+
+;This controls the dimensions of the default world. Z is the height of the world
+DefaultSizeX=256
+DefaultSizeY=256
+DefaultSizeZ=64
+
+;Every how many seconds should worlds be saved
+;Default: 300 (5 mins)
+SaveTime=300
+
+;Every how many seconds should worlds be backed up?
+;Default: 3600 (Hourly)
+BackupTime=3600
+
+;Enable block history?
+;This will track the last change on every block, enabling you to undo other players actions if need be.
+;Default: 1
+EnableBlockHistory=1
+
+;This setting controls how long worlds must be empty before they are unloaded from memory
+;This helps save memory, especially if you have many worlds.
+;Note: The default world will never be unloaded
+;0 Means they will never be unloaded during runtime
+;Default: 30 (seconds)
+IdleTimeout=30
+
+;ADVANCED
+;Do not change this unless you fully understand what it means!
+;This controls the level of zlib compression used to send and store map data.
+;Increasing this reduces the size of maps on disk, but increases the time taken to load/save/send maps
+;Keep this low, the space/bw saving is very very negligible in general, and the cpu time it uses is much more valuable
+;Range: 1-9
+CompressionLevel=1
+
+[ranks]
+;This section controls all the ranks available on the server
+;Here you can add additional ranks.
+;You may not however remove the core ranks of "Spectator","Guest", "Builder,"Op","Admin" or "Owner"
+;This section defines the rank names, as well as their level.
+;The higher the level, the more commands a rank can access and the higher it is.
+Spectator=5
+Guest=10
+Builder=20
+Operator=50
+Admin=100
+Owner=1000
+
+[rankcolours]
+;This section controls the colour of the rank.
+;Colour codes can be seen at: http://www.minecraftwiki.net/wiki/Classic_Server_Protocol#Color_Codes
+Spectator=&f
+Guest=&f
+Builder=&a
+Operator=&b
+Admin=&9
+Owner=&c
+
+[rankdescriptions]
+;This is an optiona section
+;It allows you to provide a brief description of a rank, which will show up in the /ranks command
+Spectator=Griefers are given this rank. They cannot build anywhere
+Guest=All players start off at this rank.
+Builder=Builders are players who have proven themself. They can teleport around.
+Operator=Operators ban abusive players and enforce the server rules.
+Admin=Admins look after how the server is running, promote players, and other tasks.
+Owner=These players are the server owners
+
+[commandoverrides]
+;This section allows you to change the required rank to use a specific command
+;Usage: CMD = Rank
+;For example, you can give kick to builders, or lower the requirements for /lava to guests.
+;The two lines below are an example of the usage. Do not add the slash  "/"
+;Ban = Builder
+;Lava = Guest
+
+[drawcommands]
+;This allows you to control how many blocks can be changed with draw commands for each rank.
+;If a rank does not have its value set here, it will default to unlimited, which is dangerous!
+;Syntax:
+;Rank=number of blocks
+builder = 512
+
+[announcements]
+;All values here will be for messages to be announce periodically ingame to all clients.
+;To add a message, type the word message, then a number, followed by an equals sign, and the message you want sent.
+;Colors can be used. use & followed by a number from 0-9 or a letter from a-f. eg: &0Hello! will make "Hello!" appear in black
+;Opticraft colour codes can be used as well. &S = Static text, &V = Value text, &R = Error text, &N = Notice text (As defined in this config)
+;Here are some examples
+Message1 = &SType /worlds to see a list of worlds
+Message2 = &SUse /ranks to view all ranks
+Message3 = &SThis server is running Opticraft.
+
+[rules]
+;These rules will be displayed when a user types /rules
+;To add a rule, add a line such as Rule, then a number, followed by an equals sign and the rule you want.
+;Colors can be used. use & followed by a number from 0-9 or a letter from a-f. eg: &4Hello! will make "Hello!" appear in red
+;Opticraft colour codes can be used as well. &S = Static text, &V = Value text, &R = Error text, &N = Notice text (As defined in this config)
+;Here are 3 examples to help clarify how to do it.
+Rule1 = &SNo griefing
+Rule2 = &SNo Swearing
+Rule3 = &SDo not abuse others
+
+[greeting]
+;This is used as the greeting message when a player logs in.
+;This section has the same syntax as the rules and accouncements sections.
+;Colors can be used. use & followed by a number from 0-9 or a letter from a-f. eg: &aHello! will make "Hello!" appear in green
+;Opticraft colour codes can be used as well. &S = Static text, &V = Value text, &R = Error text, &N = Notice text (As defined in this config)
+;Examples:
+Greeting1 = &SWelcome to &Vopticraft
+Greeting2 = &SPlease read the rules with /rules
+
+[plugins]
+;Plugins are scripts which add additional funcionality to the server
+;There are several core plugins which are loaded by default in order to provide basic commands and features
+;Developers can easily create plugins to extend the server, though as of this time there is no official
+;...documentation on the API. It should be easy enough for any python developer to pick up though!
+;To load a plugin, enter the file the plugin is stored in, and set it to 1. 0 to ignore.
+;Eg
+;build=1
+;
+;If none of the above makes any sense to you, leave this section as it is.
+corecommands = 1
+zones = 1
+drawcommands = 1
+fly = 0
+portals = 1
+irc = 0
+titles = 0
+statsdumper = 0
+
+[logs]
+;This sets the level of logging for the console.
+;-1 = LOG_LEVEL_MINIMUM (Only errors, and normal prompts. Warnings and debug messages supressed)
+;0  = LOG_LEVEL_WARNING (Default; Only debug messages supressed)
+;1  = LOG_LEVEL_DEBUG (All messages shown)
+ConsoleLogLevel = 0
+
+;This controls whether messages printed to the console are saved to Logs/console.log
+;0 is disabled, 1 enabled.
+;Default: 0 (disabled)
+ConsoleFileLogs = 1
+
+;This controls whether commands are logged.
+;It is highly recommended that this is enabled, as it will allow you to check
+;...for potentially abusive operators, and so forth.
+;Default: 1 (Enabled)
+CommandLogs = 1
+
+;Enabling this will result in all chat being logged in Logs/chat.log.
+;It is not recommended that this be enabled, however if you need to investigate abusive users, this can be helpful.
+;Default: 0 (Disabled)
+ChatLogs = 0
+
+[irc]
+;This section controls the use of the IRC bot
+;This is a very basic irc relay bot, there are no commands.
+;NOTE: In order for this to function, you must  load the irc plugin. See the plugins section
+EnableIRC = 0
+
+;Server the bot should connect to
+Server = irc.rizon.net
+
+;Irc port
+;Default for 99% of ircd is 6667
+Port = 6667
+
+;The channel the bot should join
+Channel = #Opticraft-Dev
+
+;The bots nickname
+Nickname = OpticraftBot
+
+;Enable relaying game messages to the irc channel
+GameChatRelay = 1
+
+;Enable relaying game joins and disconnects to the irc channel
+GameJoinsRelay = 1
+
+;Enable relaying IRC chat messages to the game
+IrcChatRelay = 1
+
+;Enable relaying IRC Join/part/Quit messages to the game
+IrcJoinsRelay = 1
+
+;Identification command. Used to identify to network services.
+;If you want the bot to identify with the following command: /msg NickServ Identify Password
+;Then set this field to:
+;IdentifyCommand = NickServ Identify Password
+;Do not add the /msg command. It will always send a message
+IdentifyCommand = NickServ Identify Password
+

@@ -3,3 +3,6 @@
 *.save
 src/opticraft.pid
 src/opticraft.salt
+src/opticraft.ini
+src/ranks.ini
+src/CrashLog.txt

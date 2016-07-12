@@ -4,6 +4,7 @@ import traceback
 import time
 import os
 import os.path
+import shutil
 import sys
 try:
     import cProfile as Profile
@@ -13,9 +14,21 @@ from core.console import *
 
 ProfileRun = False
 
+def EnsureConfigurationSetup(configName):
+    if not os.path.exists(configName):
+        if os.path.exists(configName + ".sample"):
+            shutil.copy2(configName + ".sample", configName);
+            Console.Warning("Configuration", "No %s found. Copying template from %s. Default values will be used" %(configName, configName + ".sample"))
+        else:
+            Console.Error("Configuration", "No %s found. Server terminating" %(configName))
+            sys.exit(-1)
+
 def Main():
     ServerControl = None
     try:
+        EnsureConfigurationSetup("opticraft.ini")
+        EnsureConfigurationSetup("ranks.ini")
+
         ServerControl = ServerController()
         ServerControl.Run()
     except BaseException, e:
@@ -44,7 +57,8 @@ def Main():
         return
     
 if __name__ == "__main__":
-    ProfileRun = False
+    ProfileRun = False            
+
     for i in xrange(1, len(sys.argv)):
         if sys.argv[i].lower() == "-profile":
             ProfileRun = True
