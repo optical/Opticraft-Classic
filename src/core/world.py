@@ -801,15 +801,11 @@ class World(object):
     def UnLock(self):
         '''Unlocks the worlds blocklogs. All clients on the map will have the
         ...updated level sent to them again as gzipped chunks
-        ...This is useful as the client lags when it recieves large volumes of chunk updates'''
+        ...This is useful as the client lags when it receives large volumes of chunk updates'''
         self.IsLocked = False
         for pPlayer in self.Players:
-            Packet = PacketWriter.MakeIdentifcationPacket("Reloading map...",
-                        "The map is being refreshed",
-                        0x64 if pPlayer.HasOpFlags() else 0x00)
             pPlayer.SetSpawnPosition(pPlayer.GetX(), pPlayer.GetY(), pPlayer.GetZ(), pPlayer.GetOrientation(), pPlayer.GetPitch())
             self.SendWorld(pPlayer)
-            pPlayer.SendPacket(Packet)
             
     def SendWorld(self, pPlayer):
         '''Sends the gzipped level to the client'''
