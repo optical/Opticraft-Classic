@@ -79,7 +79,8 @@ class HeartBeatController(Thread):
         "public": self.Public,
         "version": 7,
         "salt": self.Salt,
-        "users": self.Clients
+        "users": self.Clients,
+        "software": self.ServerControl.VersionString,
         }
         url = 'http://www.classicube.net/server/heartbeat?%s' % urllib.urlencode(data)
         try:
